@@ -7,15 +7,11 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  console.log('Current state - email:', email, 'password:', password);
-
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('Email change:', e.target.value);
     setEmail(e.target.value);
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('Password change:', e.target.value);
     setPassword(e.target.value);
   };
 
@@ -51,10 +47,40 @@ const Login: React.FC = () => {
       navigate('/manager-dashboard');
       return;
     }
+
+    // Hardcoded admin credentials for testing
+    if (email === 'admin@gmail.com' && password === 'admin@1') {
+      // Store admin info in localStorage for demo purposes
+      localStorage.setItem('currentUser', JSON.stringify({
+        email: 'admin@gmail.com',
+        username: 'admin',
+        role: 'admin',
+        mobile: '+94 77 555 0001',
+        department: 'Administration',
+        employeeId: 'ADM-001'
+      }));
+      navigate('/admin-dashboard');
+      return;
+    }
+
+    // Hardcoded auditor credentials for testing
+    if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
+      // Store auditor info in localStorage for demo purposes
+      localStorage.setItem('currentUser', JSON.stringify({
+        email: 'auditor1@gmail.com',
+        name: 'Auditor User',
+        role: 'auditor',
+        phone: '+94 77 555 0002',
+        department: 'Audit & Compliance',
+        employeeId: 'AUD-001',
+        joinDate: '2023-03-01'
+      }));
+      navigate('/auditor-dashboard');
+      return;
+    }
     
     // TODO: Implement real login logic
-    console.log('Login attempt:', { email, password });
-    alert('Invalid credentials. Use customer1@gmail.com / customer@1 for demo.');
+    alert('Invalid credentials. Try:\nCustomer: customer1@gmail.com / customer@1\nManager: manager1@gmail.com / manager@1\nAdmin: admin@gmail.com / admin@1\nAuditor: auditor1@gmail.com / auditor@1');
   };
 
   const handleRegister = () => {
@@ -79,8 +105,6 @@ const Login: React.FC = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-              onFocus={() => console.log('Email field focused')}
-              onClick={() => console.log('Email field clicked')}
               placeholder="Enter your email address"
               autoComplete="email"
               tabIndex={1}
@@ -95,8 +119,6 @@ const Login: React.FC = () => {
               id="password"
               value={password}
               onChange={handlePasswordChange}
-              onFocus={() => console.log('Password field focused')}
-              onClick={() => console.log('Password field clicked')}
               placeholder="Enter your password"
               autoComplete="current-password"
               tabIndex={2}

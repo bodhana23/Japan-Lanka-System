@@ -3,7 +3,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   padding: 2rem 1rem;
   position: relative;
@@ -21,14 +21,14 @@
 }
 
 .register-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(30, 30, 30, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 3rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 197, 94, 0.1);
   width: 100%;
   max-width: 480px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(34, 197, 94, 0.2);
   position: relative;
   z-index: 1;
 }
@@ -37,22 +37,22 @@
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 2px solid rgba(0, 184, 148, 0.1);
+  border-bottom: 2px solid rgba(34, 197, 94, 0.2);
 }
 
 .company-header h1 {
-  color: #2c3e50;
+  color: #ffffff;
   font-size: 2rem;
   margin: 0 0 0.5rem 0;
   font-weight: 700;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .company-header p {
-  color: #7f8c8d;
+  color: #a1a1aa;
   font-size: 1.1rem;
   margin: 0;
   font-weight: 400;
@@ -61,7 +61,7 @@
 
 .register-form h2 {
   text-align: center;
-  color: #34495e;
+  color: #ffffff;
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
   font-weight: 500;
@@ -74,7 +74,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.7rem;
-  color: #555;
+  color: #ffffff;
   font-weight: 600;
   font-size: 0.95rem;
   letter-spacing: 0.3px;
@@ -84,31 +84,32 @@
 .form-group select {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #e9ecef;
+  border: 2px solid #4a5568;
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.9);
+  background: #2d3748;
+  color: #ffffff;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #00b894;
-  box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
-  background: white;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+  background: #2d3748;
   transform: translateY(-2px);
 }
 
 .form-group input::placeholder {
-  color: #adb5bd;
+  color: #a1a1aa;
   font-weight: 300;
 }
 
 .form-group select {
   cursor: pointer;
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%2300b894" d="M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/></svg>');
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%2322c55e" d="M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/></svg>');
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 1rem;
@@ -116,7 +117,7 @@
 
 .register-btn {
   width: 100%;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
   border: none;
   padding: 1rem;
@@ -126,12 +127,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
 }
 
 .register-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
 }
 
 .register-btn:active {
@@ -141,11 +142,11 @@
 .login-section {
   text-align: center;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(0, 184, 148, 0.1);
+  border-top: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .login-section p {
-  color: #6c757d;
+  color: #a1a1aa;
   margin-bottom: 1rem;
   font-size: 0.95rem;
   font-weight: 400;
@@ -153,8 +154,8 @@
 
 .back-login-btn {
   background: transparent;
-  color: #00b894;
-  border: 2px solid #00b894;
+  color: #22c55e;
+  border: 2px solid #22c55e;
   padding: 0.8rem 2.5rem;
   border-radius: 12px;
   font-size: 1rem;
@@ -164,10 +165,10 @@
 }
 
 .back-login-btn:hover {
-  background: #00b894;
+  background: #22c55e;
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
 }
 
 @media (max-width: 480px) {

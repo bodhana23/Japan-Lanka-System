@@ -5,6 +5,8 @@ import Register from './pages/Register';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Shop from './pages/Shop';
 import ManagerDashboard from './pages/ManagerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import AuditorDashboard from './pages/AuditorDashboard';
 import './App.css';
 
 function App() {
@@ -17,6 +19,8 @@ function App() {
           <Route path="/dashboard" element={<CustomerDashboard />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/manager-dashboard" element={<ManagerDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/auditor-dashboard" element={<AuditorDashboard />} />
         </Routes>
       </div>
     </Router>

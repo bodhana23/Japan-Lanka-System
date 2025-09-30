@@ -252,28 +252,28 @@ const CustomerDashboard: React.FC = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const navigate = useNavigate();
 
-  // Hardcoded previous orders for demo
+  // Previous vehicle parts orders for demo
   const [orders] = useState<Order[]>([
     {
       id: 'ORD-001',
-      items: ['Brake Pads', 'Engine Oil Filter'],
-      amount: 12550.00,
+      items: ['Brake Pads Set (Toyota Camry)', 'Engine Oil Filter (Honda Civic)'],
+      amount: 5700.00,
       status: 'delivered',
-      orderDate: '2025-09-25'
+      orderDate: '2025-01-15'
     },
     {
       id: 'ORD-002',
-      items: ['Headlight Bulb', 'Windshield Wipers'],
-      amount: 7899.00,
+      items: ['LED Headlight Bulbs (BMW 3 Series)', 'Air Filter (Ford Focus)'],
+      amount: 4650.00,
       status: 'ready_to_pickup',
-      orderDate: '2025-09-28'
+      orderDate: '2025-01-18'
     },
     {
       id: 'ORD-003',
-      items: ['Air Filter', 'Spark Plugs', 'Oil Change Kit'],
-      amount: 18925.00,
+      items: ['Spark Plugs Set (Nissan Altima)', 'Timing Belt (Honda Accord)'],
+      amount: 8700.00,
       status: 'in_progress',
-      orderDate: '2025-09-29'
+      orderDate: '2025-01-20'
     }
   ]);
 

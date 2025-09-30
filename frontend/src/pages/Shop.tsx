@@ -23,95 +23,73 @@ const Shop: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
 
-  // Hardcoded products for demo
+  // Vehicle parts inventory for demo
   const [products] = useState<Product[]>([
     {
       id: 'P001',
-      name: 'Brake Pads',
+      name: 'Brake Pads Set',
       model: 'Toyota Camry',
       modelYear: '2018-2023',
-      price: 4599.00,
+      price: 4500.00,
       quantityAvailable: 25,
       category: 'Brake System',
       image: '🔧',
-      description: 'High-quality ceramic brake pads for optimal stopping power'
+      description: 'High-quality ceramic brake pads for Toyota Camry 2018-2023'
     },
     {
       id: 'P002',
       name: 'Engine Oil Filter',
       model: 'Honda Civic',
       modelYear: '2016-2021',
-      price: 1299.00,
-      quantityAvailable: 50,
-      category: 'Engine',
+      price: 1200.00,
+      quantityAvailable: 2,
+      category: 'Engine Parts',
       image: '⚙️',
-      description: 'Premium oil filter for engine protection and performance'
+      description: 'Premium oil filter for Honda Civic 2016-2021'
     },
     {
       id: 'P003',
-      name: 'Headlight Bulb',
+      name: 'LED Headlight Bulbs',
       model: 'BMW 3 Series',
       modelYear: '2019-2024',
-      price: 2850.00,
-      quantityAvailable: 15,
+      price: 2800.00,
+      quantityAvailable: 1,
       category: 'Lighting',
       image: '💡',
-      description: 'LED headlight bulb with enhanced brightness and longevity'
+      description: 'LED headlight bulb set for BMW 3 Series 2019-2024'
     },
     {
       id: 'P004',
       name: 'Air Filter',
       model: 'Ford Focus',
       modelYear: '2015-2020',
-      price: 1875.00,
+      price: 1850.00,
       quantityAvailable: 30,
-      category: 'Engine',
+      category: 'Engine Parts',
       image: '🌪️',
-      description: 'High-flow air filter for improved engine breathing'
+      description: 'High-flow air filter for Ford Focus 2015-2020'
     },
     {
       id: 'P005',
-      name: 'Spark Plugs',
+      name: 'Spark Plugs Set',
       model: 'Nissan Altima',
       modelYear: '2017-2022',
-      price: 3520.00,
-      quantityAvailable: 40,
-      category: 'Engine',
+      price: 3200.00,
+      quantityAvailable: 15,
+      category: 'Engine Parts',
       image: '⚡',
-      description: 'Iridium spark plugs for enhanced ignition and fuel efficiency'
+      description: 'Iridium spark plugs for Nissan Altima 2017-2022'
     },
     {
       id: 'P006',
-      name: 'Windshield Wipers',
-      model: 'Universal',
-      modelYear: '2010-2025',
-      price: 2299.00,
-      quantityAvailable: 60,
-      category: 'Exterior',
-      image: '🌧️',
-      description: 'All-weather windshield wipers with rubber technology'
-    },
-    {
-      id: 'P007',
-      name: 'Transmission Oil',
-      model: 'Mercedes C-Class',
-      modelYear: '2014-2021',
-      price: 8999.00,
-      quantityAvailable: 20,
-      category: 'Transmission',
-      image: '🛢️',
-      description: 'Synthetic transmission fluid for smooth gear shifts'
-    },
-    {
-      id: 'P008',
-      name: 'Battery',
-      model: 'Audi A4',
-      modelYear: '2016-2023',
-      price: 12500.00,
-      quantityAvailable: 12,
-      category: 'Electrical',
-      image: '🔋',
-      description: 'High-performance battery with 3-year warranty'
+      name: 'Timing Belt',
+      model: 'Honda Accord',
+      modelYear: '2013-2017',
+      price: 5500.00,
+      quantityAvailable: 8,
+      category: 'Engine Parts',
+      image: '⏰',
+      description: 'Timing belt kit for Honda Accord 2013-2017'
     }
   ]);
 
