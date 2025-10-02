@@ -339,6 +339,14 @@ const CustomerDashboard: React.FC = () => {
         </div>
       </header>
 
+      {/* Place Order Button Section */}
+      <div className="top-action-section">
+        <button onClick={handleNewOrder} className="place-order-btn">
+          <span className="btn-icon">🛒</span>
+          Place an Order
+        </button>
+      </div>
+
       <main className="dashboard-main">
         <div className="dashboard-grid">
           {/* Profile Section */}
@@ -410,14 +418,6 @@ const CustomerDashboard: React.FC = () => {
               )}
             </div>
           </section>
-        </div>
-
-        {/* New Order Button */}
-        <div className="new-order-section">
-          <button onClick={handleNewOrder} className="new-order-btn">
-            <span className="btn-icon">🛒</span>
-            Place New Order
-          </button>
         </div>
       </main>
 
