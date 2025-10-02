@@ -1,17 +1,17 @@
 .shop-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: #ffffff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .shop-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
+  background: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 1rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  border-bottom: 3px solid #00b894;
 }
 
 .header-content {
@@ -24,13 +24,9 @@
 }
 
 .header-content h1 {
-  color: #2c3e50;
+  color: #00b894;
   font-size: 1.8rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin: 0;
 }
 

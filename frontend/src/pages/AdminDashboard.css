@@ -1,15 +1,14 @@
 .admin-dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%);
-  color: white;
+  background: #ffffff;
+  color: #333333;
 }
 
 .admin-header {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(15px);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 3px solid #00b894;
   padding: 1.2rem 0;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
@@ -25,8 +24,8 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin: 0;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: #00b894;
+  text-shadow: none;
 }
 
 .header-actions {
@@ -38,12 +37,12 @@
 .welcome-text {
   font-size: 1.1rem;
   font-weight: 500;
-  color: #ecf0f1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  color: #333333;
+  text-shadow: none;
 }
 
 .logout-btn {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
   border: none;
   color: white;
   padding: 0.75rem 1.5rem;
@@ -51,12 +50,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .logout-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
 }
 
 .admin-main {
@@ -72,29 +71,29 @@
 }
 
 .tab-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  background: #ffffff;
+  border: 2px solid #00b894;
+  color: #333333;
   padding: 1.2rem 2.5rem;
   border-radius: 15px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1.1rem;
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: #f8f9fa;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .tab-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #2c3e50;
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: #00b894;
+  color: #ffffff;
+  border-color: #00b894;
+  box-shadow: 0 8px 32px rgba(0, 184, 148, 0.25);
   text-shadow: none;
 }
 
@@ -108,14 +107,14 @@
 .section-header h2 {
   font-size: 1.8rem;
   margin: 0;
-  color: #ffffff;
+  color: #333333;
   font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
 }
 
 /* Financial Analytics Styles */
 .analytics-section {
-  color: white;
+  color: #333333;
 }
 
 .sales-cards {
@@ -126,23 +125,24 @@
 }
 
 .sales-card {
-  background: rgba(255, 255, 255, 0.95);
-  color: #2c3e50;
+  background: #ffffff;
+  color: #333333;
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid #e8e8e8;
 }
 
 .sales-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  border-color: #00b894;
 }
 
 .sales-card.current-month {
-  border-color: #f39c12;
-  box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+  border-color: #ff6b6b;
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
 }
 
 .sales-header {
@@ -156,11 +156,11 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #333333;
 }
 
 .current-badge {
-  background: linear-gradient(135deg, #f39c12, #e67e22);
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
   color: white;
   padding: 0.3rem 0.8rem;
   border-radius: 15px;
@@ -178,14 +178,14 @@
 .currency {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #27ae60;
+  color: #00b894;
   margin-right: 0.5rem;
 }
 
 .amount {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #27ae60;
+  color: #00b894;
 }
 
 .sales-details {
@@ -203,14 +203,14 @@
 
 .detail-label {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #666666;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #333333;
 }
 
 .sales-trend {
@@ -225,20 +225,20 @@
 }
 
 .trend.up {
-  background: rgba(46, 204, 113, 0.2);
-  color: #27ae60;
+  background: rgba(0, 184, 148, 0.2);
+  color: #00b894;
 }
 
 .trend.down {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
 }
 
 .summary-section h3 {
-  color: #ffffff;
+  color: #333333;
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
 }
 
 .summary-cards {
@@ -248,29 +248,31 @@
 }
 
 .summary-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border: 2px solid #e8e8e8;
   border-radius: 15px;
   padding: 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .summary-card:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #f8f9fa;
   transform: translateY(-3px);
+  border-color: #00b894;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .summary-card h4 {
-  color: #ecf0f1;
+  color: #333333;
   margin: 0 0 1rem 0;
   font-size: 1rem;
   font-weight: 500;
 }
 
 .summary-amount {
-  color: #27ae60;
+  color: #00b894;
   font-size: 1.8rem;
   font-weight: 700;
   margin: 0;
@@ -278,21 +280,21 @@
 
 /* Low Stock Inventory Styles */
 .alert-badge {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
   color: white;
   padding: 0.8rem 1.5rem;
   border-radius: 25px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .no-alerts {
   text-align: center;
   padding: 3rem;
-  background: rgba(46, 204, 113, 0.1);
-  border: 2px solid rgba(46, 204, 113, 0.3);
+  background: rgba(0, 184, 148, 0.1);
+  border: 2px solid rgba(0, 184, 148, 0.3);
   border-radius: 20px;
-  color: #27ae60;
+  color: #00b894;
 }
 
 .no-alerts h3 {
@@ -308,19 +310,19 @@
 }
 
 .low-stock-item {
-  background: rgba(255, 255, 255, 0.95);
-  color: #2c3e50;
+  background: #ffffff;
+  color: #333333;
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border: 2px solid rgba(231, 76, 60, 0.3);
+  border: 2px solid rgba(255, 107, 107, 0.3);
 }
 
 .low-stock-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-  border-color: rgba(231, 76, 60, 0.5);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 107, 107, 0.5);
 }
 
 .stock-alert {
@@ -329,9 +331,9 @@
   gap: 0.5rem;
   margin-bottom: 1rem;
   padding: 0.8rem;
-  background: rgba(231, 76, 60, 0.1);
+  background: rgba(255, 107, 107, 0.1);
   border-radius: 15px;
-  border: 1px solid rgba(231, 76, 60, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.2);
 }
 
 .alert-icon {
@@ -340,7 +342,7 @@
 
 .stock-level {
   font-weight: 700;
-  color: #e74c3c;
+  color: #ff6b6b;
 }
 
 .item-icon {
@@ -348,21 +350,21 @@
   text-align: center;
   margin-bottom: 1rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #00b894, #00a085);
   border-radius: 15px;
   color: white;
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
 }
 
 .item-info h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #333333;
 }
 
 .item-model {
-  color: #7f8c8d;
+  color: #666666;
   margin: 0 0 0.5rem 0;
   font-weight: 500;
 }
@@ -370,19 +372,19 @@
 .item-price {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #27ae60;
+  color: #00b894;
   margin: 0 0 0.5rem 0;
 }
 
 .item-category {
-  color: #34495e;
+  color: #555555;
   font-weight: 500;
   margin: 0 0 1.5rem 0;
 }
 
 .order-btn {
   width: 100%;
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
   border: none;
   color: white;
   padding: 1rem;
@@ -390,28 +392,28 @@
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
   font-size: 1rem;
 }
 
 .order-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
 .inventory-summary {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border: 2px solid #e8e8e8;
   border-radius: 20px;
   padding: 2rem;
   margin-top: 2rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .inventory-summary h3 {
-  color: #ffffff;
+  color: #333333;
   margin-bottom: 1.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
 }
 
 .inventory-stats {
@@ -425,12 +427,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: #f8f9fa;
   border-radius: 15px;
+  border: 1px solid #e8e8e8;
 }
 
 .stat-label {
-  color: #ecf0f1;
+  color: #333333;
   font-weight: 500;
 }
 
@@ -440,16 +443,16 @@
 }
 
 .stat-value.critical {
-  color: #e74c3c;
+  color: #ff6b6b;
 }
 
 .stat-value.healthy {
-  color: #27ae60;
+  color: #00b894;
 }
 
 /* Profile Styles */
 .edit-profile-btn {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
   border: none;
   color: white;
   padding: 0.75rem 1.5rem;
@@ -457,21 +460,22 @@
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
 }
 
 .edit-profile-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
 }
 
 .profile-card {
-  background: rgba(255, 255, 255, 0.95);
-  color: #2c3e50;
+  background: #ffffff;
+  color: #333333;
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   max-width: 600px;
+  border: 2px solid #e8e8e8;
 }
 
 .profile-info {
@@ -484,19 +488,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: rgba(52, 73, 94, 0.05);
+  background: #f8f9fa;
   border-radius: 15px;
-  border: 1px solid rgba(52, 73, 94, 0.1);
+  border: 1px solid #e8e8e8;
 }
 
 .profile-label {
   font-weight: 600;
-  color: #2c3e50;
+  color: #333333;
 }
 
 .profile-value {
   font-weight: 500;
-  color: #34495e;
+  color: #555555;
 }
 
 /* Modal Styles */
@@ -515,15 +519,15 @@
 }
 
 .modal-content {
-  background: linear-gradient(135deg, #ecf0f1 0%, #ffffff 100%);
+  background: #ffffff;
   border-radius: 25px;
   padding: 2.5rem;
   max-width: 550px;
   width: 95%;
   max-height: 90vh;
   overflow-y: auto;
-  color: #2c3e50;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #333333;
+  border: 2px solid #e8e8e8;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
 }
 
@@ -533,18 +537,18 @@
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(52, 73, 94, 0.1);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #2c3e50;
+  color: #333333;
   font-weight: 700;
 }
 
 .close-modal {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
   border: none;
   color: white;
   font-size: 1.5rem;
@@ -557,12 +561,12 @@
   justify-content: center;
   border-radius: 50%;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .close-modal:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
 .profile-form {
@@ -580,16 +584,16 @@
 .form-group label {
   font-weight: 700;
   font-size: 1rem;
-  color: #2c3e50;
+  color: #333333;
   margin-bottom: 0.5rem;
 }
 
 .form-group input {
   background: #ffffff;
-  border: 2px solid #d5dbdb;
+  border: 2px solid #e8e8e8;
   border-radius: 12px;
   padding: 0.875rem;
-  color: #2c3e50;
+  color: #333333;
   font-size: 1rem;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -598,9 +602,9 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #00b894;
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15), 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.15), 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .form-actions {
@@ -622,26 +626,26 @@
 }
 
 .cancel-btn {
-  background: #95a5a6;
+  background: #999999;
   color: white;
-  box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+  box-shadow: 0 4px 15px rgba(153, 153, 153, 0.3);
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: #777777;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+  box-shadow: 0 6px 20px rgba(153, 153, 153, 0.4);
 }
 
 .save-btn {
-  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
 }
 
 .save-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
 }
 
 /* Responsive Design */
