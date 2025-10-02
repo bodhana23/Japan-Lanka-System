@@ -365,8 +365,14 @@ const AuditorDashboard: React.FC = () => {
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
-      const userData = JSON.parse(currentUser);
-      setUser(userData);
+      try {
+        const userData = JSON.parse(currentUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+        localStorage.removeItem('currentUser');
+        navigate('/');
+      }
     } else {
       navigate('/');
     }
@@ -537,7 +543,7 @@ const AuditorDashboard: React.FC = () => {
                         <strong>Metadata:</strong>
                         {Object.entries(log.metadata).map(([key, value]) => (
                           <span key={key} className="metadata-item">
-                            {key}: {value}
+                            {key}: {value != null ? String(value) : 'N/A'}
                           </span>
                         ))}
                       </div>

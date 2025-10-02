@@ -113,17 +113,25 @@ const AdminDashboard: React.FC = () => {
   ]);
 
   // Filter low stock items (quantity < 3)
-  const lowStockItems = inventoryData.filter(item => item.quantityAvailable < 3);
+  const lowStockItems = inventoryData.filter(item => 
+    item && typeof item.quantityAvailable === 'number' && item.quantityAvailable < 3
+  );
 
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
-      const userData = JSON.parse(currentUser);
-      if (userData.role !== 'admin') {
-        navigate('/dashboard');
-        return;
+      try {
+        const userData = JSON.parse(currentUser);
+        if (userData.role !== 'admin') {
+          navigate('/dashboard');
+          return;
+        }
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+        localStorage.removeItem('currentUser');
+        navigate('/');
       }
-      setUser(userData);
     } else {
       navigate('/');
     }
@@ -367,8 +375,18 @@ const EditProfileModal: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      alert('User data not available. Please refresh and try again.');
+      return;
+    }
+    
+    if (!formData.username || !formData.email || !formData.mobile) {
+      alert('Please fill in all required fields (username, email, mobile).');
+      return;
+    }
+    
     onSave({
-      ...user!,
+      ...user,
       ...formData
     });
   };

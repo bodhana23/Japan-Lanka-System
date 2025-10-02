@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { validateEmail, sanitizeInput } from '../utils/validation';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -8,15 +9,27 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+    const sanitizedEmail = sanitizeInput(e.target.value);
+    setEmail(sanitizedEmail);
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
+    const sanitizedPassword = sanitizeInput(e.target.value);
+    setPassword(sanitizedPassword);
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateEmail(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    
+    if (!password) {
+      alert('Please enter your password.');
+      return;
+    }
     
     // Hardcoded customer credentials for testing
     if (email === 'customer1@gmail.com' && password === 'customer@1') {

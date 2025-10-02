@@ -36,7 +36,6 @@ const Register: React.FC = () => {
     }
     
     // TODO: Implement registration logic
-    console.log('Registration attempt:', formData);
     alert('Registration successful! Please login with your email.');
     navigate('/');
   };
