@@ -280,12 +280,18 @@ const CustomerDashboard: React.FC = () => {
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
-      const userData = JSON.parse(currentUser);
-      // Add mobile number if not present (for existing users)
-      if (!userData.mobile) {
-        userData.mobile = '+94 77 123 4567'; // Default mobile number
+      try {
+        const userData = JSON.parse(currentUser);
+        // Add mobile number if not present (for existing users)
+        if (!userData.mobile) {
+          userData.mobile = '+94 77 123 4567'; // Default mobile number
+        }
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+        localStorage.removeItem('currentUser');
+        navigate('/');
       }
-      setUser(userData);
     } else {
       navigate('/');
     }
@@ -310,7 +316,12 @@ const CustomerDashboard: React.FC = () => {
 
   const handleUpdateProfile = (updatedUser: UserProfile) => {
     setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error saving user data to localStorage:', error);
+      alert('Warning: Profile changes may not persist after refresh.');
+    }
     setShowEditProfile(false);
   };
 

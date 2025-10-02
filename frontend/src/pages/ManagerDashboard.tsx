@@ -158,22 +158,35 @@ const ManagerDashboard: React.FC = () => {
   };
 
   const handleAddProduct = () => {
-    if (newProduct.name && newProduct.price && newProduct.category) {
-      const product: Product = {
-        ...newProduct,
-        id: `P${Date.now()}`
-      };
-      setProducts([...products, product]);
-      setNewProduct({
-        name: '',
-        price: 0,
-        category: '',
-        quantity: 0,
-        description: ''
-      });
-      setShowAddProduct(false);
-      alert('Product added successfully!');
+    if (!newProduct.name || !newProduct.category) {
+      alert('Please fill in all required fields (name and category).');
+      return;
     }
+    
+    if (newProduct.price <= 0) {
+      alert('Price must be greater than 0.');
+      return;
+    }
+    
+    if (newProduct.quantity < 0) {
+      alert('Quantity cannot be negative.');
+      return;
+    }
+    
+    const product: Product = {
+      ...newProduct,
+      id: `P${Date.now()}`
+    };
+    setProducts([...products, product]);
+    setNewProduct({
+      name: '',
+      price: 0,
+      category: '',
+      quantity: 0,
+      description: ''
+    });
+    setShowAddProduct(false);
+    alert('Product added successfully!');
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -235,10 +248,16 @@ const ManagerDashboard: React.FC = () => {
       return;
     }
     
-    const parsedUser = JSON.parse(currentUser);
-    if (parsedUser.role !== 'manager') {
+    try {
+      const parsedUser = JSON.parse(currentUser);
+      if (parsedUser.role !== 'manager') {
+        navigate('/');
+        return;
+      }
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+      localStorage.removeItem('currentUser');
       navigate('/');
-      return;
     }
   }, [navigate]);
 
@@ -575,13 +594,17 @@ const ReturnChatModal: React.FC<{
         <div className="chat-section">
           <h4>Communication</h4>
           <div className="chat-messages">
-            {returnRequest.messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.sender === 'manager1' ? 'manager' : 'customer'}`}>
-                <div className="message-sender">{msg.sender}</div>
-                <div className="message-content">{msg.message}</div>
-                <div className="message-time">{msg.timestamp}</div>
-              </div>
-            ))}
+            {returnRequest.messages && returnRequest.messages.length > 0 ? (
+              returnRequest.messages.map((msg, index) => (
+                <div key={`${returnRequest.id}-${index}`} className={`message ${msg.sender === 'manager1' ? 'manager' : 'customer'}`}>
+                  <div className="message-sender">{msg.sender || 'Unknown'}</div>
+                  <div className="message-content">{msg.message || ''}</div>
+                  <div className="message-time">{msg.timestamp || ''}</div>
+                </div>
+              ))
+            ) : (
+              <div className="no-messages">No messages yet</div>
+            )}
           </div>
 
           <div className="chat-input">

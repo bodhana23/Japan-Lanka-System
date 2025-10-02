@@ -112,9 +112,15 @@ const Shop: React.FC = () => {
   };
 
   const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity === 0) {
+    if (newQuantity <= 0) {
       setCart(cart.filter(item => item.id !== productId));
     } else {
+      const product = products.find(p => p.id === productId);
+      if (product && newQuantity > product.quantityAvailable) {
+        alert('Cannot exceed available stock quantity.');
+        return;
+      }
+      
       setCart(cart.map(item =>
         item.id === productId
           ? { ...item, quantity: newQuantity }
@@ -124,11 +130,18 @@ const Shop: React.FC = () => {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => {
+      const price = typeof item.price === 'number' && !isNaN(item.price) ? item.price : 0;
+      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
+      return total + (price * quantity);
+    }, 0);
   };
 
   const getTotalItems = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
+    return cart.reduce((total, item) => {
+      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
+      return total + quantity;
+    }, 0);
   };
 
   const handleCheckout = () => {
