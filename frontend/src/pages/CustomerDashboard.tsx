@@ -282,6 +282,10 @@ const CustomerDashboard: React.FC = () => {
     if (currentUser) {
       try {
         const userData = JSON.parse(currentUser);
+        // Validate user data structure
+        if (!userData || typeof userData !== 'object' || !userData.email || !userData.role) {
+          throw new Error('Invalid user data structure');
+        }
         // Add mobile number if not present (for existing users)
         if (!userData.mobile) {
           userData.mobile = '+94 77 123 4567'; // Default mobile number
@@ -289,7 +293,11 @@ const CustomerDashboard: React.FC = () => {
         setUser(userData);
       } catch (error) {
         console.error('Error parsing user data from localStorage:', error);
-        localStorage.removeItem('currentUser');
+        try {
+          localStorage.removeItem('currentUser');
+        } catch (storageError) {
+          console.error('Error removing corrupted user data:', storageError);
+        }
         navigate('/');
       }
     } else {
@@ -298,7 +306,11 @@ const CustomerDashboard: React.FC = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+    try {
+      localStorage.removeItem('currentUser');
+    } catch (error) {
+      console.error('Error clearing user data:', error);
+    }
     navigate('/');
   };
 
@@ -318,11 +330,18 @@ const CustomerDashboard: React.FC = () => {
     setUser(updatedUser);
     try {
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      setShowEditProfile(false);
     } catch (error) {
       console.error('Error saving user data to localStorage:', error);
-      alert('Warning: Profile changes may not persist after refresh.');
+      // More specific error handling
+      if (error instanceof DOMException && error.code === 22) {
+        alert('Storage quota exceeded. Please clear some browser data and try again.');
+      } else {
+        alert('Warning: Profile changes may not persist after refresh due to storage restrictions.');
+      }
+      // Still close the modal even if save fails
+      setShowEditProfile(false);
     }
-    setShowEditProfile(false);
   };
 
   const getStatusBadge = (status: string) => {
