@@ -87,13 +87,13 @@ const Login: React.FC = () => {
       if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
         // Store auditor info in localStorage for demo purposes
         const userData = {
+          id: 3,
           email: 'auditor1@gmail.com',
           name: 'Auditor User',
           role: 'auditor',
           phone: '+94 77 555 0002',
           department: 'Audit & Compliance',
-          employeeId: 'AUD-001',
-          joinDate: '2023-03-01'
+          employeeId: 'AUD-001'
         };
         
         localStorage.setItem('currentUser', JSON.stringify(userData));

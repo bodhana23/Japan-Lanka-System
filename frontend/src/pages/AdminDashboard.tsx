@@ -168,7 +168,7 @@ const AdminDashboard: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Enterprises - Admin Portal</h1>
           <div className="header-actions">
-            <span className="welcome-text">Welcome, {user.username}!</span>
+            <span className="welcome-text">Welcome, {user?.username || user?.email || 'Admin'}!</span>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
@@ -217,11 +217,11 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Avg Order:</span>
-                      <span className="detail-value">Rs. {Math.round(data.sales / data.orders).toLocaleString()}</span>
+                      <span className="detail-value">Rs. {data.orders > 0 ? Math.round(data.sales / data.orders).toLocaleString() : '0'}</span>
                     </div>
                   </div>
                   <div className="sales-trend">
-                    {index > 0 && (
+                    {index > 0 && salesData[index - 1] && salesData[index - 1].sales > 0 && (
                       <span className={`trend ${data.sales > salesData[index - 1].sales ? 'up' : 'down'}`}>
                         {data.sales > salesData[index - 1].sales ? '📈' : '📉'}
                         {Math.abs(((data.sales - salesData[index - 1].sales) / salesData[index - 1].sales) * 100).toFixed(1)}%
@@ -318,36 +318,85 @@ const AdminDashboard: React.FC = () => {
                 onClick={() => setShowEditProfile(true)} 
                 className="edit-profile-btn"
               >
-                ✏️ Edit Profile
+                <span className="edit-icon">✏️</span>
+                Edit Profile
               </button>
             </div>
             
             <div className="profile-card">
-              <div className="profile-info">
-                <div className="profile-item">
-                  <span className="profile-label">Username:</span>
-                  <span className="profile-value">{user?.username}</span>
+              <div className="profile-header">
+                <div className="profile-avatar-large">
+                  <div className="avatar-large">
+                    {user?.username?.charAt(0).toUpperCase() || 'A'}
+                  </div>
                 </div>
-                <div className="profile-item">
-                  <span className="profile-label">Email:</span>
-                  <span className="profile-value">{user?.email}</span>
+                <div className="profile-summary">
+                  <h3>{user?.username || 'Admin User'}</h3>
+                  <p className="profile-role-badge">Administrator</p>
+                  <p className="profile-email-text">{user?.email}</p>
                 </div>
-                <div className="profile-item">
-                  <span className="profile-label">Role:</span>
-                  <span className="profile-value">{user?.role}</span>
+              </div>
+
+              <div className="profile-details">
+                <div className="detail-grid">
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👤</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Username</span>
+                      <span className="profile-value">{user?.username || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📧</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Email Address</span>
+                      <span className="profile-value">{user?.email || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👔</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Role</span>
+                      <span className="profile-value">Administrator</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📱</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Mobile Number</span>
+                      <span className="profile-value">{user?.mobile || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">🏢</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Department</span>
+                      <span className="profile-value">{user?.department || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">🆔</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Employee ID</span>
+                      <span className="profile-value">{user?.employeeId || 'N/A'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="profile-item">
-                  <span className="profile-label">Mobile:</span>
-                  <span className="profile-value">{user?.mobile}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Department:</span>
-                  <span className="profile-value">{user?.department}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Employee ID:</span>
-                  <span className="profile-value">{user?.employeeId}</span>
-                </div>
+              </div>
+
+              <div className="profile-actions">
+                <button 
+                  className="edit-profile-btn-main"
+                  onClick={() => setShowEditProfile(true)}
+                >
+                  <span className="action-icon">✏️</span>
+                  Edit Profile Information
+                </button>
               </div>
             </div>
           </div>
@@ -385,22 +434,67 @@ const EditProfileModal: React.FC<{
     employeeId: user?.employeeId || ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
+    // Username validation
+    if (!formData.username || formData.username.trim().length < 2) {
+      newErrors.username = 'Username must be at least 2 characters long';
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Mobile validation
+    const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
+    if (!formData.mobile || !phoneRegex.test(formData.mobile)) {
+      newErrors.mobile = 'Please enter a valid mobile number';
+    }
+
+    // Department validation
+    if (!formData.department || formData.department.trim().length < 2) {
+      newErrors.department = 'Department must be at least 2 characters long';
+    }
+
+    // Employee ID validation
+    if (!formData.employeeId || formData.employeeId.trim().length < 3) {
+      newErrors.employeeId = 'Employee ID must be at least 3 characters long';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!user) {
       alert('User data not available. Please refresh and try again.');
       return;
     }
     
-    if (!formData.username || !formData.email || !formData.mobile) {
-      alert('Please fill in all required fields (username, email, mobile).');
-      return;
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      onSave({
+        ...user,
+        ...formData
+      });
+    } catch (error) {
+      alert('Error updating profile. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    onSave({
-      ...user,
-      ...formData
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -409,75 +503,164 @@ const EditProfileModal: React.FC<{
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({...errors, [name]: ''});
+    }
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content edit-profile-modal">
         <div className="modal-header">
-          <h2>Edit Admin Profile</h2>
-          <button onClick={onClose} className="close-modal">×</button>
+          <div className="modal-title-section">
+            <div className="profile-icon">👤</div>
+            <h2>Edit Admin Profile</h2>
+          </div>
+          <button onClick={onClose} className="close-modal" disabled={isLoading}>×</button>
         </div>
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-            />
+
+        <div className="edit-profile-form">
+          {/* Profile Picture Section */}
+          <div className="profile-picture-section">
+            <div className="profile-avatar">
+              <div className="avatar-placeholder">
+                {formData.username.charAt(0).toUpperCase() || 'A'}
+              </div>
+            </div>
+            <p className="profile-email">{formData.email}</p>
+            <p className="profile-role">Administrator</p>
           </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Mobile Number</label>
-            <input
-              type="text"
-              name="mobile"
-              value={formData.mobile}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Department</label>
-            <input
-              type="text"
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Employee ID</label>
-            <input
-              type="text"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-actions">
-            <button type="button" onClick={onClose} className="cancel-btn">
-              Cancel
-            </button>
-            <button type="submit" className="save-btn">
-              Save Changes
-            </button>
-          </div>
-        </form>
+
+          {/* Form Fields */}
+          <form onSubmit={handleSubmit} className="profile-form">
+            <div className="form-fields">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="username">
+                    <span className="label-icon">👤</span>
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="Enter your username"
+                    className={errors.username ? 'error' : ''}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.username && <span className="error-message">{errors.username}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="email">
+                    <span className="label-icon">📧</span>
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email address"
+                    className={errors.email ? 'error' : ''}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.email && <span className="error-message">{errors.email}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="mobile">
+                    <span className="label-icon">📱</span>
+                    Mobile Number *
+                  </label>
+                  <input
+                    type="tel"
+                    id="mobile"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="+94 71 234 5678"
+                    className={errors.mobile ? 'error' : ''}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.mobile && <span className="error-message">{errors.mobile}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="department">
+                    <span className="label-icon">🏢</span>
+                    Department *
+                  </label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    placeholder="Enter your department"
+                    className={errors.department ? 'error' : ''}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.department && <span className="error-message">{errors.department}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="employeeId">
+                    <span className="label-icon">🆔</span>
+                    Employee ID *
+                  </label>
+                  <input
+                    type="text"
+                    id="employeeId"
+                    name="employeeId"
+                    value={formData.employeeId}
+                    onChange={handleChange}
+                    placeholder="Enter your employee ID"
+                    className={errors.employeeId ? 'error' : ''}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.employeeId && <span className="error-message">{errors.employeeId}</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button type="button" onClick={onClose} className="cancel-btn" disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className={`save-btn ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span className="save-icon">💾</span>
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
