@@ -453,7 +453,7 @@ const AuditorDashboard: React.FC = () => {
     employeeId: 'JL-AUD-003'
   });
 
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
+  const [auditLogs, _setAuditLogs] = useState<AuditLog[]>([
     {
       id: 1,
       activity: 'User login attempt',
@@ -498,6 +498,7 @@ const AuditorDashboard: React.FC = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('today');
+  const [showProfile, setShowProfile] = useState(false);
 
   // Load user data from localStorage
   useEffect(() => {
@@ -586,6 +587,13 @@ const AuditorDashboard: React.FC = () => {
           </div>
           
           <div className="header-actions">
+            <button 
+              className="profile-header-btn"
+              onClick={() => setShowProfile(!showProfile)}
+            >
+              <span className="profile-btn-icon">👤</span>
+              <span className="profile-btn-text">Profile</span>
+            </button>
             <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
@@ -594,47 +602,107 @@ const AuditorDashboard: React.FC = () => {
       </div>
 
       <div className="dashboard-content">
-        {/* Profile Section */}
-        <div className="profile-section">
-          <div className="profile-card">
-            <div className="profile-header">
-              <div className="profile-avatar">
-                <div className="avatar-placeholder">
-                  {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'A'}
-                </div>
-                <div className="avatar-status"></div>
-              </div>
-              <div className="profile-info">
-                <h3>{user.name}</h3>
-                <p className="profile-role">{user.role}</p>
-                <p className="profile-email">{user.email}</p>
-                <div className="profile-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Department:</span>
-                    <span className="detail-value">{user.department}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Employee ID:</span>
-                    <span className="detail-value">{user.employeeId}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Phone:</span>
-                    <span className="detail-value">{user.phone}</span>
-                  </div>
-                </div>
+        {/* Profile Section - Conditionally Rendered */}
+        {showProfile && (
+          <div className="profile-section">
+            <div className="section-header">
+              <h2>Auditor Profile</h2>
+              <div className="header-actions">
+                <button 
+                  onClick={() => setShowProfile(false)} 
+                  className="close-profile-btn"
+                >
+                  <span className="close-icon">✕</span>
+                  Hide Profile
+                </button>
+                <button 
+                  onClick={() => setIsEditModalOpen(true)} 
+                  className="edit-profile-btn"
+                >
+                  <span className="edit-icon">✏️</span>
+                  Edit Profile
+                </button>
               </div>
             </div>
-            <div className="profile-actions">
-              <button 
-                className="edit-profile-btn"
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <span className="btn-icon">✏️</span>
-                Edit Profile
-              </button>
+            
+            <div className="profile-card">
+              <div className="profile-header">
+                <div className="profile-avatar-large">
+                  <div className="avatar-large">
+                    {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'A'}
+                  </div>
+                </div>
+                <div className="profile-summary">
+                  <h3>{user.name || 'Auditor User'}</h3>
+                  <p className="profile-role-badge">Auditor</p>
+                  <p className="profile-email-text">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="profile-details">
+                <div className="detail-grid">
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👤</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Full Name</span>
+                      <span className="profile-value">{user.name || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📧</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Email Address</span>
+                      <span className="profile-value">{user.email || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👔</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Role</span>
+                      <span className="profile-value">Auditor</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📱</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Phone Number</span>
+                      <span className="profile-value">{user.phone || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">🏢</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Department</span>
+                      <span className="profile-value">{user.department || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">🆔</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Employee ID</span>
+                      <span className="profile-value">{user.employeeId || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-actions">
+                <button 
+                  className="edit-profile-btn-main"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  <span className="action-icon">✏️</span>
+                  Edit Profile Information
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Stats Section */}
         <div className="stats-section">
