@@ -46,6 +46,37 @@
   gap: 1rem;
 }
 
+/* Header Profile Button */
+.profile-header-btn {
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.profile-header-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+  background: linear-gradient(135deg, #00a085, #008f75);
+}
+
+.profile-header-btn .profile-btn-icon {
+  font-size: 16px;
+}
+
+.profile-header-btn .profile-btn-text {
+  font-weight: 600;
+}
+
 .welcome-text {
   color: #333333;
   font-weight: 500;
@@ -1246,4 +1277,80 @@
   .modal-content {
     padding: 1rem;
   }
+}
+
+/* Profile Button Styles */
+.profile-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, rgba(0, 184, 148, 0.05), rgba(0, 160, 133, 0.1));
+  border-radius: 16px;
+  border: 2px dashed rgba(0, 184, 148, 0.2);
+}
+
+.profile-btn {
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  border: none;
+  padding: 20px 40px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.2);
+  min-width: 200px;
+  justify-content: center;
+}
+
+.profile-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3);
+  background: linear-gradient(135deg, #00a085, #008f75);
+}
+
+.profile-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.2);
+}
+
+.profile-btn-icon {
+  font-size: 20px;
+}
+
+.profile-btn-text {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Close Profile Button */
+.close-profile-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.close-profile-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  background: linear-gradient(135deg, #c0392b, #a93226);
+}
+
+.close-icon {
+  font-size: 12px;
+  font-weight: bold;
 }
