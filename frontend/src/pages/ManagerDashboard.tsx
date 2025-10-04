@@ -250,13 +250,32 @@ const ManagerDashboard: React.FC = () => {
     
     try {
       const parsedUser = JSON.parse(currentUser);
+      
+      // Validate user data structure
+      if (!parsedUser || typeof parsedUser !== 'object' || !parsedUser.role || !parsedUser.email) {
+        throw new Error('Invalid user data structure');
+      }
+      
       if (parsedUser.role !== 'manager') {
+        console.warn('Unauthorized access attempt to manager dashboard');
         navigate('/');
         return;
       }
+      
+      // Update user state with parsed data if valid
+      setUser(prevUser => ({
+        ...prevUser,
+        email: parsedUser.email || prevUser.email,
+        name: parsedUser.username || parsedUser.name || prevUser.name
+      }));
+      
     } catch (error) {
       console.error('Error parsing user data from localStorage:', error);
-      localStorage.removeItem('currentUser');
+      try {
+        localStorage.removeItem('currentUser');
+      } catch (storageError) {
+        console.error('Error removing corrupted user data:', storageError);
+      }
       navigate('/');
     }
   }, [navigate]);
@@ -595,13 +614,19 @@ const ReturnChatModal: React.FC<{
           <h4>Communication</h4>
           <div className="chat-messages">
             {returnRequest.messages && returnRequest.messages.length > 0 ? (
-              returnRequest.messages.map((msg, index) => (
-                <div key={`${returnRequest.id}-${index}`} className={`message ${msg.sender === 'manager1' ? 'manager' : 'customer'}`}>
-                  <div className="message-sender">{msg.sender || 'Unknown'}</div>
-                  <div className="message-content">{msg.message || ''}</div>
-                  <div className="message-time">{msg.timestamp || ''}</div>
-                </div>
-              ))
+              returnRequest.messages.map((msg, index) => {
+                // Ensure msg exists and has required properties
+                if (!msg || typeof msg !== 'object') {
+                  return null;
+                }
+                return (
+                  <div key={`${returnRequest.id}-${index}`} className={`message ${msg.sender === 'manager1' ? 'manager' : 'customer'}`}>
+                    <div className="message-sender">{msg.sender || 'Unknown'}</div>
+                    <div className="message-content">{msg.message || ''}</div>
+                    <div className="message-time">{msg.timestamp || ''}</div>
+                  </div>
+                );
+              })
             ) : (
               <div className="no-messages">No messages yet</div>
             )}

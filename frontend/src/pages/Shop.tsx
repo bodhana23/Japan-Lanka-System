@@ -94,6 +94,17 @@ const Shop: React.FC = () => {
   ]);
 
   const addToCart = (product: Product) => {
+    // Validate product data
+    if (!product || !product.id || typeof product.price !== 'number' || product.price < 0) {
+      alert('Invalid product data. Please try again.');
+      return;
+    }
+
+    if (product.quantityAvailable <= 0) {
+      alert('This item is out of stock.');
+      return;
+    }
+
     const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
@@ -112,34 +123,64 @@ const Shop: React.FC = () => {
   };
 
   const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      setCart(cart.filter(item => item.id !== productId));
-    } else {
-      const product = products.find(p => p.id === productId);
-      if (product && newQuantity > product.quantityAvailable) {
-        alert('Cannot exceed available stock quantity.');
-        return;
-      }
-      
-      setCart(cart.map(item =>
-        item.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
+    // Validate inputs
+    if (!productId || typeof newQuantity !== 'number' || newQuantity < 0) {
+      alert('Invalid quantity update request.');
+      return;
     }
+
+    if (newQuantity === 0) {
+      setCart(cart.filter(item => item.id !== productId));
+      return;
+    }
+
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      alert('Product not found.');
+      return;
+    }
+
+    if (newQuantity > product.quantityAvailable) {
+      alert('Cannot exceed available stock quantity.');
+      return;
+    }
+    
+    setCart(cart.map(item =>
+      item.id === productId
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
   };
 
   const getTotalPrice = () => {
+    if (!Array.isArray(cart)) {
+      return 0;
+    }
+    
     return cart.reduce((total, item) => {
-      const price = typeof item.price === 'number' && !isNaN(item.price) ? item.price : 0;
-      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
+      // Strict validation for cart items
+      if (!item || typeof item !== 'object') {
+        return total;
+      }
+      
+      const price = typeof item.price === 'number' && !isNaN(item.price) && item.price >= 0 ? item.price : 0;
+      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) && item.quantity >= 0 ? item.quantity : 0;
+      
       return total + (price * quantity);
     }, 0);
   };
 
   const getTotalItems = () => {
+    if (!Array.isArray(cart)) {
+      return 0;
+    }
+    
     return cart.reduce((total, item) => {
-      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
+      if (!item || typeof item !== 'object') {
+        return total;
+      }
+      
+      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) && item.quantity >= 0 ? item.quantity : 0;
       return total + quantity;
     }, 0);
   };

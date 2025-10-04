@@ -122,14 +122,26 @@ const AdminDashboard: React.FC = () => {
     if (currentUser) {
       try {
         const userData = JSON.parse(currentUser);
+        
+        // Validate user data structure
+        if (!userData || typeof userData !== 'object' || !userData.role || !userData.email) {
+          throw new Error('Invalid user data structure');
+        }
+        
         if (userData.role !== 'admin') {
-          navigate('/dashboard');
+          console.warn('Unauthorized access attempt to admin dashboard');
+          navigate('/');
           return;
         }
+        
         setUser(userData);
       } catch (error) {
         console.error('Error parsing user data from localStorage:', error);
-        localStorage.removeItem('currentUser');
+        try {
+          localStorage.removeItem('currentUser');
+        } catch (storageError) {
+          console.error('Error removing corrupted user data:', storageError);
+        }
         navigate('/');
       }
     } else {
@@ -233,7 +245,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="summary-card">
                   <h4>Average Monthly Sales</h4>
-                  <p className="summary-amount">Rs. {Math.round(salesData.reduce((sum, data) => sum + data.sales, 0) / salesData.length).toLocaleString()}</p>
+                  <p className="summary-amount">Rs. {Math.round(salesData.length > 0 ? salesData.reduce((sum, data) => sum + data.sales, 0) / salesData.length : 0).toLocaleString()}</p>
                 </div>
               </div>
             </div>

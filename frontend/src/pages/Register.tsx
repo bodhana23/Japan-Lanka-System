@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { validateEmail, validatePassword, sanitizeInput } from '../utils/validation';
 import './Register.css';
 
 const Register: React.FC = () => {
@@ -16,26 +17,54 @@ const Register: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const sanitizedValue = typeof value === 'string' ? sanitizeInput(value) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: sanitizedValue
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Comprehensive validation
+    if (!formData.username.trim()) {
+      alert('Username is required!');
+      return;
+    }
+    
+    if (formData.username.length < 3) {
+      alert('Username must be at least 3 characters long!');
+      return;
+    }
+    
+    if (!validateEmail(formData.email)) {
+      alert('Please enter a valid email address!');
+      return;
+    }
+    
+    if (!validatePassword(formData.password)) {
+      alert('Password must be at least 6 characters long!');
+      return;
+    }
+    
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match!');
       return;
     }
     
-    if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters long!');
+    // Validate optional fields if provided
+    if (formData.garageName && formData.garageName.length < 2) {
+      alert('Garage name must be at least 2 characters long!');
       return;
     }
     
-    // TODO: Implement registration logic
+    if (formData.registrationNumber && formData.registrationNumber.length < 3) {
+      alert('Registration number must be at least 3 characters long!');
+      return;
+    }
+    
+    // TODO: Implement registration logic with backend
     alert('Registration successful! Please login with your email.');
     navigate('/');
   };

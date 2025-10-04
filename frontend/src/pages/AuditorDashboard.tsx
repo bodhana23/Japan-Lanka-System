@@ -63,19 +63,43 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
   const handleInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) return;
+    if (!user) {
+      alert('User data not found. Please refresh and try again.');
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      alert('Name is required');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      alert('Email is required');
+      return;
+    }
+
+    if (!formData.phone.trim()) {
+      alert('Phone is required');
+      return;
+    }
 
     const updatedUser: UserProfile = {
       ...user,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      department: formData.department,
-      employeeId: formData.employeeId
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      department: formData.department.trim(),
+      employeeId: formData.employeeId.trim()
     };
 
-    onUpdate(updatedUser);
-    alert('Profile updated successfully!');
+    try {
+      onUpdate(updatedUser);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    }
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -367,10 +391,26 @@ const AuditorDashboard: React.FC = () => {
     if (currentUser) {
       try {
         const userData = JSON.parse(currentUser);
+        
+        // Validate user data structure
+        if (!userData || typeof userData !== 'object' || !userData.role || !userData.email) {
+          throw new Error('Invalid user data structure');
+        }
+        
+        if (userData.role !== 'auditor') {
+          console.warn('Unauthorized access attempt to auditor dashboard');
+          navigate('/');
+          return;
+        }
+        
         setUser(userData);
       } catch (error) {
         console.error('Error parsing user data from localStorage:', error);
-        localStorage.removeItem('currentUser');
+        try {
+          localStorage.removeItem('currentUser');
+        } catch (storageError) {
+          console.error('Error removing corrupted user data:', storageError);
+        }
         navigate('/');
       }
     } else {

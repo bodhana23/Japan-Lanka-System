@@ -44,7 +44,19 @@ class ErrorBoundary extends Component<Props, State> {
             Please refresh the page or contact support if the problem persists.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              try {
+                window.location.reload();
+              } catch (error) {
+                console.error('Failed to reload page:', error);
+                // Fallback: try to navigate to home
+                try {
+                  window.location.href = '/';
+                } catch (navError) {
+                  console.error('Failed to navigate to home:', navError);
+                }
+              }
+            }}
             style={{
               backgroundColor: '#00b894',
               color: 'white',
