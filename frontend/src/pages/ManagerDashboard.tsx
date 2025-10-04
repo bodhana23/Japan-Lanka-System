@@ -388,40 +388,105 @@ const ManagerDashboard: React.FC = () => {
 
         {activeTab === 'profile' && (
           <div className="profile-section">
-            <h2>Manager Profile</h2>
-            <div className="profile-card">
-              <div className="profile-info">
-                <div className="profile-item">
-                  <span className="profile-label">Email:</span>
-                  <span className="profile-value">{user.email}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Name:</span>
-                  <span className="profile-value">{user.name}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Role:</span>
-                  <span className="profile-value">{user.role}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Phone:</span>
-                  <span className="profile-value">{user.phone}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Address:</span>
-                  <span className="profile-value">{user.address}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Join Date:</span>
-                  <span className="profile-value">{user.joinDate}</span>
-                </div>
-              </div>
+            <div className="section-header">
+              <h2>Manager Profile</h2>
               <button 
                 className="edit-profile-btn"
                 onClick={() => setShowEditProfile(true)}
               >
+                <span className="edit-icon">✏️</span>
                 Edit Profile
               </button>
+            </div>
+            
+            <div className="profile-card">
+              <div className="profile-header">
+                <div className="profile-avatar-large">
+                  <div className="avatar-large">
+                    {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'M'}
+                  </div>
+                </div>
+                <div className="profile-summary">
+                  <h3>{user.name}</h3>
+                  <p className="profile-role-badge">{user.role}</p>
+                  <p className="profile-email-text">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="profile-details">
+                <div className="detail-grid">
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📧</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Email Address</span>
+                      <span className="profile-value">{user.email}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👤</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Full Name</span>
+                      <span className="profile-value">{user.name}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">👔</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Role</span>
+                      <span className="profile-value">{user.role}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📱</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Phone Number</span>
+                      <span className="profile-value">{user.phone}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">🏠</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Address</span>
+                      <span className="profile-value">{user.address}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item">
+                    <div className="profile-item-icon">📅</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Join Date</span>
+                      <span className="profile-value">
+                        {(() => {
+                          try {
+                            const date = new Date(user.joinDate);
+                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                          } catch {
+                            return 'Invalid Date';
+                          }
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-actions">
+                <button 
+                  className="edit-profile-btn-main"
+                  onClick={() => setShowEditProfile(true)}
+                >
+                  <span className="action-icon">✏️</span>
+                  Edit Profile Information
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -525,45 +590,185 @@ const EditProfileModal: React.FC<{
   onSave: (user: UserProfile) => void;
 }> = ({ user, onClose, onSave }) => {
   const [formData, setFormData] = useState<UserProfile>(user);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    if (formData.name && formData.phone && formData.address) {
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
+    // Name validation
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long';
+    }
+
+    // Phone validation
+    const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
+    if (!formData.phone || !phoneRegex.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    // Address validation
+    if (!formData.address || formData.address.trim().length < 10) {
+      newErrors.address = 'Address must be at least 10 characters long';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       onSave(formData);
-    } else {
-      alert('Please fill in all required fields');
+    } catch (error) {
+      alert('Error updating profile. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: keyof UserProfile, value: string) => {
+    setFormData({...formData, [field]: value});
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors({...errors, [field]: ''});
     }
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
-        <h3>Edit Profile</h3>
-        <div className="form-group">
-          <label>Name:</label>
-          <input 
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-          />
+      <div className="modal-content edit-profile-modal">
+        <div className="modal-header">
+          <div className="modal-title-section">
+            <div className="profile-icon">👤</div>
+            <h2>Edit Manager Profile</h2>
+          </div>
+          <button onClick={onClose} className="close-modal" disabled={isLoading}>×</button>
         </div>
-        <div className="form-group">
-          <label>Phone:</label>
-          <input 
-            type="text"
-            value={formData.phone}
-            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-          />
+
+        <div className="edit-profile-form">
+          {/* Profile Picture Section */}
+          <div className="profile-picture-section">
+            <div className="profile-avatar">
+              <div className="avatar-placeholder">
+                {(formData.name && formData.name.length > 0) ? formData.name.charAt(0).toUpperCase() : 'M'}
+              </div>
+            </div>
+            <p className="profile-email">{formData.email}</p>
+            <p className="profile-role">{formData.role}</p>
+          </div>
+
+          {/* Form Fields */}
+          <div className="form-fields">
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="name">
+                  <span className="label-icon">📝</span>
+                  Full Name *
+                </label>
+                <input 
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="Enter your full name"
+                  className={errors.name ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.name && <span className="error-message">{errors.name}</span>}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="phone">
+                  <span className="label-icon">📱</span>
+                  Phone Number *
+                </label>
+                <input 
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="+94 71 234 5678"
+                  className={errors.phone ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.phone && <span className="error-message">{errors.phone}</span>}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="address">
+                  <span className="label-icon">🏠</span>
+                  Address *
+                </label>
+                <textarea 
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="Enter your complete address"
+                  rows={3}
+                  className={errors.address ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.address && <span className="error-message">{errors.address}</span>}
+              </div>
+            </div>
+
+            {/* Read-only fields */}
+            <div className="readonly-section">
+              <h4>Account Information</h4>
+              <div className="readonly-grid">
+                <div className="readonly-item">
+                  <span className="readonly-label">📧 Email</span>
+                  <span className="readonly-value">{formData.email}</span>
+                </div>
+                <div className="readonly-item">
+                  <span className="readonly-label">👔 Role</span>
+                  <span className="readonly-value">{formData.role}</span>
+                </div>
+                <div className="readonly-item">
+                  <span className="readonly-label">📅 Join Date</span>
+                  <span className="readonly-value">{formData.joinDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="form-group">
-          <label>Address:</label>
-          <textarea 
-            value={formData.address}
-            onChange={(e) => setFormData({...formData, address: e.target.value})}
-          />
-        </div>
+
         <div className="modal-actions">
-          <button onClick={handleSave} className="confirm-btn">Save Changes</button>
-          <button onClick={onClose} className="cancel-btn">Cancel</button>
+          <button 
+            onClick={onClose} 
+            className="cancel-btn"
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSave} 
+            className={`save-btn ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="loading-spinner"></span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <span className="save-icon">💾</span>
+                Save Changes
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
