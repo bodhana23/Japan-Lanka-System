@@ -23,6 +23,18 @@ interface ReturnRequest {
   messages: { sender: string; message: string; timestamp: string }[];
 }
 
+interface CustomerOrder {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  items: { name: string; quantity: number; price: number }[];
+  totalAmount: number;
+  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered';
+  orderDate: string;
+  deliveryAddress?: string;
+  contactNumber: string;
+}
+
 interface UserProfile {
   email: string;
   name: string;
@@ -33,7 +45,7 @@ interface UserProfile {
 }
 
 const ManagerDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'returns' | 'profile'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'returns' | 'profile'>('inventory');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -98,6 +110,81 @@ const ManagerDashboard: React.FC = () => {
       category: 'Engine Parts',
       quantity: 8,
       description: 'Timing belt kit for Honda Accord 2013-2017'
+    }
+  ]);
+
+  // Customer orders state
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([
+    {
+      id: 'ORD-001',
+      customerName: 'John Silva',
+      customerEmail: 'john.silva@gmail.com',
+      items: [
+        { name: 'Brake Pads Set', quantity: 1, price: 4500 },
+        { name: 'Engine Oil Filter', quantity: 2, price: 1200 }
+      ],
+      totalAmount: 6900,
+      status: 'pending',
+      orderDate: '2025-10-05',
+      deliveryAddress: '123 Main Street, Colombo 03',
+      contactNumber: '+94 77 123 4567'
+    },
+    {
+      id: 'ORD-002',
+      customerName: 'Sarah Fernando',
+      customerEmail: 'sarah.fernando@gmail.com',
+      items: [
+        { name: 'LED Headlight Bulbs', quantity: 1, price: 2800 },
+        { name: 'Air Filter', quantity: 1, price: 1850 }
+      ],
+      totalAmount: 4650,
+      status: 'in_progress',
+      orderDate: '2025-10-04',
+      deliveryAddress: '456 Galle Road, Mount Lavinia',
+      contactNumber: '+94 71 987 6543'
+    },
+    {
+      id: 'ORD-003',
+      customerName: 'Michael Perera',
+      customerEmail: 'michael.perera@gmail.com',
+      items: [
+        { name: 'Spark Plugs Set', quantity: 1, price: 3200 },
+        { name: 'Timing Belt', quantity: 1, price: 5500 }
+      ],
+      totalAmount: 8700,
+      status: 'ready_to_pickup',
+      orderDate: '2025-10-03',
+      deliveryAddress: 'Self pickup from store',
+      contactNumber: '+94 76 555 1234'
+    },
+    {
+      id: 'ORD-004',
+      customerName: 'Anna Rajapaksa',
+      customerEmail: 'anna.rajapaksa@gmail.com',
+      items: [
+        { name: 'Brake Pads Set', quantity: 2, price: 4500 },
+        { name: 'Engine Oil Filter', quantity: 3, price: 1200 }
+      ],
+      totalAmount: 12600,
+      status: 'delivered',
+      orderDate: '2025-10-02',
+      deliveryAddress: '789 Kandy Road, Kegalle',
+      contactNumber: '+94 75 444 9876'
+    },
+    {
+      id: 'ORD-005',
+      customerName: 'David Wickramasinghe',
+      customerEmail: 'david.w@gmail.com',
+      items: [
+        { name: 'LED Headlight Bulbs', quantity: 2, price: 2800 },
+        { name: 'Air Filter', quantity: 2, price: 1850 },
+        { name: 'Spark Plugs Set', quantity: 1, price: 3200 }
+      ],
+      totalAmount: 12500,
+      status: 'in_progress',
+      orderDate: '2025-10-06',
+      deliveryAddress: '321 Negombo Road, Katunayake',
+      contactNumber: '+94 77 333 2222'
     }
   ]);
 
@@ -240,6 +327,28 @@ const ManagerDashboard: React.FC = () => {
     }));
   };
 
+  const handleOrderStatusUpdate = (orderId: string, newStatus: CustomerOrder['status']) => {
+    setCustomerOrders(prev => prev.map(order => {
+      if (order.id === orderId) {
+        return {
+          ...order,
+          status: newStatus
+        };
+      }
+      return order;
+    }));
+    
+    // Show success message
+    const statusMessages = {
+      'pending': 'Order marked as pending',
+      'in_progress': 'Order marked as in progress',
+      'ready_to_pickup': 'Order marked as ready for pickup',
+      'delivered': 'Order marked as delivered'
+    };
+    
+    alert(statusMessages[newStatus] || 'Order status updated');
+  };
+
   // Check authentication on component mount
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
@@ -303,6 +412,12 @@ const ManagerDashboard: React.FC = () => {
             Inventory Management
           </button>
           <button 
+            className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
+            Order Management
+          </button>
+          <button 
             className={`tab-btn ${activeTab === 'returns' ? 'active' : ''}`}
             onClick={() => setActiveTab('returns')}
           >
@@ -346,6 +461,90 @@ const ManagerDashboard: React.FC = () => {
                     >
                       Delete Product
                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="orders-section">
+            <div className="section-header">
+              <h2>Customer Orders</h2>
+              <div className="order-stats">
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'pending').length}</span>
+                  <span className="stat-label">Pending</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'in_progress').length}</span>
+                  <span className="stat-label">In Progress</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'ready_to_pickup').length}</span>
+                  <span className="stat-label">Ready</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'delivered').length}</span>
+                  <span className="stat-label">Delivered</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="orders-grid">
+              {customerOrders.map(order => (
+                <div key={order.id} className="order-card">
+                  <div className="order-header">
+                    <div className="order-info">
+                      <h3 className="order-id">Order #{order.id}</h3>
+                      <p className="customer-name">{order.customerName}</p>
+                      <p className="order-date">{new Date(order.orderDate).toLocaleDateString('en-LK')}</p>
+                    </div>
+                    <div className="order-status">
+                      <select 
+                        value={order.status} 
+                        onChange={(e) => handleOrderStatusUpdate(order.id, e.target.value as CustomerOrder['status'])}
+                        className={`status-dropdown ${order.status}`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="ready_to_pickup">Ready to Pickup</option>
+                        <option value="delivered">Delivered</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="order-items">
+                    <h4>Items:</h4>
+                    <ul className="items-list">
+                      {order.items.map((item, index) => (
+                        <li key={index} className="item-row">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">Qty: {item.quantity}</span>
+                          <span className="item-price">Rs. {item.price.toLocaleString()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="order-details">
+                    <div className="detail-row">
+                      <span className="detail-label">Total Amount:</span>
+                      <span className="detail-value total-amount">Rs. {order.totalAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Contact:</span>
+                      <span className="detail-value">{order.contactNumber}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Email:</span>
+                      <span className="detail-value">{order.customerEmail}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Delivery:</span>
+                      <span className="detail-value">{order.deliveryAddress}</span>
+                    </div>
                   </div>
                 </div>
               ))}
