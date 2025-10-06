@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import CustomerDashboard from './pages/CustomerDashboard';
@@ -40,7 +41,7 @@ const NotFound: React.FC = () => (
         fontSize: '16px'
       }}
     >
-      Go to Login
+      Go to Home
     </button>
   </div>
 );
@@ -51,7 +52,8 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<CustomerDashboard />} />
             <Route path="/shop" element={<Shop />} />
