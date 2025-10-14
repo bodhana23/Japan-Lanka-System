@@ -31,9 +31,15 @@ interface UserProfile {
 
 const AdminDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'inventory' | 'profile'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'inventory'>('analytics');
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+
+  // Debug effect to track showProfile changes
+  useEffect(() => {
+    console.log('Admin Dashboard - showProfile changed to:', showProfile);
+  }, [showProfile]);
 
   // Sample financial data (in real app, this would come from database)
   const [salesData] = useState<SalesData[]>([
@@ -169,148 +175,25 @@ const AdminDashboard: React.FC = () => {
           <h1>Japan Lanka Enterprises - Admin Portal</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user?.username || user?.email || 'Admin'}!</span>
+            <button 
+              className="profile-header-btn"
+              onClick={() => {
+                console.log('Admin Profile button clicked, current showProfile:', showProfile);
+                setShowProfile(!showProfile);
+                console.log('Admin showProfile should now be:', !showProfile);
+              }}
+            >
+              <span className="profile-btn-icon">👤</span>
+              <span className="profile-btn-text">Profile</span>
+            </button>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
       </header>
 
-      <main className="admin-main">
-        <div className="admin-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            📊 Financial Analytics
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
-          >
-            📦 Low Stock Alert ({lowStockItems.length})
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            👤 Profile Management
-          </button>
-        </div>
-
-        {activeTab === 'analytics' ? (
-          <div className="analytics-section">
-            <h2>Monthly Financial Status</h2>
-            <div className="sales-cards">
-              {salesData.map((data, index) => (
-                <div key={data.month} className={`sales-card ${index === salesData.length - 1 ? 'current-month' : ''}`}>
-                  <div className="sales-header">
-                    <h3>{data.month}</h3>
-                    {index === salesData.length - 1 && <span className="current-badge">Current</span>}
-                  </div>
-                  <div className="sales-amount">
-                    <span className="currency">Rs.</span>
-                    <span className="amount">{data.sales.toLocaleString()}</span>
-                  </div>
-                  <div className="sales-details">
-                    <div className="detail-item">
-                      <span className="detail-label">Total Orders:</span>
-                      <span className="detail-value">{data.orders}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Avg Order:</span>
-                      <span className="detail-value">Rs. {data.orders > 0 ? Math.round(data.sales / data.orders).toLocaleString() : '0'}</span>
-                    </div>
-                  </div>
-                  <div className="sales-trend">
-                    {index > 0 && salesData[index - 1] && salesData[index - 1].sales > 0 && (
-                      <span className={`trend ${data.sales > salesData[index - 1].sales ? 'up' : 'down'}`}>
-                        {data.sales > salesData[index - 1].sales ? '📈' : '📉'}
-                        {Math.abs(((data.sales - salesData[index - 1].sales) / salesData[index - 1].sales) * 100).toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="summary-section">
-              <h3>Summary</h3>
-              <div className="summary-cards">
-                <div className="summary-card">
-                  <h4>Total Sales (3 Months)</h4>
-                  <p className="summary-amount">Rs. {salesData.reduce((sum, data) => sum + data.sales, 0).toLocaleString()}</p>
-                </div>
-                <div className="summary-card">
-                  <h4>Total Orders</h4>
-                  <p className="summary-amount">{salesData.reduce((sum, data) => sum + data.orders, 0)}</p>
-                </div>
-                <div className="summary-card">
-                  <h4>Average Monthly Sales</h4>
-                  <p className="summary-amount">Rs. {Math.round(salesData.length > 0 ? salesData.reduce((sum, data) => sum + data.sales, 0) / salesData.length : 0).toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : activeTab === 'inventory' ? (
-          <div className="inventory-section">
-            <div className="section-header">
-              <h2>Low Stock Items (Quantity &lt; 3)</h2>
-              <div className="alert-badge">
-                ⚠️ {lowStockItems.length} items need restocking
-              </div>
-            </div>
-
-            {lowStockItems.length === 0 ? (
-              <div className="no-alerts">
-                <h3>✅ All inventory levels are healthy!</h3>
-                <p>No items require immediate restocking.</p>
-              </div>
-            ) : (
-              <div className="low-stock-grid">
-                {lowStockItems.map(item => (
-                  <div key={item.id} className="low-stock-item">
-                    <div className="stock-alert">
-                      <span className="alert-icon">🚨</span>
-                      <span className="stock-level">Only {item.quantityAvailable} left!</span>
-                    </div>
-                    <div className="item-icon">{item.image}</div>
-                    <div className="item-info">
-                      <h3>{item.name}</h3>
-                      <p className="item-model">{item.model} ({item.modelYear})</p>
-                      <p className="item-price">Rs. {item.price.toFixed(2)}</p>
-                      <p className="item-category">{item.category}</p>
-                    </div>
-                    <div className="item-actions">
-                      <button 
-                        onClick={() => handleOrderMore(item.id)}
-                        className="order-btn"
-                      >
-                        📦 Order More
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="inventory-summary">
-              <h3>Inventory Overview</h3>
-              <div className="inventory-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Total Products:</span>
-                  <span className="stat-value">{inventoryData.length}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Low Stock Items:</span>
-                  <span className="stat-value critical">{lowStockItems.length}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Healthy Stock:</span>
-                  <span className="stat-value healthy">{inventoryData.length - lowStockItems.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
+      <main className="dashboard-main">
+        {/* Profile Section - Conditionally Rendered */}
+        {showProfile && (
           <div className="profile-section">
             <div className="section-header">
               <h2>Admin Profile</h2>
@@ -397,6 +280,139 @@ const AdminDashboard: React.FC = () => {
                   <span className="action-icon">✏️</span>
                   Edit Profile Information
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="admin-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            📊 Financial Analytics
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            📦 Low Stock Alert ({lowStockItems.length})
+          </button>
+        </div>
+
+        {activeTab === 'analytics' && (
+          <div className="analytics-section">
+            <h2>Monthly Financial Status</h2>
+            <div className="sales-cards">
+              {salesData.map((data, index) => (
+                <div key={data.month} className={`sales-card ${index === salesData.length - 1 ? 'current-month' : ''}`}>
+                  <div className="sales-header">
+                    <h3>{data.month}</h3>
+                    {index === salesData.length - 1 && <span className="current-badge">Current</span>}
+                  </div>
+                  <div className="sales-amount">
+                    <span className="currency">Rs.</span>
+                    <span className="amount">{data.sales.toLocaleString()}</span>
+                  </div>
+                  <div className="sales-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Total Orders:</span>
+                      <span className="detail-value">{data.orders}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Avg Order:</span>
+                      <span className="detail-value">Rs. {data.orders > 0 ? Math.round(data.sales / data.orders).toLocaleString() : '0'}</span>
+                    </div>
+                  </div>
+                  <div className="sales-trend">
+                    {index > 0 && salesData[index - 1] && salesData[index - 1].sales > 0 && (
+                      <span className={`trend ${data.sales > salesData[index - 1].sales ? 'up' : 'down'}`}>
+                        {data.sales > salesData[index - 1].sales ? '📈' : '📉'}
+                        {Math.abs(((data.sales - salesData[index - 1].sales) / salesData[index - 1].sales) * 100).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="summary-section">
+              <h3>Summary</h3>
+              <div className="summary-cards">
+                <div className="summary-card">
+                  <h4>Total Sales (3 Months)</h4>
+                  <p className="summary-amount">Rs. {salesData.reduce((sum, data) => sum + data.sales, 0).toLocaleString()}</p>
+                </div>
+                <div className="summary-card">
+                  <h4>Total Orders</h4>
+                  <p className="summary-amount">{salesData.reduce((sum, data) => sum + data.orders, 0)}</p>
+                </div>
+                <div className="summary-card">
+                  <h4>Average Monthly Sales</h4>
+                  <p className="summary-amount">Rs. {Math.round(salesData.length > 0 ? salesData.reduce((sum, data) => sum + data.sales, 0) / salesData.length : 0).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <div className="inventory-section">
+            <div className="section-header">
+              <h2>Low Stock Items (Quantity &lt; 3)</h2>
+              <div className="alert-badge">
+                ⚠️ {lowStockItems.length} items need restocking
+              </div>
+            </div>
+
+            {lowStockItems.length === 0 ? (
+              <div className="no-alerts">
+                <h3>✅ All inventory levels are healthy!</h3>
+                <p>No items require immediate restocking.</p>
+              </div>
+            ) : (
+              <div className="low-stock-grid">
+                {lowStockItems.map(item => (
+                  <div key={item.id} className="low-stock-item">
+                    <div className="stock-alert">
+                      <span className="alert-icon">🚨</span>
+                      <span className="stock-level">Only {item.quantityAvailable} left!</span>
+                    </div>
+                    <div className="item-icon">{item.image}</div>
+                    <div className="item-info">
+                      <h3>{item.name}</h3>
+                      <p className="item-model">{item.model} ({item.modelYear})</p>
+                      <p className="item-price">Rs. {item.price.toFixed(2)}</p>
+                      <p className="item-category">{item.category}</p>
+                    </div>
+                    <div className="item-actions">
+                      <button 
+                        onClick={() => handleOrderMore(item.id)}
+                        className="order-btn"
+                      >
+                        📦 Order More
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="inventory-summary">
+              <h3>Inventory Overview</h3>
+              <div className="inventory-stats">
+                <div className="stat-item">
+                  <span className="stat-label">Total Products:</span>
+                  <span className="stat-value">{inventoryData.length}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Low Stock Items:</span>
+                  <span className="stat-value critical">{lowStockItems.length}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Healthy Stock:</span>
+                  <span className="stat-value healthy">{inventoryData.length - lowStockItems.length}</span>
+                </div>
               </div>
             </div>
           </div>

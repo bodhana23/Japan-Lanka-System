@@ -419,6 +419,7 @@ const CustomerDashboard: React.FC = () => {
     mobile: ''
   });
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
 
   // Previous vehicle parts orders for demo
@@ -544,6 +545,13 @@ const CustomerDashboard: React.FC = () => {
           <h1>Japan Lanka Enterprises</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user.username}!</span>
+            <button 
+              className="profile-header-btn"
+              onClick={() => setShowProfile(!showProfile)}
+            >
+              <span className="profile-btn-icon">👤</span>
+              <span className="profile-btn-text">Profile</span>
+            </button>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
@@ -558,8 +566,8 @@ const CustomerDashboard: React.FC = () => {
       </div>
 
       <main className="dashboard-main">
-        <div className="dashboard-grid">
-          {/* Profile Section */}
+        {/* Profile Section - Conditionally Rendered */}
+        {showProfile && (
           <section className="profile-section">
             <div className="section-header">
               <h2>Customer Profile</h2>
@@ -640,46 +648,46 @@ const CustomerDashboard: React.FC = () => {
               </div>
             </div>
           </section>
+        )}
 
-          {/* Orders Section */}
-          <section className="orders-section">
-            <h2>Previous Orders</h2>
-            <div className="orders-list">
-              {orders.length > 0 ? (
-                orders.map((order) => (
-                  <div key={order.id} className="order-card">
-                    <div className="order-header">
-                      <span className="order-id">#{order.id}</span>
-                      <span className={`status-badge ${getStatusBadge(order.status).class}`}>
-                        {getStatusBadge(order.status).text}
+        {/* Orders Section */}
+        <section className="orders-section">
+          <h2>Previous Orders</h2>
+          <div className="orders-list">
+            {orders.length > 0 ? (
+              orders.map((order) => (
+                <div key={order.id} className="order-card">
+                  <div className="order-header">
+                    <span className="order-id">#{order.id}</span>
+                    <span className={`status-badge ${getStatusBadge(order.status).class}`}>
+                      {getStatusBadge(order.status).text}
+                    </span>
+                  </div>
+                  <div className="order-details">
+                    <p className="order-items">
+                      <strong>Items:</strong> {order.items.join(', ')}
+                    </p>
+                    <div className="order-meta">
+                      <span className="order-amount">Rs. {order.amount.toFixed(2)}</span>
+                      <span className="order-date">
+                        {(() => {
+                          try {
+                            const date = new Date(order.orderDate);
+                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                          } catch {
+                            return 'Invalid Date';
+                          }
+                        })()}
                       </span>
                     </div>
-                    <div className="order-details">
-                      <p className="order-items">
-                        <strong>Items:</strong> {order.items.join(', ')}
-                      </p>
-                      <div className="order-meta">
-                        <span className="order-amount">Rs. {order.amount.toFixed(2)}</span>
-                        <span className="order-date">
-                          {(() => {
-                            try {
-                              const date = new Date(order.orderDate);
-                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
-                            } catch {
-                              return 'Invalid Date';
-                            }
-                          })()}
-                        </span>
-                      </div>
-                    </div>
                   </div>
-                ))
-              ) : (
-                <p className="no-orders">No previous orders found.</p>
-              )}
-            </div>
-          </section>
-        </div>
+                </div>
+              ))
+            ) : (
+              <p className="no-orders">No previous orders found.</p>
+            )}
+          </div>
+        </section>
       </main>
 
       {/* Edit Profile Modal */}

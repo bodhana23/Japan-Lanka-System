@@ -45,11 +45,17 @@ interface UserProfile {
 }
 
 const ManagerDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'returns' | 'profile'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'returns'>('inventory');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+
+  // Debug effect to track showProfile changes
+  useEffect(() => {
+    console.log('Manager Dashboard - showProfile changed to:', showProfile);
+  }, [showProfile]);
 
   // User state
   const [user, setUser] = useState<UserProfile>({
@@ -396,6 +402,17 @@ const ManagerDashboard: React.FC = () => {
           <h1>Japan Lanka Enterprises - Manager Portal</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user.name}</span>
+            <button 
+              className="profile-header-btn"
+              onClick={() => {
+                console.log('Manager Profile button clicked, current showProfile:', showProfile);
+                setShowProfile(!showProfile);
+                console.log('Manager showProfile should now be:', !showProfile);
+              }}
+            >
+              <span className="profile-btn-icon">👤</span>
+              <span className="profile-btn-text">Profile</span>
+            </button>
             <button onClick={handleLogout} className="logout-btn">
               Logout
             </button>
@@ -403,189 +420,9 @@ const ManagerDashboard: React.FC = () => {
         </div>
       </header>
 
-      <main className="manager-main">
-        <nav className="manager-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
-          >
-            Inventory Management
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            Order Management
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'returns' ? 'active' : ''}`}
-            onClick={() => setActiveTab('returns')}
-          >
-            Return Requests
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            Profile
-          </button>
-        </nav>
-
-        {activeTab === 'inventory' && (
-          <div className="inventory-section">
-            <div className="section-header">
-              <h2>Product Inventory</h2>
-              <button 
-                className="add-product-btn"
-                onClick={() => setShowAddProduct(true)}
-              >
-                Add New Product
-              </button>
-            </div>
-
-            <div className="products-grid">
-              {products.map(product => (
-                <div key={product.id} className="product-item">
-                  <div className="product-icon">🏪</div>
-                  <div className="product-info">
-                    <h3>{product.name}</h3>
-                    <p className="product-model">{product.category}</p>
-                    <p className="product-price">Rs. {product.price.toLocaleString()}</p>
-                    <p className="product-stock">Stock: {product.quantity} units</p>
-                    <p>{product.description}</p>
-                  </div>
-                  <div className="product-actions">
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      Delete Product
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'orders' && (
-          <div className="orders-section">
-            <div className="section-header">
-              <h2>Customer Orders</h2>
-              <div className="order-stats">
-                <div className="stat-item">
-                  <span className="stat-number">{customerOrders.filter(o => o.status === 'pending').length}</span>
-                  <span className="stat-label">Pending</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">{customerOrders.filter(o => o.status === 'in_progress').length}</span>
-                  <span className="stat-label">In Progress</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">{customerOrders.filter(o => o.status === 'ready_to_pickup').length}</span>
-                  <span className="stat-label">Ready</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">{customerOrders.filter(o => o.status === 'delivered').length}</span>
-                  <span className="stat-label">Delivered</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="orders-grid">
-              {customerOrders.map(order => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <div className="order-info">
-                      <h3 className="order-id">Order #{order.id}</h3>
-                      <p className="customer-name">{order.customerName}</p>
-                      <p className="order-date">{new Date(order.orderDate).toLocaleDateString('en-LK')}</p>
-                    </div>
-                    <div className="order-status">
-                      <select 
-                        value={order.status} 
-                        onChange={(e) => handleOrderStatusUpdate(order.id, e.target.value as CustomerOrder['status'])}
-                        className={`status-dropdown ${order.status}`}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="ready_to_pickup">Ready to Pickup</option>
-                        <option value="delivered">Delivered</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="order-items">
-                    <h4>Items:</h4>
-                    <ul className="items-list">
-                      {order.items.map((item, index) => (
-                        <li key={index} className="item-row">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-quantity">Qty: {item.quantity}</span>
-                          <span className="item-price">Rs. {item.price.toLocaleString()}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="order-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Total Amount:</span>
-                      <span className="detail-value total-amount">Rs. {order.totalAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Contact:</span>
-                      <span className="detail-value">{order.contactNumber}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Email:</span>
-                      <span className="detail-value">{order.customerEmail}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Delivery:</span>
-                      <span className="detail-value">{order.deliveryAddress}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'returns' && (
-          <div className="returns-section">
-            <h2>Return Requests</h2>
-            <div className="returns-grid">
-              {returnRequests.map(request => (
-                <div key={request.id} className="return-item">
-                  <div className="return-header">
-                    <div className="return-id">Return #{request.id}</div>
-                    <span className={`status-badge ${request.status}`}>
-                      {request.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="return-details">
-                    <p><strong>Customer:</strong> {request.customerName}</p>
-                    <p><strong>Order:</strong> {request.orderNumber}</p>
-                    <p><strong>Item:</strong> {request.itemName}</p>
-                    <p><strong>Reason:</strong> {request.reason}</p>
-                    <p><strong>Date:</strong> {request.requestDate}</p>
-                  </div>
-                  <div className="return-actions">
-                    <button 
-                      className="view-chat-btn"
-                      onClick={() => setSelectedReturn(request)}
-                    >
-                      View Details & Chat
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'profile' && (
+      <main className="dashboard-main">
+        {/* Profile Section - Conditionally Rendered */}
+        {showProfile && (
           <div className="profile-section">
             <div className="section-header">
               <h2>Manager Profile</h2>
@@ -686,6 +523,190 @@ const ManagerDashboard: React.FC = () => {
                   Edit Profile Information
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        <nav className="manager-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            Inventory Management
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
+            Order Management
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'returns' ? 'active' : ''}`}
+            onClick={() => setActiveTab('returns')}
+          >
+            Return Requests
+          </button>
+        </nav>
+
+        {activeTab === 'inventory' && (
+          <div className="inventory-section">
+            <div className="section-header">
+              <h2>Product Inventory</h2>
+              <button 
+                className="add-product-btn"
+                onClick={() => setShowAddProduct(true)}
+              >
+                Add New Product
+              </button>
+            </div>
+
+            <div className="products-grid">
+              {products.map(product => (
+                <div key={product.id} className="product-item">
+                  <div className="product-icon">🏪</div>
+                  <div className="product-info">
+                    <h3>{product.name}</h3>
+                    <p className="product-model">{product.category}</p>
+                    <p className="product-price">Rs. {product.price.toLocaleString()}</p>
+                    <p className="product-stock">Stock: {product.quantity} units</p>
+                    <p>{product.description}</p>
+                  </div>
+                  <div className="product-actions">
+                    <button 
+                      className="delete-btn"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      Delete Product
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="orders-section">
+            <div className="section-header">
+              <h2>Customer Orders</h2>
+              <div className="order-stats">
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'pending').length}</span>
+                  <span className="stat-label">Pending</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'in_progress').length}</span>
+                  <span className="stat-label">In Progress</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'ready_to_pickup').length}</span>
+                  <span className="stat-label">Ready</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{customerOrders.filter(o => o.status === 'delivered').length}</span>
+                  <span className="stat-label">Delivered</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="orders-grid">
+              {customerOrders.map(order => (
+                <div key={order.id} className="order-card">
+                  <div className="order-header">
+                    <div className="order-info">
+                      <h3 className="order-id">Order #{order.id}</h3>
+                      <p className="customer-name">{order.customerName}</p>
+                      <p className="order-date">
+                        {(() => {
+                          try {
+                            const date = new Date(order.orderDate);
+                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-LK');
+                          } catch {
+                            return 'Invalid Date';
+                          }
+                        })()}
+                      </p>
+                    </div>
+                    <div className="order-status">
+                      <select 
+                        value={order.status} 
+                        onChange={(e) => handleOrderStatusUpdate(order.id, e.target.value as CustomerOrder['status'])}
+                        className={`status-dropdown ${order.status}`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="ready_to_pickup">Ready to Pickup</option>
+                        <option value="delivered">Delivered</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="order-items">
+                    <h4>Items:</h4>
+                    <ul className="items-list">
+                      {order.items.map((item, index) => (
+                        <li key={index} className="item-row">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">Qty: {item.quantity}</span>
+                          <span className="item-price">Rs. {item.price.toLocaleString()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="order-details">
+                    <div className="detail-row">
+                      <span className="detail-label">Total Amount:</span>
+                      <span className="detail-value total-amount">Rs. {order.totalAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Contact:</span>
+                      <span className="detail-value">{order.contactNumber}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Email:</span>
+                      <span className="detail-value">{order.customerEmail}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Delivery:</span>
+                      <span className="detail-value">{order.deliveryAddress}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'returns' && (
+          <div className="returns-section">
+            <h2>Return Requests</h2>
+            <div className="returns-grid">
+              {returnRequests.map(request => (
+                <div key={request.id} className="return-item">
+                  <div className="return-header">
+                    <div className="return-id">Return #{request.id}</div>
+                    <span className={`status-badge ${request.status}`}>
+                      {request.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="return-details">
+                    <p><strong>Customer:</strong> {request.customerName}</p>
+                    <p><strong>Order:</strong> {request.orderNumber}</p>
+                    <p><strong>Item:</strong> {request.itemName}</p>
+                    <p><strong>Reason:</strong> {request.reason}</p>
+                    <p><strong>Date:</strong> {request.requestDate}</p>
+                  </div>
+                  <div className="return-actions">
+                    <button 
+                      className="view-chat-btn"
+                      onClick={() => setSelectedReturn(request)}
+                    >
+                      View Details & Chat
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

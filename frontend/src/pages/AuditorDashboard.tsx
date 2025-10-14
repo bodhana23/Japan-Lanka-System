@@ -453,6 +453,7 @@ const AuditorDashboard: React.FC = () => {
     employeeId: 'JL-AUD-003'
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [auditLogs, _setAuditLogs] = useState<AuditLog[]>([
     {
       id: 1,
@@ -601,7 +602,7 @@ const AuditorDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="dashboard-content">
+      <div className="dashboard-main">
         {/* Profile Section - Conditionally Rendered */}
         {showProfile && (
           <div className="profile-section">
