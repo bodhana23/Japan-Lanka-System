@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validateEmail, sanitizeInput, getEmailValidationError } from '../utils/validation';
+import { sanitizeInput, getEmailValidationError } from '../utils/validation';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -133,9 +133,25 @@ const Login: React.FC = () => {
         navigate('/auditor-dashboard');
         return;
       }
+
+      // Hardcoded test customer account
+      if (email === 'customer2@gmail.com' && password === 'customer@2222') {
+        const userData = {
+          email: 'customer2@gmail.com',
+          name: 'customer2',
+          fullName: 'customer2',
+          role: 'customer',
+          phoneNumber: '0771234567',
+          password: 'customer@2222'
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        navigate('/dashboard');
+        return;
+      }
       
       // Invalid credentials
-      alert('Invalid credentials. Please check your email and password.\n\nFor staff access, use:\nManager: manager1@gmail.com / manager@1\nAdmin: admin@gmail.com / admin@1\nAuditor: auditor1@gmail.com / auditor@1');
+      alert('Invalid credentials. Please check your email and password.');
       
     } catch (error) {
       console.error('Login error:', error);

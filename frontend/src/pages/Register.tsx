@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validateEmail, validatePassword, validatePhone, sanitizeInput, getEmailValidationError, getPhoneValidationError } from '../utils/validation';
+import { validatePassword, sanitizeInput, getEmailValidationError, getPhoneValidationError } from '../utils/validation';
 import './Register.css';
 
 const Register: React.FC = () => {

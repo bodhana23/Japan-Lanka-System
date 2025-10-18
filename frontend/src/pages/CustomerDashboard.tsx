@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CustomerDashboard.css';
 
@@ -8,6 +8,16 @@ interface Order {
   amount: number;
   status: 'ready_to_pickup' | 'delivered' | 'in_progress';
   orderDate: string;
+}
+
+interface ReturnRequest {
+  id: string;
+  orderId: string;
+  items: string[];
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  requestDate: string;
+  refundAmount: number;
 }
 
 interface UserProfile {
@@ -378,8 +388,10 @@ const CustomerDashboard: React.FC = () => {
     phoneNumber: ''
   });
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showProfile, setShowProfile] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
+  const [viewMode, setViewMode] = useState<'orders' | 'returns'>('orders');
   const navigate = useNavigate();
+  const ordersRef = useRef<HTMLElement>(null);
 
   // Previous vehicle parts orders for demo
   const [orders] = useState<Order[]>([
@@ -403,6 +415,37 @@ const CustomerDashboard: React.FC = () => {
       amount: 8700.00,
       status: 'in_progress',
       orderDate: '2025-01-20'
+    }
+  ]);
+
+  // Return requests for demo
+  const [returnRequests] = useState<ReturnRequest[]>([
+    {
+      id: 'RET-001',
+      orderId: 'ORD-001',
+      items: ['Brake Pads Set (Toyota Camry)'],
+      reason: 'Wrong part received - ordered for 2020 model but received 2018 model',
+      status: 'approved',
+      requestDate: '2025-01-16',
+      refundAmount: 4500.00
+    },
+    {
+      id: 'RET-002',
+      orderId: 'ORD-002',
+      items: ['LED Headlight Bulbs (BMW 3 Series)'],
+      reason: 'Defective product - bulbs not working properly',
+      status: 'pending',
+      requestDate: '2025-01-19',
+      refundAmount: 3200.00
+    },
+    {
+      id: 'RET-003',
+      orderId: 'ORD-001',
+      items: ['Engine Oil Filter (Honda Civic)'],
+      reason: 'Changed mind - found a better deal elsewhere',
+      status: 'rejected',
+      requestDate: '2025-01-17',
+      refundAmount: 1200.00
     }
   ]);
 
@@ -484,6 +527,23 @@ const CustomerDashboard: React.FC = () => {
     return statusMap[status as keyof typeof statusMap] || { text: status, class: 'status-default' };
   };
 
+  const getReturnStatusBadge = (status: string) => {
+    const statusMap = {
+      'pending': { text: 'Pending Review', class: 'return-status-pending' },
+      'approved': { text: 'Approved', class: 'return-status-approved' },
+      'rejected': { text: 'Rejected', class: 'return-status-rejected' },
+      'completed': { text: 'Completed', class: 'return-status-completed' }
+    };
+    return statusMap[status as keyof typeof statusMap] || { text: status, class: 'return-status-default' };
+  };
+
+  const scrollToOrders = () => {
+    setViewMode('orders');
+    setTimeout(() => {
+      ordersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -507,11 +567,25 @@ const CustomerDashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* Place Order Button Section */}
+      {/* Action Buttons Section */}
       <div className="top-action-section">
         <button onClick={handleNewOrder} className="place-order-btn">
           <span className="btn-icon">🛒</span>
           Place an Order
+        </button>
+        <button 
+          onClick={scrollToOrders} 
+          className={`view-toggle-btn ${viewMode === 'orders' ? 'active' : ''}`}
+        >
+          <span className="btn-icon">📦</span>
+          View Orders
+        </button>
+        <button 
+          onClick={() => setViewMode('returns')} 
+          className={`view-toggle-btn ${viewMode === 'returns' ? 'active' : ''}`}
+        >
+          <span className="btn-icon">↩️</span>
+          View Return Requests
         </button>
       </div>
 
@@ -582,43 +656,92 @@ const CustomerDashboard: React.FC = () => {
         )}
 
         {/* Orders Section */}
-        <section className="orders-section">
-          <h2>Previous Orders</h2>
-          <div className="orders-list">
-            {orders.length > 0 ? (
-              orders.map((order) => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <span className="order-id">#{order.id}</span>
-                    <span className={`status-badge ${getStatusBadge(order.status).class}`}>
-                      {getStatusBadge(order.status).text}
-                    </span>
-                  </div>
-                  <div className="order-details">
-                    <p className="order-items">
-                      <strong>Items:</strong> {order.items.join(', ')}
-                    </p>
-                    <div className="order-meta">
-                      <span className="order-amount">Rs. {order.amount.toFixed(2)}</span>
-                      <span className="order-date">
-                        {(() => {
-                          try {
-                            const date = new Date(order.orderDate);
-                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
-                          } catch {
-                            return 'Invalid Date';
-                          }
-                        })()}
+        {viewMode === 'orders' && (
+          <section ref={ordersRef} className="orders-section">
+            <h2>Previous Orders</h2>
+            <div className="orders-list">
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <div key={order.id} className="order-card">
+                    <div className="order-header">
+                      <span className="order-id">#{order.id}</span>
+                      <span className={`status-badge ${getStatusBadge(order.status).class}`}>
+                        {getStatusBadge(order.status).text}
                       </span>
                     </div>
+                    <div className="order-details">
+                      <p className="order-items">
+                        <strong>Items:</strong> {order.items.join(', ')}
+                      </p>
+                      <div className="order-meta">
+                        <span className="order-amount">Rs. {order.amount.toFixed(2)}</span>
+                        <span className="order-date">
+                          {(() => {
+                            try {
+                              const date = new Date(order.orderDate);
+                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                            } catch {
+                              return 'Invalid Date';
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p className="no-orders">No previous orders found.</p>
-            )}
-          </div>
-        </section>
+                ))
+              ) : (
+                <p className="no-orders">No previous orders found.</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Return Requests Section */}
+        {viewMode === 'returns' && (
+          <section className="returns-section">
+            <h2>Return Requests</h2>
+            <div className="returns-list">
+              {returnRequests.length > 0 ? (
+                returnRequests.map((returnReq) => (
+                  <div key={returnReq.id} className="return-card">
+                    <div className="return-header">
+                      <div className="return-ids">
+                        <span className="return-id">#{returnReq.id}</span>
+                        <span className="original-order-id">Order: #{returnReq.orderId}</span>
+                      </div>
+                      <span className={`status-badge ${getReturnStatusBadge(returnReq.status).class}`}>
+                        {getReturnStatusBadge(returnReq.status).text}
+                      </span>
+                    </div>
+                    <div className="return-details">
+                      <p className="return-items">
+                        <strong>Returned Items:</strong> {returnReq.items.join(', ')}
+                      </p>
+                      <p className="return-reason">
+                        <strong>Reason:</strong> {returnReq.reason}
+                      </p>
+                      <div className="return-meta">
+                        <span className="return-amount">Refund: Rs. {returnReq.refundAmount.toFixed(2)}</span>
+                        <span className="return-date">
+                          {(() => {
+                            try {
+                              const date = new Date(returnReq.requestDate);
+                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                            } catch {
+                              return 'Invalid Date';
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-returns">No return requests found.</p>
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Edit Profile Modal */}

@@ -20,13 +20,17 @@ interface SalesData {
   orders: number;
 }
 
+interface BrandSales {
+  brand: string;
+  sales: number;
+  units: number;
+}
+
 interface UserProfile {
   email: string;
-  username: string;
+  name: string;
   role: string;
-  mobile: string;
-  department?: string;
-  employeeId?: string;
+  password?: string;
 }
 
 const AdminDashboard: React.FC = () => {
@@ -47,6 +51,19 @@ const AdminDashboard: React.FC = () => {
     { month: 'September 2025', sales: 1450000, orders: 189 },
     { month: 'October 2025', sales: 980000, orders: 98 } // Current month (partial)
   ]);
+
+  // Brand sales data
+  const [brandSales] = useState<BrandSales[]>([
+    { brand: 'Toyota', sales: 1450000, units: 234 },
+    { brand: 'Honda', sales: 980000, units: 187 },
+    { brand: 'BMW', sales: 750000, units: 98 },
+    { brand: 'Ford', sales: 620000, units: 145 },
+    { brand: 'Nissan', sales: 480000, units: 112 }
+  ]);
+
+  // Calculate monthly and yearly revenue
+  const monthlyRevenue = salesData[salesData.length - 1].sales; // Current month
+  const yearlyRevenue = salesData.reduce((total, month) => total + month.sales, 0) * 4; // Estimate based on 3 months data
 
   // Sample inventory data (synchronized with manager's database)
   const [inventoryData] = useState<Product[]>([
@@ -174,7 +191,7 @@ const AdminDashboard: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Enterprises - Admin Portal</h1>
           <div className="header-actions">
-            <span className="welcome-text">Welcome, {user?.username || user?.email || 'Admin'}!</span>
+            <span className="welcome-text">Welcome, {user?.name || user?.email || 'Admin'}!</span>
             <button 
               className="profile-header-btn"
               onClick={() => {
@@ -206,31 +223,26 @@ const AdminDashboard: React.FC = () => {
               </button>
             </div>
             
-            <div className="profile-card">
-              <div className="profile-header">
+            <div className="profile-card-horizontal">
+              <div className="profile-avatar-section">
                 <div className="profile-avatar-large">
                   <div className="avatar-large">
-                    {user?.username?.charAt(0).toUpperCase() || 'A'}
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
                   </div>
                 </div>
-                <div className="profile-summary">
-                  <h3>{user?.username || 'Admin User'}</h3>
-                  <p className="profile-role-badge">Administrator</p>
-                  <p className="profile-email-text">{user?.email}</p>
-                </div>
               </div>
-
-              <div className="profile-details">
-                <div className="detail-grid">
-                  <div className="profile-item">
+              
+              <div className="profile-details-horizontal">
+                <div className="profile-info-grid">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">👤</div>
                     <div className="profile-item-content">
-                      <span className="profile-label">Username</span>
-                      <span className="profile-value">{user?.username || 'N/A'}</span>
+                      <span className="profile-label">Name</span>
+                      <span className="profile-value">{user?.name || 'N/A'}</span>
                     </div>
                   </div>
 
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">📧</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Email Address</span>
@@ -238,48 +250,14 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">👔</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Role</span>
                       <span className="profile-value">Administrator</span>
                     </div>
                   </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">📱</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Mobile Number</span>
-                      <span className="profile-value">{user?.mobile || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">🏢</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Department</span>
-                      <span className="profile-value">{user?.department || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">🆔</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Employee ID</span>
-                      <span className="profile-value">{user?.employeeId || 'N/A'}</span>
-                    </div>
-                  </div>
                 </div>
-              </div>
-
-              <div className="profile-actions">
-                <button 
-                  className="edit-profile-btn-main"
-                  onClick={() => setShowEditProfile(true)}
-                >
-                  <span className="action-icon">✏️</span>
-                  Edit Profile Information
-                </button>
               </div>
             </div>
           </div>
@@ -297,6 +275,12 @@ const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('inventory')}
           >
             📦 Low Stock Alert ({lowStockItems.length})
+          </button>
+          <button 
+            className="tab-btn manage-users-tab"
+            onClick={() => navigate('/manage-users')}
+          >
+            👥 Manage Users
           </button>
         </div>
 
@@ -340,6 +324,16 @@ const AdminDashboard: React.FC = () => {
               <h3>Summary</h3>
               <div className="summary-cards">
                 <div className="summary-card">
+                  <h4>Monthly Revenue</h4>
+                  <p className="summary-amount">Rs. {monthlyRevenue.toLocaleString()}</p>
+                  <span className="summary-label">Current Month</span>
+                </div>
+                <div className="summary-card">
+                  <h4>Yearly Revenue (Est.)</h4>
+                  <p className="summary-amount">Rs. {yearlyRevenue.toLocaleString()}</p>
+                  <span className="summary-label">Annual Projection</span>
+                </div>
+                <div className="summary-card">
                   <h4>Total Sales (3 Months)</h4>
                   <p className="summary-amount">Rs. {salesData.reduce((sum, data) => sum + data.sales, 0).toLocaleString()}</p>
                 </div>
@@ -351,6 +345,34 @@ const AdminDashboard: React.FC = () => {
                   <h4>Average Monthly Sales</h4>
                   <p className="summary-amount">Rs. {Math.round(salesData.length > 0 ? salesData.reduce((sum, data) => sum + data.sales, 0) / salesData.length : 0).toLocaleString()}</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="brand-sales-section">
+              <h3>Top Selling Brands</h3>
+              <div className="brand-chart">
+                {brandSales.map((brand, index) => {
+                  const maxSales = Math.max(...brandSales.map(b => b.sales));
+                  const percentage = (brand.sales / maxSales) * 100;
+                  return (
+                    <div key={brand.brand} className="brand-bar-container">
+                      <div className="brand-info">
+                        <span className="brand-rank">#{index + 1}</span>
+                        <span className="brand-name">{brand.brand}</span>
+                      </div>
+                      <div className="brand-bar-wrapper">
+                        <div 
+                          className="brand-bar" 
+                          style={{ width: `${percentage}%` }}
+                        >
+                          <span className="bar-label">
+                            Rs. {brand.sales.toLocaleString()} ({brand.units} units)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -443,11 +465,8 @@ const EditProfileModal: React.FC<{
   onSave: (profile: UserProfile) => void;
 }> = ({ user, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    mobile: user?.mobile || '',
-    department: user?.department || '',
-    employeeId: user?.employeeId || ''
+    name: user?.name || '',
+    email: user?.email || ''
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -456,31 +475,15 @@ const EditProfileModal: React.FC<{
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
-    // Username validation
-    if (!formData.username || formData.username.trim().length < 2) {
-      newErrors.username = 'Username must be at least 2 characters long';
+    // Name validation
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long';
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Mobile validation
-    const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
-    if (!formData.mobile || !phoneRegex.test(formData.mobile)) {
-      newErrors.mobile = 'Please enter a valid mobile number';
-    }
-
-    // Department validation
-    if (!formData.department || formData.department.trim().length < 2) {
-      newErrors.department = 'Department must be at least 2 characters long';
-    }
-
-    // Employee ID validation
-    if (!formData.employeeId || formData.employeeId.trim().length < 3) {
-      newErrors.employeeId = 'Employee ID must be at least 3 characters long';
     }
 
     setErrors(newErrors);
@@ -541,7 +544,7 @@ const EditProfileModal: React.FC<{
           <div className="profile-picture-section">
             <div className="profile-avatar">
               <div className="avatar-placeholder">
-                {formData.username.charAt(0).toUpperCase() || 'A'}
+                {formData.name.charAt(0).toUpperCase() || 'A'}
               </div>
             </div>
             <p className="profile-email">{formData.email}</p>
@@ -553,22 +556,22 @@ const EditProfileModal: React.FC<{
             <div className="form-fields">
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="username">
+                  <label htmlFor="name">
                     <span className="label-icon">👤</span>
-                    Username *
+                    Name *
                   </label>
                   <input
                     type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
+                    id="name"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
-                    placeholder="Enter your username"
-                    className={errors.username ? 'error' : ''}
+                    placeholder="Enter your name"
+                    className={errors.name ? 'error' : ''}
                     disabled={isLoading}
                     required
                   />
-                  {errors.username && <span className="error-message">{errors.username}</span>}
+                  {errors.name && <span className="error-message">{errors.name}</span>}
                 </div>
               </div>
 
@@ -590,69 +593,6 @@ const EditProfileModal: React.FC<{
                     required
                   />
                   {errors.email && <span className="error-message">{errors.email}</span>}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="mobile">
-                    <span className="label-icon">📱</span>
-                    Mobile Number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="mobile"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    placeholder="+94 71 234 5678"
-                    className={errors.mobile ? 'error' : ''}
-                    disabled={isLoading}
-                    required
-                  />
-                  {errors.mobile && <span className="error-message">{errors.mobile}</span>}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="department">
-                    <span className="label-icon">🏢</span>
-                    Department *
-                  </label>
-                  <input
-                    type="text"
-                    id="department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    placeholder="Enter your department"
-                    className={errors.department ? 'error' : ''}
-                    disabled={isLoading}
-                    required
-                  />
-                  {errors.department && <span className="error-message">{errors.department}</span>}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="employeeId">
-                    <span className="label-icon">🆔</span>
-                    Employee ID *
-                  </label>
-                  <input
-                    type="text"
-                    id="employeeId"
-                    name="employeeId"
-                    value={formData.employeeId}
-                    onChange={handleChange}
-                    placeholder="Enter your employee ID"
-                    className={errors.employeeId ? 'error' : ''}
-                    disabled={isLoading}
-                    required
-                  />
-                  {errors.employeeId && <span className="error-message">{errors.employeeId}</span>}
                 </div>
               </div>
             </div>

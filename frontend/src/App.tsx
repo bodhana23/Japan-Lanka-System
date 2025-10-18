@@ -8,6 +8,7 @@ import Shop from './pages/Shop';
 import ManagerDashboard from './pages/ManagerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AuditorDashboard from './pages/AuditorDashboard';
+import ManageUsers from './pages/ManageUsers';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/manager-dashboard" element={<ManagerDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/auditor-dashboard" element={<AuditorDashboard />} />
+            <Route path="/manage-users" element={<ManageUsers />} />
             {/* Catch all route - redirect to 404 */}
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
