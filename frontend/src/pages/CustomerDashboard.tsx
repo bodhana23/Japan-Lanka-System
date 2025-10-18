@@ -12,11 +12,9 @@ interface Order {
 
 interface UserProfile {
   email: string;
-  username: string;
+  fullName: string;
   role: string;
-  mobile: string;
-  garageName?: string;
-  registrationNumber?: string;
+  phoneNumber: string;
 }
 
 interface EditProfileModalProps {
@@ -27,11 +25,9 @@ interface EditProfileModalProps {
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
-    username: user.username || '',
+    fullName: user.fullName || '',
     email: user.email || '',
-    mobile: user.mobile || '',
-    garageName: user.garageName || '',
-    registrationNumber: user.registrationNumber || '',
+    phoneNumber: user.phoneNumber || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -44,9 +40,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
-    // Username validation
-    if (!formData.username || formData.username.trim().length < 2) {
-      newErrors.username = 'Username must be at least 2 characters long';
+    // Full name validation
+    if (!formData.fullName || formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Full name must be at least 2 characters long';
     }
 
     // Email validation
@@ -55,10 +51,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // Mobile validation
+    // Phone validation
     const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
-    if (!formData.mobile || !phoneRegex.test(formData.mobile)) {
-      newErrors.mobile = 'Please enter a valid mobile number';
+    if (!formData.phoneNumber || !phoneRegex.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
     }
 
     setErrors(newErrors);
@@ -108,11 +104,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
       const updatedUser: UserProfile = {
         email: formData.email,
-        username: formData.username,
+        fullName: formData.fullName,
         role: user.role,
-        mobile: formData.mobile,
-        garageName: formData.garageName,
-        registrationNumber: formData.registrationNumber
+        phoneNumber: formData.phoneNumber
       };
 
       onUpdate(updatedUser);
@@ -166,7 +160,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
           <div className="profile-picture-section">
             <div className="profile-avatar">
               <div className="avatar-placeholder">
-                {(formData.username && formData.username.length > 0) ? formData.username.charAt(0).toUpperCase() : 'U'}
+                {(formData.fullName && formData.fullName.length > 0) ? formData.fullName.charAt(0).toUpperCase() : 'U'}
               </div>
             </div>
             <p className="profile-email">{formData.email}</p>
@@ -199,22 +193,22 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
                 <div className="form-fields">
                   <div className="form-row">
                     <div className="form-group">
-                      <label htmlFor="username">
+                      <label htmlFor="fullName">
                         <span className="label-icon">👤</span>
-                        Username *
+                        Full Name *
                       </label>
                       <input
                         type="text"
-                        id="username"
-                        name="username"
-                        value={formData.username}
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
                         onChange={handleChange}
-                        placeholder="Enter your username"
-                        className={errors.username ? 'error' : ''}
+                        placeholder="Enter your full name"
+                        className={errors.fullName ? 'error' : ''}
                         disabled={isLoading}
                         required
                       />
-                      {errors.username && <span className="error-message">{errors.username}</span>}
+                      {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                     </div>
                   </div>
 
@@ -241,60 +235,25 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label htmlFor="mobile">
+                      <label htmlFor="phoneNumber">
                         <span className="label-icon">📱</span>
-                        Mobile Number *
+                        Phone Number *
                       </label>
                       <input
                         type="tel"
-                        id="mobile"
-                        name="mobile"
-                        value={formData.mobile}
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
                         onChange={handleChange}
-                        placeholder="+94 77 123 4567"
-                        className={errors.mobile ? 'error' : ''}
+                        placeholder="Enter your phone number"
+                        className={errors.phoneNumber ? 'error' : ''}
                         disabled={isLoading}
                         required
                       />
-                      {errors.mobile && <span className="error-message">{errors.mobile}</span>}
+                      {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
                     </div>
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="garageName">
-                        <span className="label-icon">🏪</span>
-                        Garage Name (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        id="garageName"
-                        name="garageName"
-                        value={formData.garageName}
-                        onChange={handleChange}
-                        placeholder="Enter garage name if applicable"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="registrationNumber">
-                        <span className="label-icon">📋</span>
-                        Registration Number (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        id="registrationNumber"
-                        name="registrationNumber"
-                        value={formData.registrationNumber}
-                        onChange={handleChange}
-                        placeholder="Enter registration number if any"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 <div className="form-actions">
@@ -414,12 +373,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 const CustomerDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile>({
     email: '',
-    username: '',
+    fullName: '',
     role: 'customer',
-    mobile: ''
+    phoneNumber: ''
   });
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(true);
   const navigate = useNavigate();
 
   // Previous vehicle parts orders for demo
@@ -456,21 +415,12 @@ const CustomerDashboard: React.FC = () => {
         if (!userData || typeof userData !== 'object' || !userData.email || !userData.role) {
           throw new Error('Invalid user data structure');
         }
-        // Add mobile number if not present (for existing users)
-        if (!userData.mobile) {
-          userData.mobile = '+94 77 123 4567'; // Default mobile number
-        }
-        // Ensure username is set
-        if (!userData.username) {
-          userData.username = userData.email && userData.email.includes('@') ? userData.email.split('@')[0] : 'user'; // Use email prefix as username
-        }
+        
         setUser({
           email: userData.email,
-          username: userData.username,
+          fullName: userData.fullName || userData.name || 'Customer',
           role: userData.role,
-          mobile: userData.mobile,
-          garageName: userData.garageName,
-          registrationNumber: userData.registrationNumber
+          phoneNumber: userData.phoneNumber || ''
         });
       } catch (error) {
         console.error('Error parsing user data from localStorage:', error);
@@ -544,7 +494,7 @@ const CustomerDashboard: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Enterprises</h1>
           <div className="header-actions">
-            <span className="welcome-text">Welcome, {user.username}!</span>
+            <span className="welcome-text">Welcome, {user.fullName}!</span>
             <button 
               className="profile-header-btn"
               onClick={() => setShowProfile(!showProfile)}
@@ -571,37 +521,38 @@ const CustomerDashboard: React.FC = () => {
           <section className="profile-section">
             <div className="section-header">
               <h2>Customer Profile</h2>
-              <button onClick={handleEditProfile} className="edit-profile-btn">
-                <span className="edit-icon">✏️</span>
-                Edit Profile
-              </button>
+              <div className="profile-action-buttons">
+                <button onClick={handleEditProfile} className="edit-profile-btn">
+                  <span className="edit-icon">✏️</span>
+                  Edit Profile
+                </button>
+                <button onClick={() => setShowProfile(!showProfile)} className="hide-profile-btn">
+                  <span className="hide-icon">🙈</span>
+                  Hide Profile
+                </button>
+              </div>
             </div>
             
-            <div className="profile-card">
-              <div className="profile-header">
+            <div className="profile-card-horizontal">
+              <div className="profile-avatar-section">
                 <div className="profile-avatar-large">
                   <div className="avatar-large">
-                    {(user.username || user.email || 'U').length > 0 ? (user.username || user.email || 'U').charAt(0).toUpperCase() : 'U'}
+                    {(user.fullName && user.fullName.length > 0) ? user.fullName.charAt(0).toUpperCase() : 'C'}
                   </div>
                 </div>
-                <div className="profile-summary">
-                  <h3>{user.username || user.email || 'Customer'}</h3>
-                  <p className="profile-role-badge">Customer</p>
-                  <p className="profile-email-text">{user.email}</p>
-                </div>
               </div>
-
-              <div className="profile-details">
-                <div className="detail-grid">
-                  <div className="profile-item">
+              
+              <div className="profile-details-horizontal">
+                <div className="profile-info-grid">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">👤</div>
                     <div className="profile-item-content">
-                      <span className="profile-label">Username</span>
-                      <span className="profile-value">{user.username || user.email || 'Not set'}</span>
+                      <span className="profile-label">Full Name</span>
+                      <span className="profile-value">{user.fullName || user.email || 'Not set'}</span>
                     </div>
                   </div>
 
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">📧</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Email Address</span>
@@ -609,41 +560,21 @@ const CustomerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">📱</div>
                     <div className="profile-item-content">
-                      <span className="profile-label">Mobile Number</span>
-                      <span className="profile-value">{user.mobile || 'Not provided'}</span>
+                      <span className="profile-label">Phone Number</span>
+                      <span className="profile-value">{user.phoneNumber || 'Not provided'}</span>
                     </div>
                   </div>
 
-                  <div className="profile-item">
-                    <div className="profile-item-icon">👔</div>
+                  <div className="profile-item-horizontal">
+                    <div className="profile-item-icon">🏷️</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Role</span>
-                      <span className="profile-value">Customer</span>
+                      <span className="profile-value">{user.role}</span>
                     </div>
                   </div>
-
-                  {user.garageName && (
-                    <div className="profile-item">
-                      <div className="profile-item-icon">🏪</div>
-                      <div className="profile-item-content">
-                        <span className="profile-label">Garage Name</span>
-                        <span className="profile-value">{user.garageName}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {user.registrationNumber && (
-                    <div className="profile-item">
-                      <div className="profile-item-icon">🚗</div>
-                      <div className="profile-item-content">
-                        <span className="profile-label">Registration Number</span>
-                        <span className="profile-value">{user.registrationNumber}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
