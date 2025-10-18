@@ -167,12 +167,20 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  padding: 1.5rem 2rem;
+  border-radius: 15px;
+  border-left: 5px solid #00b894;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.1);
 }
 
 .section-header h2 {
   font-size: 1.8rem;
   margin: 0;
-  color: #333333;
+  background: linear-gradient(135deg, #00b894 0%, #22c55e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-weight: 700;
 }
 
@@ -1048,5 +1056,179 @@
   .cancel-btn,
   .save-btn {
     width: 100%;
+  }
+}
+
+/* Horizontal Profile Layout */
+.profile-card-horizontal {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fcfa 100%);
+  border: 2px solid #e8f5e8;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-card-horizontal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #00b894 0%, #00a085 50%, #22c55e 100%);
+}
+
+.profile-avatar-section {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-large {
+  position: relative;
+}
+
+.avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3);
+  border: 4px solid #ffffff;
+}
+
+.profile-details-horizontal {
+  flex: 1;
+}
+
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.profile-item-horizontal {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-radius: 15px;
+  border-left: 4px solid #00b894;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.1);
+  transition: all 0.3s ease;
+}
+
+.profile-item-horizontal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.2);
+  border-left-color: #22c55e;
+}
+
+.profile-item-horizontal .profile-item-icon {
+  font-size: 1.5rem;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(0, 184, 148, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%);
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(0, 184, 148, 0.2);
+}
+
+.profile-item-horizontal .profile-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.profile-item-horizontal .profile-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-item-horizontal .profile-value {
+  font-size: 1.1rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.profile-action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.hide-profile-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.hide-profile-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.hide-icon {
+  font-size: 1rem;
+}
+
+/* Responsive Design for Horizontal Profile */
+@media (max-width: 768px) {
+  .profile-card-horizontal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  .profile-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hide-profile-btn {
+    justify-content: center;
+  }
+  
+  .profile-item-horizontal {
+    padding: 1rem;
+  }
+  
+  .profile-item-horizontal .profile-item-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
   }
 }

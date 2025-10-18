@@ -3,6 +3,9 @@
 export const validateEmail = (email: string): boolean => {
   if (!email || typeof email !== 'string') return false;
   
+  // Must contain @ symbol (specific requirement)
+  if (!email.includes('@')) return false;
+  
   // More comprehensive email validation
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   
@@ -21,8 +24,8 @@ export const validatePhone = (phone: string): boolean => {
   // Remove all spaces, dashes, and parentheses for validation
   const cleanPhone = phone.replace(/[\s\-()]/g, '');
   
-  // Check for valid international or local format
-  const phoneRegex = /^\+?[\d]{10,15}$/;
+  // Must be exactly 10 digits (specific requirement)
+  const phoneRegex = /^\d{10}$/;
   return phoneRegex.test(cleanPhone);
 };
 
@@ -119,4 +122,39 @@ export const formatDate = (dateString: string): string => {
 export const capitalizeFirst = (str: string): string => {
   if (!str || typeof str !== 'string') return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+// Validation error message helpers
+export const getEmailValidationError = (email: string): string | null => {
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return 'Email is required';
+  }
+  
+  if (!email.includes('@')) {
+    return 'Email must contain @ symbol';
+  }
+  
+  if (!validateEmail(email)) {
+    return 'Please enter a valid email address';
+  }
+  
+  return null;
+};
+
+export const getPhoneValidationError = (phone: string): string | null => {
+  if (!phone || typeof phone !== 'string' || phone.trim() === '') {
+    return 'Phone number is required';
+  }
+  
+  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+  
+  if (cleanPhone.length !== 10) {
+    return 'Phone number must be exactly 10 digits';
+  }
+  
+  if (!/^\d+$/.test(cleanPhone)) {
+    return 'Phone number must contain only digits';
+  }
+  
+  return null;
 };

@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validateEmail, validatePassword, sanitizeInput } from '../utils/validation';
+import { validateEmail, validatePassword, validatePhone, sanitizeInput, getEmailValidationError, getPhoneValidationError } from '../utils/validation';
 import './Register.css';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    fullName: '',
     email: '',
-    role: 'customer',
-    garageName: '',
-    registrationNumber: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: ''
   });
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -22,51 +21,79 @@ const Register: React.FC = () => {
       ...prev,
       [name]: sanitizedValue
     }));
+    
+    // Clear errors for the field being edited
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Comprehensive validation
-    if (!formData.username.trim()) {
-      alert('Username is required!');
-      return;
+    // Clear previous errors
+    setErrors({});
+    const newErrors: {[key: string]: string} = {};
+    
+    // Comprehensive validation with specific error messages
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full Name is required';
+    } else if (formData.fullName.length < 2) {
+      newErrors.fullName = 'Full Name must be at least 2 characters long';
     }
     
-    if (formData.username.length < 3) {
-      alert('Username must be at least 3 characters long!');
-      return;
+    // Email validation with specific requirements
+    const emailError = getEmailValidationError(formData.email);
+    if (emailError) {
+      newErrors.email = emailError;
     }
     
-    if (!validateEmail(formData.email)) {
-      alert('Please enter a valid email address!');
-      return;
+    // Phone validation with specific requirements
+    const phoneError = getPhoneValidationError(formData.phoneNumber);
+    if (phoneError) {
+      newErrors.phoneNumber = phoneError;
     }
     
     if (!validatePassword(formData.password)) {
-      alert('Password must be at least 6 characters long!');
-      return;
+      newErrors.password = 'Password must be at least 6 characters long';
     }
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    // If there are validation errors, display them and stop submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
     
-    // Validate optional fields if provided
-    if (formData.garageName && formData.garageName.length < 2) {
-      alert('Garage name must be at least 2 characters long!');
+    // Store user registration data
+    const userData = {
+      fullName: formData.fullName.trim(),
+      email: formData.email.trim().toLowerCase(),
+      phoneNumber: formData.phoneNumber.trim(),
+      role: 'customer', // Default role for all new registrations
+      password: formData.password // In real app, this should be hashed
+    };
+    
+    // For now, store in localStorage (in production, send to backend)
+    const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    
+    // Check if email already exists
+    if (existingUsers.some((user: any) => user.email === userData.email)) {
+      setErrors({ email: 'An account with this email already exists' });
       return;
     }
     
-    if (formData.registrationNumber && formData.registrationNumber.length < 3) {
-      alert('Registration number must be at least 3 characters long!');
-      return;
-    }
+    existingUsers.push(userData);
+    localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
     
-    // TODO: Implement registration logic with backend
-    alert('Registration successful! Please login with your email.');
-    navigate('/');
+    alert('Registration successful! Please login with your new credentials.');
+    navigate('/'); // Redirect to login page
   };
 
   const handleBackToLogin = () => {
@@ -82,19 +109,22 @@ const Register: React.FC = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="register-form">
-          <h2>Register</h2>
+          <h2>Create New Account</h2>
+          <p className="form-subtitle">Join Japan Lanka Enterprises as a customer</p>
           
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="fullName">Full Name</label>
             <input
               type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
               onChange={handleChange}
-              placeholder="Enter your username"
+              placeholder="Enter your full name"
               required
+              className={errors.fullName ? 'error' : ''}
             />
+            {errors.fullName && <span className="error-message">{errors.fullName}</span>}
           </div>
           
           <div className="form-group">
@@ -105,47 +135,26 @@ const Register: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter your email address"
+              placeholder="Enter your email address (must contain @)"
               required
+              className={errors.email ? 'error' : ''}
             />
+            {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
           
           <div className="form-group">
-            <label htmlFor="role">Role</label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
+            <label htmlFor="phoneNumber">Phone Number</label>
+            <input
+              type="tel"
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
               onChange={handleChange}
+              placeholder="Enter exactly 10 digits (e.g., 0771234567)"
               required
-            >
-              <option value="customer">Customer</option>
-              <option value="manager">Manager</option>
-            </select>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="garageName">Garage Name (Optional)</label>
-            <input
-              type="text"
-              id="garageName"
-              name="garageName"
-              value={formData.garageName}
-              onChange={handleChange}
-              placeholder="Enter garage name if applicable"
+              className={errors.phoneNumber ? 'error' : ''}
             />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="registrationNumber">Registration Number (Optional)</label>
-            <input
-              type="text"
-              id="registrationNumber"
-              name="registrationNumber"
-              value={formData.registrationNumber}
-              onChange={handleChange}
-              placeholder="Enter registration number if any"
-            />
+            {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
           </div>
           
           <div className="form-group">
@@ -159,7 +168,9 @@ const Register: React.FC = () => {
               placeholder="Enter your password (min 6 characters)"
               required
               minLength={6}
+              className={errors.password ? 'error' : ''}
             />
+            {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
           
           <div className="form-group">
@@ -172,7 +183,9 @@ const Register: React.FC = () => {
               onChange={handleChange}
               placeholder="Confirm your password"
               required
+              className={errors.confirmPassword ? 'error' : ''}
             />
+            {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
           </div>
           
           <button type="submit" className="register-btn">

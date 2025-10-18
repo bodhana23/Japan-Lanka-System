@@ -5,10 +5,11 @@ import './ManagerDashboard.css';
 interface Product {
   id: string;
   name: string;
+  brand: string;
+  model: string;
   price: number;
-  category: string;
   quantity: number;
-  description: string;
+  imageLink: string;
 }
 
 interface ReturnRequest {
@@ -39,14 +40,14 @@ interface UserProfile {
   email: string;
   name: string;
   role: string;
-  phone: string;
-  address: string;
-  joinDate: string;
+  password: string;
 }
 
 const ManagerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'returns'>('inventory');
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -62,9 +63,7 @@ const ManagerDashboard: React.FC = () => {
     email: 'manager1@gmail.com',
     name: 'Manager User',
     role: 'Manager',
-    phone: '+94 11 123 4567',
-    address: 'Colombo, Sri Lanka',
-    joinDate: '2023-01-15'
+    password: 'manager@1'
   });
 
   // Product management state - Vehicle parts inventory
@@ -72,50 +71,56 @@ const ManagerDashboard: React.FC = () => {
     {
       id: 'P001',
       name: 'Brake Pads Set',
+      brand: 'Toyota',
+      model: 'Camry 2018-2023',
       price: 4500,
-      category: 'Brake System',
       quantity: 25,
-      description: 'High-quality ceramic brake pads for Toyota Camry 2018-2023'
+      imageLink: 'https://example.com/brake-pads.jpg'
     },
     {
       id: 'P002',
       name: 'Engine Oil Filter',
+      brand: 'Honda',
+      model: 'Civic 2016-2021',
       price: 1200,
-      category: 'Engine Parts',
       quantity: 2,
-      description: 'Premium oil filter for Honda Civic 2016-2021'
+      imageLink: 'https://example.com/oil-filter.jpg'
     },
     {
       id: 'P003',
       name: 'LED Headlight Bulbs',
+      brand: 'BMW',
+      model: '3 Series 2019-2024',
       price: 2800,
-      category: 'Lighting',
       quantity: 1,
-      description: 'LED headlight bulb set for BMW 3 Series 2019-2024'
+      imageLink: 'https://example.com/headlight.jpg'
     },
     {
       id: 'P004',
       name: 'Air Filter',
+      brand: 'Ford',
+      model: 'Focus 2015-2020',
       price: 1850,
-      category: 'Engine Parts',
       quantity: 30,
-      description: 'High-flow air filter for Ford Focus 2015-2020'
+      imageLink: 'https://example.com/air-filter.jpg'
     },
     {
       id: 'P005',
       name: 'Spark Plugs Set',
+      brand: 'Nissan',
+      model: 'Altima 2017-2022',
       price: 3200,
-      category: 'Engine Parts',
       quantity: 15,
-      description: 'Iridium spark plugs for Nissan Altima 2017-2022'
+      imageLink: 'https://example.com/spark-plugs.jpg'
     },
     {
       id: 'P006',
       name: 'Timing Belt',
+      brand: 'Honda',
+      model: 'Accord 2013-2017',
       price: 5500,
-      category: 'Engine Parts',
       quantity: 8,
-      description: 'Timing belt kit for Honda Accord 2013-2017'
+      imageLink: 'https://example.com/timing-belt.jpg'
     }
   ]);
 
@@ -239,10 +244,11 @@ const ManagerDashboard: React.FC = () => {
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',
+    brand: '',
+    model: '',
     price: 0,
-    category: '',
     quantity: 0,
-    description: ''
+    imageLink: ''
   });
 
   const handleLogout = () => {
@@ -251,8 +257,8 @@ const ManagerDashboard: React.FC = () => {
   };
 
   const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.category) {
-      alert('Please fill in all required fields (name and category).');
+    if (!newProduct.name || !newProduct.brand || !newProduct.model) {
+      alert('Please fill in all required fields (name, brand, and model).');
       return;
     }
     
@@ -273,18 +279,33 @@ const ManagerDashboard: React.FC = () => {
     setProducts([...products, product]);
     setNewProduct({
       name: '',
+      brand: '',
+      model: '',
       price: 0,
-      category: '',
       quantity: 0,
-      description: ''
+      imageLink: ''
     });
     setShowAddProduct(false);
     alert('Product added successfully!');
   };
 
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setShowEditProduct(true);
+  };
+
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+    setShowEditProduct(false);
+    setSelectedProduct(null);
+    alert('Product updated successfully!');
+  };
+
   const handleDeleteProduct = (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
       setProducts(products.filter(p => p.id !== productId));
+      setShowEditProduct(false);
+      setSelectedProduct(null);
       alert('Product deleted successfully!');
     }
   };
@@ -381,7 +402,8 @@ const ManagerDashboard: React.FC = () => {
       setUser(prevUser => ({
         ...prevUser,
         email: parsedUser.email || prevUser.email,
-        name: parsedUser.username || parsedUser.name || prevUser.name
+        name: parsedUser.name || parsedUser.fullName || prevUser.name,
+        password: parsedUser.password || prevUser.password
       }));
       
     } catch (error) {
@@ -426,32 +448,44 @@ const ManagerDashboard: React.FC = () => {
           <div className="profile-section">
             <div className="section-header">
               <h2>Manager Profile</h2>
-              <button 
-                className="edit-profile-btn"
-                onClick={() => setShowEditProfile(true)}
-              >
-                <span className="edit-icon">✏️</span>
-                Edit Profile
-              </button>
+              <div className="profile-header-buttons">
+                <button 
+                  className="edit-profile-btn"
+                  onClick={() => setShowEditProfile(true)}
+                >
+                  <span className="edit-icon">✏️</span>
+                  Edit Profile
+                </button>
+                <button 
+                  className="hide-profile-btn"
+                  onClick={() => setShowProfile(false)}
+                >
+                  <span className="hide-icon">👁️‍🗨️</span>
+                  Hide Profile
+                </button>
+              </div>
             </div>
             
-            <div className="profile-card">
-              <div className="profile-header">
+            <div className="profile-card-horizontal">
+              <div className="profile-avatar-section">
                 <div className="profile-avatar-large">
                   <div className="avatar-large">
                     {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'M'}
                   </div>
                 </div>
-                <div className="profile-summary">
-                  <h3>{user.name}</h3>
-                  <p className="profile-role-badge">{user.role}</p>
-                  <p className="profile-email-text">{user.email}</p>
-                </div>
               </div>
+              
+              <div className="profile-details-horizontal">
+                <div className="profile-info-grid">
+                  <div className="profile-item-horizontal">
+                    <div className="profile-item-icon">�</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Full Name</span>
+                      <span className="profile-value">{user.name}</span>
+                    </div>
+                  </div>
 
-              <div className="profile-details">
-                <div className="detail-grid">
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">📧</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Email Address</span>
@@ -459,69 +493,14 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="profile-item">
-                    <div className="profile-item-icon">👤</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Full Name</span>
-                      <span className="profile-value">{user.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">👔</div>
+                  <div className="profile-item-horizontal">
+                    <div className="profile-item-icon">�</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Role</span>
                       <span className="profile-value">{user.role}</span>
                     </div>
                   </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">📱</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Phone Number</span>
-                      <span className="profile-value">{user.phone}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">🏠</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Address</span>
-                      <span className="profile-value">{user.address}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">📅</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Join Date</span>
-                      <span className="profile-value">
-                        {(() => {
-                          try {
-                            const date = new Date(user.joinDate);
-                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            });
-                          } catch {
-                            return 'Invalid Date';
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
                 </div>
-              </div>
-
-              <div className="profile-actions">
-                <button 
-                  className="edit-profile-btn-main"
-                  onClick={() => setShowEditProfile(true)}
-                >
-                  <span className="action-icon">✏️</span>
-                  Edit Profile Information
-                </button>
               </div>
             </div>
           </div>
@@ -563,20 +542,29 @@ const ManagerDashboard: React.FC = () => {
             <div className="products-grid">
               {products.map(product => (
                 <div key={product.id} className="product-item">
-                  <div className="product-icon">🏪</div>
+                  <div className="product-image">
+                    {product.imageLink ? (
+                      <img src={product.imageLink} alt={product.name} onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (nextSibling) nextSibling.style.display = 'flex';
+                      }} />
+                    ) : null}
+                    <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}>🏪</div>
+                  </div>
                   <div className="product-info">
                     <h3>{product.name}</h3>
-                    <p className="product-model">{product.category}</p>
+                    <p className="product-brand">{product.brand}</p>
+                    <p className="product-model">{product.model}</p>
                     <p className="product-price">Rs. {product.price.toLocaleString()}</p>
                     <p className="product-stock">Stock: {product.quantity} units</p>
-                    <p>{product.description}</p>
                   </div>
                   <div className="product-actions">
                     <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteProduct(product.id)}
+                      className="edit-btn"
+                      onClick={() => handleEditProduct(product)}
                     >
-                      Delete Product
+                      Edit Product
                     </button>
                   </div>
                 </div>
@@ -731,12 +719,21 @@ const ManagerDashboard: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Category:</label>
+                <label>Brand:</label>
                 <input 
                   type="text"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                  placeholder="Enter category"
+                  value={newProduct.brand}
+                  onChange={(e) => setNewProduct({...newProduct, brand: e.target.value})}
+                  placeholder="Enter brand name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Model:</label>
+                <input 
+                  type="text"
+                  value={newProduct.model}
+                  onChange={(e) => setNewProduct({...newProduct, model: e.target.value})}
+                  placeholder="Enter model"
                 />
               </div>
               <div className="form-group">
@@ -760,11 +757,12 @@ const ManagerDashboard: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Description:</label>
-                <textarea 
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                  placeholder="Enter product description"
+                <label>Image Link:</label>
+                <input 
+                  type="url"
+                  value={newProduct.imageLink}
+                  onChange={(e) => setNewProduct({...newProduct, imageLink: e.target.value})}
+                  placeholder="Enter image URL (optional)"
                 />
               </div>
               <div className="form-actions">
@@ -790,6 +788,19 @@ const ManagerDashboard: React.FC = () => {
         />
       )}
 
+      {/* Edit Product Modal */}
+      {showEditProduct && selectedProduct && (
+        <EditProductModal
+          product={selectedProduct}
+          onClose={() => {
+            setShowEditProduct(false);
+            setSelectedProduct(null);
+          }}
+          onSave={handleUpdateProduct}
+          onDelete={handleDeleteProduct}
+        />
+      )}
+
       {/* Return Chat Modal */}
       {selectedReturn && (
         <ReturnChatModal
@@ -803,6 +814,190 @@ const ManagerDashboard: React.FC = () => {
   );
 };
 
+// Edit Product Modal Component
+const EditProductModal: React.FC<{
+  product: Product;
+  onClose: () => void;
+  onSave: (product: Product) => void;
+  onDelete: (productId: string) => void;
+}> = ({ product, onClose, onSave, onDelete }) => {
+  const [formData, setFormData] = useState<Product>(product);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = 'Product name must be at least 2 characters long';
+    }
+
+    if (!formData.brand || formData.brand.trim().length < 2) {
+      newErrors.brand = 'Brand must be at least 2 characters long';
+    }
+
+    if (!formData.model || formData.model.trim().length < 1) {
+      newErrors.model = 'Model is required';
+    }
+
+    if (!formData.price || formData.price <= 0) {
+      newErrors.price = 'Price must be greater than 0';
+    }
+
+    if (formData.quantity < 0) {
+      newErrors.quantity = 'Quantity cannot be negative';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (validateForm()) {
+      onSave(formData);
+    }
+  };
+
+  const handleInputChange = (field: keyof Product, value: string | number) => {
+    setFormData({...formData, [field]: value});
+    if (errors[field]) {
+      setErrors({...errors, [field]: ''});
+    }
+  };
+
+  const handleDelete = () => {
+    onDelete(product.id);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content edit-product-modal">
+        <div className="modal-header">
+          <div className="modal-title-section">
+            <div className="product-icon-header">📦</div>
+            <h2>Edit Product</h2>
+          </div>
+          <button onClick={onClose} className="close-modal">×</button>
+        </div>
+
+        <div className="edit-product-form">
+          <div className="form-group">
+            <label htmlFor="productName">
+              <span className="label-icon">🏷️</span>
+              Product Name *
+            </label>
+            <input 
+              id="productName"
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter product name"
+              className={errors.name ? 'error' : ''}
+            />
+            {errors.name && <span className="error-message">{errors.name}</span>}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="brand">
+                <span className="label-icon">🏭</span>
+                Brand *
+              </label>
+              <input 
+                id="brand"
+                type="text"
+                value={formData.brand}
+                onChange={(e) => handleInputChange('brand', e.target.value)}
+                placeholder="Enter brand name"
+                className={errors.brand ? 'error' : ''}
+              />
+              {errors.brand && <span className="error-message">{errors.brand}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="model">
+                <span className="label-icon">🚗</span>
+                Model *
+              </label>
+              <input 
+                id="model"
+                type="text"
+                value={formData.model}
+                onChange={(e) => handleInputChange('model', e.target.value)}
+                placeholder="Enter model"
+                className={errors.model ? 'error' : ''}
+              />
+              {errors.model && <span className="error-message">{errors.model}</span>}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="price">
+                <span className="label-icon">💰</span>
+                Price (Rs.) *
+              </label>
+              <input 
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.price || ''}
+                onChange={(e) => handleInputChange('price', Number(e.target.value))}
+                placeholder="Enter price"
+                className={errors.price ? 'error' : ''}
+              />
+              {errors.price && <span className="error-message">{errors.price}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="quantity">
+                <span className="label-icon">📊</span>
+                Quantity *
+              </label>
+              <input 
+                id="quantity"
+                type="number"
+                min="0"
+                value={formData.quantity || ''}
+                onChange={(e) => handleInputChange('quantity', Number(e.target.value))}
+                placeholder="Enter quantity"
+                className={errors.quantity ? 'error' : ''}
+              />
+              {errors.quantity && <span className="error-message">{errors.quantity}</span>}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="imageLink">
+              <span className="label-icon">🖼️</span>
+              Image Link
+            </label>
+            <input 
+              id="imageLink"
+              type="url"
+              value={formData.imageLink}
+              onChange={(e) => handleInputChange('imageLink', e.target.value)}
+              placeholder="Enter image URL (optional)"
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="button" onClick={handleSubmit} className="save-btn">
+              Save Changes
+            </button>
+            <button type="button" onClick={onClose} className="cancel-btn">
+              Cancel
+            </button>
+            <button type="button" onClick={handleDelete} className="delete-btn-modal">
+              🗑️ Delete Product
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Edit Profile Modal Component
 const EditProfileModal: React.FC<{
   user: UserProfile;
@@ -810,6 +1005,9 @@ const EditProfileModal: React.FC<{
   onSave: (user: UserProfile) => void;
 }> = ({ user, onClose, onSave }) => {
   const [formData, setFormData] = useState<UserProfile>(user);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -821,15 +1019,21 @@ const EditProfileModal: React.FC<{
       newErrors.name = 'Name must be at least 2 characters long';
     }
 
-    // Phone validation
-    const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
-    if (!formData.phone || !phoneRegex.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    // Address validation
-    if (!formData.address || formData.address.trim().length < 10) {
-      newErrors.address = 'Address must be at least 10 characters long';
+    // Password validation (only if changing password)
+    if (showPasswordChange) {
+      if (!newPassword || newPassword.length < 6) {
+        newErrors.newPassword = 'Password must be at least 6 characters long';
+      }
+      
+      if (newPassword !== confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
     }
 
     setErrors(newErrors);
@@ -845,7 +1049,13 @@ const EditProfileModal: React.FC<{
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      onSave(formData);
+      
+      const updatedUser = {
+        ...formData,
+        password: showPasswordChange ? newPassword : formData.password
+      };
+      
+      onSave(updatedUser);
     } catch (error) {
       alert('Error updating profile. Please try again.');
     } finally {
@@ -907,59 +1117,74 @@ const EditProfileModal: React.FC<{
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="phone">
-                  <span className="label-icon">📱</span>
-                  Phone Number *
+                <label htmlFor="email">
+                  <span className="label-icon">�</span>
+                  Email Address *
                 </label>
                 <input 
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="+94 71 234 5678"
-                  className={errors.phone ? 'error' : ''}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="Enter your email address"
+                  className={errors.email ? 'error' : ''}
                   disabled={isLoading}
                 />
-                {errors.phone && <span className="error-message">{errors.phone}</span>}
+                {errors.email && <span className="error-message">{errors.email}</span>}
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="address">
-                  <span className="label-icon">🏠</span>
-                  Address *
-                </label>
-                <textarea 
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Enter your complete address"
-                  rows={3}
-                  className={errors.address ? 'error' : ''}
+            {/* Password Change Section */}
+            <div className="password-section">
+              <div className="password-header">
+                <h4>Password Settings</h4>
+                <button 
+                  type="button"
+                  className="toggle-password-btn"
+                  onClick={() => setShowPasswordChange(!showPasswordChange)}
                   disabled={isLoading}
-                />
-                {errors.address && <span className="error-message">{errors.address}</span>}
+                >
+                  {showPasswordChange ? 'Cancel Password Change' : 'Change Password'}
+                </button>
               </div>
-            </div>
 
-            {/* Read-only fields */}
-            <div className="readonly-section">
-              <h4>Account Information</h4>
-              <div className="readonly-grid">
-                <div className="readonly-item">
-                  <span className="readonly-label">📧 Email</span>
-                  <span className="readonly-value">{formData.email}</span>
+              {showPasswordChange && (
+                <div className="password-fields">
+                  <div className="form-group">
+                    <label htmlFor="newPassword">
+                      <span className="label-icon">🔒</span>
+                      New Password *
+                    </label>
+                    <input 
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 6 characters)"
+                      className={errors.newPassword ? 'error' : ''}
+                      disabled={isLoading}
+                    />
+                    {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">
+                      <span className="label-icon">🔒</span>
+                      Confirm New Password *
+                    </label>
+                    <input 
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className={errors.confirmPassword ? 'error' : ''}
+                      disabled={isLoading}
+                    />
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+                  </div>
                 </div>
-                <div className="readonly-item">
-                  <span className="readonly-label">👔 Role</span>
-                  <span className="readonly-value">{formData.role}</span>
-                </div>
-                <div className="readonly-item">
-                  <span className="readonly-label">📅 Join Date</span>
-                  <span className="readonly-value">{formData.joinDate}</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

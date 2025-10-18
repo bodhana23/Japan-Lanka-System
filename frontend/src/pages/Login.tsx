@@ -1,64 +1,104 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validateEmail, sanitizeInput } from '../utils/validation';
+import { validateEmail, sanitizeInput, getEmailValidationError } from '../utils/validation';
 import './Login.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const navigate = useNavigate();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedEmail = sanitizeInput(e.target.value);
     setEmail(sanitizedEmail);
+    
+    // Clear email error when user starts typing
+    if (errors.email) {
+      setErrors(prev => ({ ...prev, email: '' }));
+    }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedPassword = sanitizeInput(e.target.value);
     setPassword(sanitizedPassword);
+    
+    // Clear password error when user starts typing
+    if (errors.password) {
+      setErrors(prev => ({ ...prev, password: '' }));
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateEmail(email)) {
-      alert('Please enter a valid email address.');
-      return;
+    // Clear previous errors
+    setErrors({});
+    const newErrors: {[key: string]: string} = {};
+    
+    // Enhanced validation with specific error messages
+    const emailError = getEmailValidationError(email);
+    if (emailError) {
+      newErrors.email = emailError;
     }
     
     if (!password || password.length < 6) {
-      alert('Please enter a valid password (at least 6 characters).');
+      newErrors.password = 'Password must be at least 6 characters long';
+    }
+    
+    // If there are validation errors, display them and stop submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
     
     try {
-      // Hardcoded customer credentials for testing
-      if (email === 'customer1@gmail.com' && password === 'customer@1') {
-        // Store user info in localStorage for demo purposes
+      // First, check registered users (customers who signed up through registration)
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const registeredUser = registeredUsers.find((user: any) => 
+        user.email.toLowerCase() === email.toLowerCase() && user.password === password
+      );
+      
+      if (registeredUser) {
+        // Store user info in localStorage for session management
         const userData = {
-          email: 'customer1@gmail.com',
-          username: 'customer1',
-          role: 'customer',
-          mobile: '+94 77 123 4567',
-          garageName: 'Lanka Auto Service',
-          registrationNumber: 'REG-001'
+          email: registeredUser.email,
+          fullName: registeredUser.fullName,
+          role: registeredUser.role,
+          phoneNumber: registeredUser.phoneNumber,
+          password: registeredUser.password
         };
         
         localStorage.setItem('currentUser', JSON.stringify(userData));
-        navigate('/dashboard');
+        
+        // Navigate based on role
+        switch (registeredUser.role) {
+          case 'customer':
+            navigate('/dashboard');
+            break;
+          case 'manager':
+            navigate('/manager-dashboard');
+            break;
+          case 'admin':
+            navigate('/admin-dashboard');
+            break;
+          case 'auditor':
+            navigate('/auditor-dashboard');
+            break;
+          default:
+            navigate('/dashboard');
+        }
         return;
       }
 
-      // Hardcoded manager credentials for testing
+      // Fallback: Hardcoded staff credentials for admin/manager access
       if (email === 'manager1@gmail.com' && password === 'manager@1') {
-        // Store manager info in localStorage for demo purposes
         const userData = {
           email: 'manager1@gmail.com',
-          username: 'manager1',
+          name: 'Manager User',
+          fullName: 'Manager User',
           role: 'manager',
-          mobile: '+94 77 987 6543',
-          garageName: 'Lanka Auto Service',
-          registrationNumber: 'MNG-001'
+          password: 'manager@1'
         };
         
         localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -66,16 +106,13 @@ const Login: React.FC = () => {
         return;
       }
 
-      // Hardcoded admin credentials for testing
       if (email === 'admin@gmail.com' && password === 'admin@1') {
-        // Store admin info in localStorage for demo purposes
         const userData = {
           email: 'admin@gmail.com',
-          username: 'admin',
+          name: 'Administrator',
+          fullName: 'Administrator',
           role: 'admin',
-          mobile: '+94 77 555 0001',
-          department: 'Administration',
-          employeeId: 'ADM-001'
+          password: 'admin@1'
         };
         
         localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -83,17 +120,13 @@ const Login: React.FC = () => {
         return;
       }
 
-      // Hardcoded auditor credentials for testing
       if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
-        // Store auditor info in localStorage for demo purposes
         const userData = {
-          id: 3,
           email: 'auditor1@gmail.com',
           name: 'Auditor User',
+          fullName: 'Auditor User',
           role: 'auditor',
-          phone: '+94 77 555 0002',
-          department: 'Audit & Compliance',
-          employeeId: 'AUD-001'
+          password: 'auditor@1'
         };
         
         localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -102,7 +135,7 @@ const Login: React.FC = () => {
       }
       
       // Invalid credentials
-      alert('Invalid credentials. Try:\nCustomer: customer1@gmail.com / customer@1\nManager: manager1@gmail.com / manager@1\nAdmin: admin@gmail.com / admin@1\nAuditor: auditor1@gmail.com / auditor@1');
+      alert('Invalid credentials. Please check your email and password.\n\nFor staff access, use:\nManager: manager1@gmail.com / manager@1\nAdmin: admin@gmail.com / admin@1\nAuditor: auditor1@gmail.com / auditor@1');
       
     } catch (error) {
       console.error('Login error:', error);
@@ -132,11 +165,13 @@ const Login: React.FC = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-              placeholder="Enter your email address"
+              placeholder="Enter your email address "
               autoComplete="email"
               tabIndex={1}
               required
+              className={errors.email ? 'error' : ''}
             />
+            {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
           
           <div className="form-group">
@@ -146,11 +181,13 @@ const Login: React.FC = () => {
               id="password"
               value={password}
               onChange={handlePasswordChange}
-              placeholder="Enter your password"
+              placeholder="Enter your password "
               autoComplete="current-password"
               tabIndex={2}
               required
+              className={errors.password ? 'error' : ''}
             />
+            {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
           
           <button type="submit" className="login-btn">

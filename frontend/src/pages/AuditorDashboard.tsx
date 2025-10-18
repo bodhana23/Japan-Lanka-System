@@ -3,21 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import './AuditorDashboard.css';
 
 interface UserProfile {
-  id: number;
-  name: string;
   email: string;
+  name: string;
   role: string;
-  phone: string;
-  department: string;
-  employeeId: string;
+  password: string;
 }
 
-interface AuditLog {
+interface InventoryLog {
+  id: number;
+  productName: string;
+  action: string;
+  user: string;
+  timestamp: string;
+  previousQuantity?: number;
+  newQuantity?: number;
+  details: string;
+}
+
+interface ActivityLog {
   id: number;
   activity: string;
   user: string;
   timestamp: string;
-  type: 'info' | 'warning' | 'success';
+  type: 'info' | 'warning' | 'success' | 'error';
   details: string;
 }
 
@@ -35,9 +43,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
-    phone: user.phone,
-    department: user.department,
-    employeeId: user.employeeId,
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -50,7 +55,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -64,28 +68,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters long';
     }
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email format is invalid';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?\d[\d\s-()]{7,14}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Phone number format is invalid';
-    }
-
-    if (!formData.department.trim()) {
-      newErrors.department = 'Department is required';
-    }
-
-    if (!formData.employeeId.trim()) {
-      newErrors.employeeId = 'Employee ID is required';
+    } else if (!formData.email.includes('@')) {
+      newErrors.email = 'Email must contain @';
     }
 
     setErrors(newErrors);
@@ -102,11 +90,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
     if (!formData.newPassword) {
       newErrors.newPassword = 'New password is required';
     } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters long';
+      newErrors.newPassword = 'Password must be at least 6 characters';
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
+      newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
@@ -117,32 +105,32 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
-      alert('User data not found. Please refresh and try again.');
-      return;
-    }
-
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const updatedUser: UserProfile = {
         ...user,
         name: formData.name.trim(),
-        email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        department: formData.department.trim(),
-        employeeId: formData.employeeId.trim()
+        email: formData.email.trim()
       };
+
+      // Update localStorage
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        localStorage.setItem('currentUser', JSON.stringify({
+          ...userData,
+          name: updatedUser.name,
+          email: updatedUser.email
+        }));
+      }
 
       onUpdate(updatedUser);
       alert('Profile updated successfully!');
     } catch (error) {
-      console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -151,13 +139,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validatePasswordForm()) return;
 
     setIsLoading(true);
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update password in localStorage
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        localStorage.setItem('currentUser', JSON.stringify({
+          ...userData,
+          password: formData.newPassword
+        }));
+      }
 
       alert('Password changed successfully!');
       setFormData(prev => ({
@@ -186,7 +182,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
         </div>
 
         <div className="edit-profile-form">
-          {/* Profile Picture Section */}
           <div className="profile-picture-section">
             <div className="profile-avatar">
               <div className="avatar-placeholder">
@@ -197,7 +192,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
             <p className="profile-role">Auditor</p>
           </div>
 
-          {/* Modal Tabs */}
           <div className="modal-tabs">
             <button 
               className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
@@ -260,69 +254,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
                         required
                       />
                       {errors.email && <span className="error-message">{errors.email}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="phone">
-                        <span className="label-icon">📱</span>
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+94 71 234 5678"
-                        className={errors.phone ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.phone && <span className="error-message">{errors.phone}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="department">
-                        <span className="label-icon">🏢</span>
-                        Department *
-                      </label>
-                      <input
-                        type="text"
-                        id="department"
-                        name="department"
-                        value={formData.department}
-                        onChange={handleChange}
-                        placeholder="Enter your department"
-                        className={errors.department ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.department && <span className="error-message">{errors.department}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="employeeId">
-                        <span className="label-icon">🆔</span>
-                        Employee ID *
-                      </label>
-                      <input
-                        type="text"
-                        id="employeeId"
-                        name="employeeId"
-                        value={formData.employeeId}
-                        onChange={handleChange}
-                        placeholder="Enter your employee ID"
-                        className={errors.employeeId ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.employeeId && <span className="error-message">{errors.employeeId}</span>}
                     </div>
                   </div>
                 </div>
@@ -443,89 +374,144 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 
 const AuditorDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'inventory' | 'activity'>('inventory');
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(true);
+
   const [user, setUser] = useState<UserProfile>({
-    id: 3,
-    name: 'Sarah Wilson',
-    email: 'sarah.wilson@japanlanka.com',
+    email: 'auditor@japanlanka.com',
+    name: 'Auditor User',
     role: 'Auditor',
-    phone: '+94 77 123 4567',
-    department: 'Quality Assurance',
-    employeeId: 'JL-AUD-003'
+    password: 'auditor123'
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [auditLogs, _setAuditLogs] = useState<AuditLog[]>([
+  const [inventoryLogs] = useState<InventoryLog[]>([
     {
       id: 1,
-      activity: 'User login attempt',
-      user: 'john.doe@japanlanka.com',
-      timestamp: '2024-01-15 10:30:00',
-      type: 'info',
-      details: 'Successful login from IP: 192.168.1.100'
+      productName: 'Brake Pads Set - Toyota Camry',
+      action: 'Stock Added',
+      user: 'Manager User',
+      timestamp: '2025-10-18 10:30:00',
+      previousQuantity: 25,
+      newQuantity: 50,
+      details: 'Added 25 units to inventory'
     },
     {
       id: 2,
-      activity: 'Data export',
-      user: 'jane.smith@japanlanka.com',
-      timestamp: '2024-01-15 09:15:00',
-      type: 'warning',
-      details: 'Customer data exported to CSV'
+      productName: 'Engine Oil Filter - Honda Civic',
+      action: 'Stock Updated',
+      user: 'Manager User',
+      timestamp: '2025-10-18 09:15:00',
+      previousQuantity: 10,
+      newQuantity: 2,
+      details: 'Sold 8 units to customer'
     },
     {
       id: 3,
-      activity: 'Password change',
-      user: 'mike.johnson@japanlanka.com',
-      timestamp: '2024-01-15 08:45:00',
-      type: 'success',
-      details: 'Password successfully updated'
+      productName: 'LED Headlight Bulbs - Ford Focus',
+      action: 'Product Added',
+      user: 'Manager User',
+      timestamp: '2025-10-17 14:20:00',
+      newQuantity: 20,
+      details: 'New product added to inventory'
     },
     {
       id: 4,
-      activity: 'Failed login attempt',
-      user: 'unknown@domain.com',
-      timestamp: '2024-01-15 08:30:00',
+      productName: 'Air Filter - Nissan Altima',
+      action: 'Stock Updated',
+      user: 'Manager User',
+      timestamp: '2025-10-17 11:45:00',
+      previousQuantity: 30,
+      newQuantity: 28,
+      details: 'Sold 2 units to customer'
+    },
+    {
+      id: 5,
+      productName: 'Spark Plugs Set - Honda Accord',
+      action: 'Price Updated',
+      user: 'Manager User',
+      timestamp: '2025-10-16 16:30:00',
+      details: 'Price changed from Rs. 3000 to Rs. 3200'
+    }
+  ]);
+
+  const [activityLogs] = useState<ActivityLog[]>([
+    {
+      id: 1,
+      activity: 'User Login',
+      user: 'manager@japanlanka.com',
+      timestamp: '2025-10-18 10:25:00',
+      type: 'success',
+      details: 'Successful login from Manager Dashboard'
+    },
+    {
+      id: 2,
+      activity: 'Order Status Updated',
+      user: 'manager@japanlanka.com',
+      timestamp: '2025-10-18 10:20:00',
+      type: 'info',
+      details: 'Order #ORD-001 status changed to In Progress'
+    },
+    {
+      id: 3,
+      activity: 'Product Deleted',
+      user: 'manager@japanlanka.com',
+      timestamp: '2025-10-18 09:50:00',
       type: 'warning',
+      details: 'Product "Wiper Blades" removed from inventory'
+    },
+    {
+      id: 4,
+      activity: 'Failed Login Attempt',
+      user: 'unknown@domain.com',
+      timestamp: '2025-10-18 08:30:00',
+      type: 'error',
       details: 'Multiple failed login attempts detected'
     },
     {
       id: 5,
-      activity: 'System backup',
+      activity: 'Customer Registration',
+      user: 'newcustomer@gmail.com',
+      timestamp: '2025-10-17 15:45:00',
+      type: 'success',
+      details: 'New customer account created'
+    },
+    {
+      id: 6,
+      activity: 'Password Changed',
+      user: 'customer@gmail.com',
+      timestamp: '2025-10-17 14:30:00',
+      type: 'info',
+      details: 'Customer password successfully updated'
+    },
+    {
+      id: 7,
+      activity: 'System Backup',
       user: 'system',
-      timestamp: '2024-01-15 02:00:00',
+      timestamp: '2025-10-17 02:00:00',
       type: 'success',
       details: 'Automated daily backup completed successfully'
     }
   ]);
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedTimeRange, setSelectedTimeRange] = useState('today');
-  const [showProfile, setShowProfile] = useState(false);
-
-  // Load user data from localStorage
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
       try {
         const userData = JSON.parse(currentUser);
-        // Validate user data structure and role
-        if (!userData || typeof userData !== 'object' || !userData.email || userData.role !== 'auditor') {
-          console.warn('Invalid or unauthorized user data for auditor dashboard');
+        if (!userData || userData.role !== 'auditor') {
           navigate('/');
           return;
         }
         
-        // Update user state with data from localStorage
         setUser({
-          id: userData.id || 3,
-          name: userData.name || (userData.email && userData.email.includes('@') ? userData.email.split('@')[0] : 'auditor'),
           email: userData.email,
+          name: userData.name || 'Auditor User',
           role: userData.role,
-          phone: userData.phone || '+94 77 123 4567',
-          department: userData.department || 'Quality Assurance',
-          employeeId: userData.employeeId || 'AUD-001'
+          password: userData.password || 'auditor123'
         });
       } catch (error) {
-        console.error('Error parsing user data from localStorage:', error);
+        console.error('Error parsing user data:', error);
         navigate('/');
       }
     } else {
@@ -534,258 +520,206 @@ const AuditorDashboard: React.FC = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem('currentUser');
-    } catch (error) {
-      console.error('Error clearing user data:', error);
-    }
+    localStorage.removeItem('currentUser');
     navigate('/');
   };
 
   const handleUpdateProfile = (updatedUser: UserProfile) => {
     setUser(updatedUser);
-    setIsEditModalOpen(false);
+    setShowEditProfile(false);
   };
 
-  const getLogTypeIcon = (type: AuditLog['type']) => {
+  const handleEditProfile = () => {
+    setShowEditProfile(true);
+  };
+
+  const getActivityLogIcon = (type: ActivityLog['type']) => {
     switch (type) {
       case 'success': return '✅';
       case 'warning': return '⚠️';
       case 'info': return 'ℹ️';
+      case 'error': return '❌';
       default: return '📝';
     }
   };
 
-  const getLogTypeClass = (type: AuditLog['type']) => {
-    return `log-type-${type}`;
-  };
-
-  const filteredLogs = auditLogs.filter(log => {
-    const logDate = new Date(log.timestamp);
-    const today = new Date();
-    
-    switch (selectedTimeRange) {
-      case 'today':
-        return logDate.toDateString() === today.toDateString();
-      case 'week':
-        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return logDate >= weekAgo;
-      case 'month':
-        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return logDate >= monthAgo;
-      default:
-        return true;
-    }
-  });
-
   return (
-    <div className="auditor-dashboard">
-      <div className="dashboard-header">
+    <div className="dashboard-container">
+      {showEditProfile && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setShowEditProfile(false)}
+          onUpdate={handleUpdateProfile}
+        />
+      )}
+
+      <header className="dashboard-header">
         <div className="header-content">
-          <div className="welcome-section">
-            <h1>Auditor Dashboard</h1>
-            <p>Monitor system activities and maintain security compliance</p>
-          </div>
-          
+          <h1>🔍 Japan Lanka Auditor Dashboard</h1>
           <div className="header-actions">
+            <span className="welcome-text">Welcome, {user.name}!</span>
             <button 
               className="profile-header-btn"
               onClick={() => setShowProfile(!showProfile)}
             >
               <span className="profile-btn-icon">👤</span>
-              <span className="profile-btn-text">Profile</span>
+              {showProfile ? 'Hide Profile' : 'Show Profile'}
             </button>
             <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="dashboard-main">
-        {/* Profile Section - Conditionally Rendered */}
+      <main className="dashboard-main">
         {showProfile && (
-          <div className="profile-section">
+          <div className="profile-wrapper">
             <div className="section-header">
               <h2>Auditor Profile</h2>
-              <div className="header-actions">
-                <button 
-                  onClick={() => setShowProfile(false)} 
-                  className="close-profile-btn"
-                >
-                  <span className="close-icon">✕</span>
-                  Hide Profile
-                </button>
-                <button 
-                  onClick={() => setIsEditModalOpen(true)} 
-                  className="edit-profile-btn"
-                >
+              <div className="profile-action-buttons">
+                <button onClick={handleEditProfile} className="edit-profile-btn">
                   <span className="edit-icon">✏️</span>
                   Edit Profile
+                </button>
+                <button onClick={() => setShowProfile(!showProfile)} className="hide-profile-btn">
+                  <span className="hide-icon">🙈</span>
+                  Hide Profile
                 </button>
               </div>
             </div>
             
-            <div className="profile-card">
-              <div className="profile-header">
+            <div className="profile-card-horizontal">
+              <div className="profile-avatar-section">
                 <div className="profile-avatar-large">
                   <div className="avatar-large">
                     {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'A'}
                   </div>
                 </div>
-                <div className="profile-summary">
-                  <h3>{user.name || 'Auditor User'}</h3>
-                  <p className="profile-role-badge">Auditor</p>
-                  <p className="profile-email-text">{user.email}</p>
-                </div>
               </div>
-
-              <div className="profile-details">
-                <div className="detail-grid">
-                  <div className="profile-item">
+              
+              <div className="profile-details-horizontal">
+                <div className="profile-info-grid">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">👤</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Full Name</span>
-                      <span className="profile-value">{user.name || 'N/A'}</span>
+                      <span className="profile-value">{user.name}</span>
                     </div>
                   </div>
 
-                  <div className="profile-item">
+                  <div className="profile-item-horizontal">
                     <div className="profile-item-icon">📧</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Email Address</span>
-                      <span className="profile-value">{user.email || 'N/A'}</span>
+                      <span className="profile-value">{user.email}</span>
                     </div>
                   </div>
 
-                  <div className="profile-item">
-                    <div className="profile-item-icon">👔</div>
+                  <div className="profile-item-horizontal">
+                    <div className="profile-item-icon">🔑</div>
+                    <div className="profile-item-content">
+                      <span className="profile-label">Password</span>
+                      <span className="profile-value">••••••••</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-item-horizontal">
+                    <div className="profile-item-icon">🏷️</div>
                     <div className="profile-item-content">
                       <span className="profile-label">Role</span>
-                      <span className="profile-value">Auditor</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">📱</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Phone Number</span>
-                      <span className="profile-value">{user.phone || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">🏢</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Department</span>
-                      <span className="profile-value">{user.department || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item">
-                    <div className="profile-item-icon">🆔</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Employee ID</span>
-                      <span className="profile-value">{user.employeeId || 'N/A'}</span>
+                      <span className="profile-value">{user.role}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="profile-actions">
-                <button 
-                  className="edit-profile-btn-main"
-                  onClick={() => setIsEditModalOpen(true)}
-                >
-                  <span className="action-icon">✏️</span>
-                  Edit Profile Information
-                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Stats Section */}
-        <div className="stats-section">
-          <div className="stat-card">
-            <div className="stat-icon">📊</div>
-            <div className="stat-info">
-              <h3>Total Logs</h3>
-              <p>{auditLogs.length}</p>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon">⚠️</div>
-            <div className="stat-info">
-              <h3>Warnings</h3>
-              <p>{auditLogs.filter(log => log.type === 'warning').length}</p>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon">✅</div>
-            <div className="stat-info">
-              <h3>Success</h3>
-              <p>{auditLogs.filter(log => log.type === 'success').length}</p>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon">ℹ️</div>
-            <div className="stat-info">
-              <h3>Info</h3>
-              <p>{auditLogs.filter(log => log.type === 'info').length}</p>
-            </div>
-          </div>
-        </div>
+        <nav className="auditor-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            📦 Inventory Logs
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            📊 Activity Logs
+          </button>
+        </nav>
 
-        {/* Audit Logs Section */}
-        <div className="audit-logs-section">
-          <div className="section-header">
-            <h2>Audit Logs</h2>
-            <div className="time-filter">
-              <select 
-                value={selectedTimeRange} 
-                onChange={(e) => setSelectedTimeRange(e.target.value)}
-                className="time-select"
-              >
-                <option value="today">Today</option>
-                <option value="week">Last 7 Days</option>
-                <option value="month">Last 30 Days</option>
-                <option value="all">All Time</option>
-              </select>
+        {activeTab === 'inventory' && (
+          <section className="logs-section">
+            <h2>Inventory Logs</h2>
+            <div className="logs-container">
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Action</th>
+                    <th>User</th>
+                    <th>Previous Qty</th>
+                    <th>New Qty</th>
+                    <th>Timestamp</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventoryLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td className="product-name">{log.productName}</td>
+                      <td><span className="action-badge">{log.action}</span></td>
+                      <td>{log.user}</td>
+                      <td className="quantity">{log.previousQuantity ?? '-'}</td>
+                      <td className="quantity">{log.newQuantity}</td>
+                      <td className="timestamp">{log.timestamp}</td>
+                      <td className="details">{log.details}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </section>
+        )}
 
-          <div className="logs-container">
-            {filteredLogs.map(log => (
-              <div key={log.id} className={`log-entry ${getLogTypeClass(log.type)}`}>
-                <div className="log-header">
-                  <div className="log-type">
-                    <span className="log-icon">{getLogTypeIcon(log.type)}</span>
-                    <span className="log-activity">{log.activity}</span>
-                  </div>
-                  <span className="log-timestamp">{log.timestamp}</span>
-                </div>
-                <div className="log-details">
-                  <p className="log-user">User: {log.user}</p>
-                  <p className="log-description">{log.details}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Profile Modal */}
-      {isEditModalOpen && (
-        <EditProfileModal
-          user={user}
-          onClose={() => setIsEditModalOpen(false)}
-          onUpdate={handleUpdateProfile}
-        />
-      )}
+        {activeTab === 'activity' && (
+          <section className="logs-section">
+            <h2>Activity Logs</h2>
+            <div className="logs-container">
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Activity</th>
+                    <th>User</th>
+                    <th>Timestamp</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activityLogs.map((log) => (
+                    <tr key={log.id} className={`log-row-${log.type}`}>
+                      <td className="log-type">
+                        <span className={`log-icon log-${log.type}`}>
+                          {getActivityLogIcon(log.type)}
+                        </span>
+                      </td>
+                      <td className="activity-name">{log.activity}</td>
+                      <td>{log.user}</td>
+                      <td className="timestamp">{log.timestamp}</td>
+                      <td className="details">{log.details}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 };
