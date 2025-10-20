@@ -1,189 +1,104 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCart, Product } from '../context/CartContext';
 import './Shop.css';
-
-interface Product {
-  id: string;
-  name: string;
-  model: string;
-  modelYear: string;
-  price: number;
-  quantityAvailable: number;
-  category: string;
-  image: string;
-  description: string;
-}
-
-interface CartItem extends Product {
-  quantity: number;
-}
 
 const Shop: React.FC = () => {
   const navigate = useNavigate();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { cart, addToCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
   const [showCart, setShowCart] = useState(false);
 
-  // Vehicle parts inventory for demo
+  // Vehicle parts inventory for demo - Sri Lankan realistic data
   const [products] = useState<Product[]>([
     {
       id: 'P001',
       name: 'Brake Pads Set',
       model: 'Toyota Camry',
       modelYear: '2018-2023',
-      price: 4500.00,
+      price: 8500.00,
       quantityAvailable: 25,
       category: 'Brake System',
       image: '🔧',
-      description: 'High-quality ceramic brake pads for Toyota Camry 2018-2023'
+      description: 'High-quality ceramic brake pads set (front) for Toyota Camry 2018-2023. Includes installation kit.'
     },
     {
       id: 'P002',
       name: 'Engine Oil Filter',
       model: 'Honda Civic',
       modelYear: '2016-2021',
-      price: 1200.00,
-      quantityAvailable: 2,
+      price: 1800.00,
+      quantityAvailable: 40,
       category: 'Engine Parts',
       image: '⚙️',
-      description: 'Premium oil filter for Honda Civic 2016-2021'
+      description: 'Premium oil filter for Honda Civic 2016-2021. OEM quality replacement part.'
     },
     {
       id: 'P003',
       name: 'LED Headlight Bulbs',
       model: 'BMW 3 Series',
       modelYear: '2019-2024',
-      price: 2800.00,
-      quantityAvailable: 1,
+      price: 12500.00,
+      quantityAvailable: 15,
       category: 'Lighting',
       image: '💡',
-      description: 'LED headlight bulb set for BMW 3 Series 2019-2024'
+      description: 'High-intensity LED headlight bulb set for BMW 3 Series 2019-2024. 6000K white light.'
     },
     {
       id: 'P004',
       name: 'Air Filter',
-      model: 'Ford Focus',
-      modelYear: '2015-2020',
-      price: 1850.00,
+      model: 'Nissan Leaf',
+      modelYear: '2018-2023',
+      price: 2200.00,
       quantityAvailable: 30,
       category: 'Engine Parts',
       image: '🌪️',
-      description: 'High-flow air filter for Ford Focus 2015-2020'
+      description: 'High-flow air filter for Nissan Leaf 2018-2023. Improves engine performance.'
     },
     {
       id: 'P005',
       name: 'Spark Plugs Set',
-      model: 'Nissan Altima',
-      modelYear: '2017-2022',
-      price: 3200.00,
-      quantityAvailable: 15,
+      model: 'Toyota Prius',
+      modelYear: '2016-2022',
+      price: 4500.00,
+      quantityAvailable: 20,
       category: 'Engine Parts',
       image: '⚡',
-      description: 'Iridium spark plugs for Nissan Altima 2017-2022'
+      description: 'Iridium spark plugs set (4pc) for Toyota Prius 2016-2022. Long-lasting performance.'
     },
     {
       id: 'P006',
-      name: 'Timing Belt',
+      name: 'Timing Belt Kit',
       model: 'Honda Accord',
       modelYear: '2013-2017',
-      price: 5500.00,
+      price: 15500.00,
       quantityAvailable: 8,
       category: 'Engine Parts',
       image: '⏰',
-      description: 'Timing belt kit for Honda Accord 2013-2017'
+      description: 'Complete timing belt kit for Honda Accord 2013-2017. Includes tensioner and pulleys.'
+    },
+    {
+      id: 'P007',
+      name: 'Wiper Blade Set',
+      model: 'Toyota Axio',
+      modelYear: '2014-2021',
+      price: 1200.00,
+      quantityAvailable: 50,
+      category: 'Accessories',
+      image: '🌧️',
+      description: 'Silicone wiper blade set for Toyota Axio 2014-2021. All-weather performance.'
+    },
+    {
+      id: 'P008',
+      name: 'Battery 12V 60Ah',
+      model: 'Universal',
+      modelYear: '2015-2025',
+      price: 18500.00,
+      quantityAvailable: 12,
+      category: 'Electrical',
+      image: '🔋',
+      description: 'Maintenance-free car battery 12V 60Ah. 2-year warranty. Fits most Japanese vehicles.'
     }
   ]);
-
-  const addToCart = (product: Product) => {
-    // Validate product data
-    if (!product || !product.id || typeof product.price !== 'number' || product.price < 0) {
-      alert('Invalid product data. Please try again.');
-      return;
-    }
-
-    if (product.quantityAvailable <= 0) {
-      alert('This item is out of stock.');
-      return;
-    }
-
-    const existingItem = cart.find(item => item.id === product.id);
-    
-    if (existingItem) {
-      if (existingItem.quantity < product.quantityAvailable) {
-        setCart(cart.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        ));
-      } else {
-        alert('Maximum quantity reached for this item');
-      }
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
-  };
-
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    // Validate inputs
-    if (!productId || typeof newQuantity !== 'number' || newQuantity < 0) {
-      alert('Invalid quantity update request.');
-      return;
-    }
-
-    if (newQuantity === 0) {
-      setCart(cart.filter(item => item.id !== productId));
-      return;
-    }
-
-    const product = products.find(p => p.id === productId);
-    if (!product) {
-      alert('Product not found.');
-      return;
-    }
-
-    if (newQuantity > product.quantityAvailable) {
-      alert('Cannot exceed available stock quantity.');
-      return;
-    }
-    
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: newQuantity }
-        : item
-    ));
-  };
-
-  const getTotalPrice = () => {
-    if (!Array.isArray(cart)) {
-      return 0;
-    }
-    
-    return cart.reduce((total, item) => {
-      // Strict validation for cart items
-      if (!item || typeof item !== 'object') {
-        return total;
-      }
-      
-      const price = typeof item.price === 'number' && !isNaN(item.price) && item.price >= 0 ? item.price : 0;
-      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) && item.quantity >= 0 ? item.quantity : 0;
-      
-      return total + (price * quantity);
-    }, 0);
-  };
-
-  const getTotalItems = () => {
-    if (!Array.isArray(cart)) {
-      return 0;
-    }
-    
-    return cart.reduce((total, item) => {
-      if (!item || typeof item !== 'object') {
-        return total;
-      }
-      
-      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) && item.quantity >= 0 ? item.quantity : 0;
-      return total + quantity;
-    }, 0);
-  };
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -191,9 +106,7 @@ const Shop: React.FC = () => {
       return;
     }
     
-    alert(`Order placed successfully! Total: Rs. ${getTotalPrice().toFixed(2)}`);
-    setCart([]);
-    navigate('/dashboard');
+    navigate('/checkout');
   };
 
   const handleBackToDashboard = () => {
@@ -210,7 +123,10 @@ const Shop: React.FC = () => {
               onClick={() => setShowCart(!showCart)} 
               className="cart-btn"
             >
-              🛒 Cart ({getTotalItems()})
+              🛒 Cart
+              {getTotalItems() > 0 && (
+                <span className="cart-badge">{getTotalItems()}</span>
+              )}
             </button>
             <button onClick={handleBackToDashboard} className="back-btn">
               ← Back to Dashboard

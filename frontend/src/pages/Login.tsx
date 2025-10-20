@@ -95,9 +95,9 @@ const Login: React.FC = () => {
       if (email === 'manager1@gmail.com' && password === 'manager@1') {
         const userData = {
           email: 'manager1@gmail.com',
-          name: 'Manager User',
           fullName: 'Manager User',
           role: 'manager',
+          phoneNumber: '0112345678',
           password: 'manager@1'
         };
         
@@ -109,9 +109,9 @@ const Login: React.FC = () => {
       if (email === 'admin@gmail.com' && password === 'admin@1') {
         const userData = {
           email: 'admin@gmail.com',
-          name: 'Administrator',
           fullName: 'Administrator',
           role: 'admin',
+          phoneNumber: '0112345679',
           password: 'admin@1'
         };
         
@@ -123,9 +123,9 @@ const Login: React.FC = () => {
       if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
         const userData = {
           email: 'auditor1@gmail.com',
-          name: 'Auditor User',
           fullName: 'Auditor User',
           role: 'auditor',
+          phoneNumber: '0112345680',
           password: 'auditor@1'
         };
         
@@ -138,7 +138,6 @@ const Login: React.FC = () => {
       if (email === 'customer2@gmail.com' && password === 'customer@2222') {
         const userData = {
           email: 'customer2@gmail.com',
-          name: 'customer2',
           fullName: 'customer2',
           role: 'customer',
           phoneNumber: '0771234567',
