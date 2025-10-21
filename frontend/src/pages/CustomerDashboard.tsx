@@ -578,6 +578,25 @@ const CustomerDashboard: React.FC = () => {
         shipped: '2025-01-16',
         delivered: '2025-01-18'
       }
+    },
+    {
+      id: 'ORD-008',
+      items: ['Radiator Coolant (Nissan Altima)', 'Spark Plugs Set (Ford Focus)'],
+      itemsDetailed: [
+        { partName: 'Radiator Coolant', carModel: 'Nissan Altima', quantity: 2, unitPrice: 1850, subtotal: 3700 },
+        { partName: 'Spark Plugs Set', carModel: 'Ford Focus', quantity: 1, unitPrice: 2400, subtotal: 2400 }
+      ],
+      amount: 6100.00,
+      status: 'delivered',
+      orderDate: '2025-01-12',
+      deliveryMethod: 'pickup',
+      customerName: 'Customer',
+      customerPhone: '0771234567',
+      trackingInfo: {
+        orderPlaced: '2025-01-12',
+        confirmed: '2025-01-12',
+        delivered: '2025-01-14'
+      }
     }
   ]);
 
@@ -604,8 +623,8 @@ const CustomerDashboard: React.FC = () => {
       itemsDetailed: [
         { partName: 'LED Headlight Bulbs', carModel: 'BMW 3 Series', quantity: 2, unitPrice: 1850, subtotal: 3700 }
       ],
-      reason: 'Damaged item',
-      description: 'Both LED bulbs arrived with visible cracks on the glass. The packaging was intact but the bulbs themselves are damaged and cannot be installed safely.',
+      reason: 'Wrong part received',
+      description: 'Ordered LED Headlight Bulbs for BMW 3 Series 2022 model, but received bulbs for 2019 model. Part number does not match my vehicle specifications. I need the correct parts before I pick up the order.',
       status: 'pending',
       requestDate: '2025-01-21'
     },
@@ -930,7 +949,7 @@ const CustomerDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    {order.status === 'delivered' && (
+                    {(order.status === 'delivered' || order.status === 'ready_to_pickup') && (
                       <div className="order-card-actions">
                         {hasExistingReturn(order.id) ? (
                           <span className="return-requested-text">Return Requested</span>
@@ -944,6 +963,9 @@ const CustomerDashboard: React.FC = () => {
                             }}
                           >
                             Request Return
+                            {order.status === 'ready_to_pickup' && (
+                              <span className="before-pickup-badge">Before Pickup</span>
+                            )}
                           </button>
                         )}
                       </div>
@@ -963,17 +985,24 @@ const CustomerDashboard: React.FC = () => {
             <h2>Return Requests</h2>
             <div className="returns-list">
               {returnRequests.length > 0 ? (
-                returnRequests.map((returnReq) => (
-                  <div key={returnReq.id} className="return-card" onClick={() => setSelectedReturn(returnReq)}>
-                    <div className="return-header">
-                      <div className="return-ids">
-                        <span className="return-id">#{returnReq.id}</span>
-                        <span className="original-order-id">Order: #{returnReq.orderId}</span>
+                returnRequests.map((returnReq) => {
+                  const relatedOrder = orders.find(o => o.id === returnReq.orderId);
+                  return (
+                    <div key={returnReq.id} className="return-card" onClick={() => setSelectedReturn(returnReq)}>
+                      <div className="return-header">
+                        <div className="return-ids">
+                          <span className="return-id">#{returnReq.id}</span>
+                          <span className="original-order-id">
+                            Order: #{returnReq.orderId}
+                            {relatedOrder && (
+                              <span className="order-status-tag"> ({getStatusBadge(relatedOrder.status).text})</span>
+                            )}
+                          </span>
+                        </div>
+                        <span className={`status-badge ${getReturnStatusBadge(returnReq.status).class}`}>
+                          {getReturnStatusBadge(returnReq.status).text}
+                        </span>
                       </div>
-                      <span className={`status-badge ${getReturnStatusBadge(returnReq.status).class}`}>
-                        {getReturnStatusBadge(returnReq.status).text}
-                      </span>
-                    </div>
                     <div className="return-details">
                       <p className="return-items">
                         <strong>Returned Items:</strong> {returnReq.items.join(', ')}
@@ -1005,9 +1034,13 @@ const CustomerDashboard: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))
+                );
+                })
               ) : (
-                <p className="no-returns">No return requests found.</p>
+                <div className="no-returns-container">
+                  <p className="no-returns">No return requests found.</p>
+                  <p className="no-returns-hint">You can request returns for delivered or ready-to-pickup orders.</p>
+                </div>
               )}
             </div>
           </section>
@@ -1159,7 +1192,7 @@ const CustomerDashboard: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              {selectedOrder.status === 'delivered' && (
+              {(selectedOrder.status === 'delivered' || selectedOrder.status === 'ready_to_pickup') && (
                 <div className="modal-actions">
                   {hasExistingReturn(selectedOrder.id) ? (
                     <span className="return-requested-text-modal">Return Requested</span>
@@ -1170,6 +1203,9 @@ const CustomerDashboard: React.FC = () => {
                       setShowReturnRequestModal(true);
                     }}>
                       Request Return
+                      {selectedOrder.status === 'ready_to_pickup' && (
+                        <span className="before-pickup-badge-modal">Before Pickup</span>
+                      )}
                     </button>
                   )}
                 </div>
@@ -1327,12 +1363,18 @@ const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({ order, onSubmit, 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const reasonOptions = [
-    'Wrong part received',
-    'Damaged item',
-    'Not as described',
-    'Other'
-  ];
+  // Determine available reasons based on order status
+  const isPickupOrder = order.status === 'ready_to_pickup';
+  const reasonOptions = isPickupOrder 
+    ? ['Wrong part received'] 
+    : ['Wrong part received', 'Damaged item', 'Not as described', 'Changed mind', 'Other'];
+
+  // Auto-select reason for pickup orders
+  React.useEffect(() => {
+    if (isPickupOrder) {
+      setReason('Wrong part received');
+    }
+  }, [isPickupOrder]);
 
   const handleItemToggle = (item: OrderItem) => {
     setSelectedItems(prev => {
@@ -1354,6 +1396,11 @@ const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({ order, onSubmit, 
 
     if (!reason) {
       newErrors.reason = 'Please select a return reason';
+    }
+
+    // Validate reason for pickup orders
+    if (isPickupOrder && reason !== 'Wrong part received') {
+      newErrors.reason = 'For pickup orders, only "Wrong part received" is accepted as a return reason';
     }
 
     if (!description || description.trim().length < 20) {
@@ -1447,12 +1494,19 @@ const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({ order, onSubmit, 
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className={`form-select ${errors.reason ? 'error' : ''}`}
+            disabled={isPickupOrder}
           >
-            <option value="">-- Select a reason --</option>
+            {!isPickupOrder && <option value="">-- Select a reason --</option>}
             {reasonOptions.map((opt, index) => (
               <option key={index} value={opt}>{opt}</option>
             ))}
           </select>
+          {isPickupOrder && (
+            <div className="form-helper-text">
+              <span className="helper-icon">ℹ️</span>
+              Note: For pickup orders, returns are only accepted for wrong parts before collection.
+            </div>
+          )}
         </div>
 
         {/* Description */}

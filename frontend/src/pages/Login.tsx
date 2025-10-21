@@ -54,41 +54,51 @@ const Login: React.FC = () => {
     
     try {
       // First, check registered users (customers who signed up through registration)
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const registeredUser = registeredUsers.find((user: any) => 
-        user.email.toLowerCase() === email.toLowerCase() && user.password === password
-      );
+      const registeredUsersStr = localStorage.getItem('registeredUsers') || '[]';
+      const registeredUsers = JSON.parse(registeredUsersStr);
       
-      if (registeredUser) {
-        // Store user info in localStorage for session management
-        const userData = {
-          email: registeredUser.email,
-          fullName: registeredUser.fullName,
-          role: registeredUser.role,
-          phoneNumber: registeredUser.phoneNumber,
-          password: registeredUser.password
-        };
-        
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        
-        // Navigate based on role
-        switch (registeredUser.role) {
-          case 'customer':
-            navigate('/dashboard');
-            break;
-          case 'manager':
-            navigate('/manager-dashboard');
-            break;
-          case 'admin':
-            navigate('/admin-dashboard');
-            break;
-          case 'auditor':
-            navigate('/auditor-dashboard');
-            break;
-          default:
-            navigate('/dashboard');
+      // Validate registeredUsers is an array
+      if (!Array.isArray(registeredUsers)) {
+        console.error('registeredUsers is not an array');
+      } else {
+        const registeredUser = registeredUsers.find((user: any) => {
+          if (!user || typeof user !== 'object' || !user.email || !user.password) {
+            return false;
+          }
+          return user.email.toLowerCase() === email.toLowerCase() && user.password === password;
+        });
+      
+        if (registeredUser) {
+          // Store user info in localStorage for session management
+          const userData = {
+            email: registeredUser.email,
+            fullName: registeredUser.fullName,
+            role: registeredUser.role,
+            phoneNumber: registeredUser.phoneNumber,
+            password: registeredUser.password
+          };
+          
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          
+          // Navigate based on role
+          switch (registeredUser.role) {
+            case 'customer':
+              navigate('/dashboard');
+              break;
+            case 'manager':
+              navigate('/manager-dashboard');
+              break;
+            case 'admin':
+              navigate('/admin-dashboard');
+              break;
+            case 'auditor':
+              navigate('/auditor-dashboard');
+              break;
+            default:
+              navigate('/dashboard');
+          }
+          return;
         }
-        return;
       }
 
       // Fallback: Hardcoded staff credentials for admin/manager access
