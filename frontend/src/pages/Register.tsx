@@ -81,19 +81,42 @@ const Register: React.FC = () => {
     };
     
     // For now, store in localStorage (in production, send to backend)
-    const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    
-    // Check if email already exists
-    if (existingUsers.some((user: any) => user.email === userData.email)) {
-      setErrors({ email: 'An account with this email already exists' });
+    try {
+      const existingUsersStr = localStorage.getItem('registeredUsers') || '[]';
+      const existingUsers = JSON.parse(existingUsersStr);
+      
+      // Validate existingUsers is an array
+      if (!Array.isArray(existingUsers)) {
+        console.error('registeredUsers is not an array, resetting');
+        localStorage.setItem('registeredUsers', JSON.stringify([userData]));
+        alert('Registration successful! Please login with your new credentials.');
+        navigate('/');
+        return;
+      }
+      
+      // Check if email already exists (case-insensitive)
+      const emailExists = existingUsers.some((user: any) => {
+        if (!user || typeof user !== 'object' || !user.email) {
+          return false;
+        }
+        return user.email.toLowerCase() === userData.email;
+      });
+      
+      if (emailExists) {
+        setErrors({ email: 'An account with this email already exists' });
+        return;
+      }
+      
+      existingUsers.push(userData);
+      localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+      
+      alert('Registration successful! Please login with your new credentials.');
+      navigate('/'); // Redirect to login page
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      alert('An error occurred during registration. Please try again.');
       return;
     }
-    
-    existingUsers.push(userData);
-    localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
-    
-    alert('Registration successful! Please login with your new credentials.');
-    navigate('/'); // Redirect to login page
   };
 
   const handleBackToLogin = () => {

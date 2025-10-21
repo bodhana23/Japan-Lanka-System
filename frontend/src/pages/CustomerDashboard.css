@@ -2268,3 +2268,94 @@
     font-size: 1.5rem;
   }
 }
+
+/* Before Pickup Badge Styling */
+.before-pickup-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #FB923C 0%, #f97316 100%);
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
+}
+
+.before-pickup-badge-modal {
+  display: inline-block;
+  background: linear-gradient(135deg, #FB923C 0%, #f97316 100%);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  margin-left: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(251, 146, 60, 0.3);
+}
+
+/* Form Helper Text for Pickup Orders */
+.form-helper-text {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-left: 3px solid #14B8A6;
+  border-radius: 5px;
+  color: #6B7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.helper-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Order Status Tag in Return Cards */
+.order-status-tag {
+  color: #6B7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* No Returns Container */
+.no-returns-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.no-returns {
+  color: #888888;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.no-returns-hint {
+  color: #6B7280;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Ensure button layout works with badge */
+.btn-request-return-card,
+.btn-request-return {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Disabled state for pickup order reason select */
+.form-select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.8;
+}

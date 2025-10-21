@@ -11,6 +11,9 @@ export interface Product {
   category: string;
   image: string;
   description: string;
+  brand?: string;
+  yearFrom?: number;
+  yearTo?: number;
 }
 
 export interface CartItem extends Product {
