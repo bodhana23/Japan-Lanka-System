@@ -79,11 +79,6 @@ const AdminDashboard: React.FC = () => {
   });
   const navigate = useNavigate();
 
-  // Debug effect to track showProfile changes
-  useEffect(() => {
-    console.log('Admin Dashboard - showProfile changed to:', showProfile);
-  }, [showProfile]);
-
   // Enhanced financial data with detailed breakdowns
   const [allSalesData] = useState<SalesData[]>([
     {
@@ -619,11 +614,7 @@ const AdminDashboard: React.FC = () => {
             <span className="welcome-text">Welcome, {user?.name || user?.email || 'Admin'}!</span>
             <button 
               className="profile-header-btn"
-              onClick={() => {
-                console.log('Admin Profile button clicked, current showProfile:', showProfile);
-                setShowProfile(!showProfile);
-                console.log('Admin showProfile should now be:', !showProfile);
-              }}
+              onClick={() => setShowProfile(!showProfile)}
             >
               <span className="profile-btn-icon">👤</span>
               <span className="profile-btn-text">Profile</span>

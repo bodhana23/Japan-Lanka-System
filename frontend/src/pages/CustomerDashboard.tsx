@@ -165,7 +165,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // TODO: Implement password change logic
+      // Update password in localStorage
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        localStorage.setItem('currentUser', JSON.stringify({
+          ...userData,
+          password: formData.newPassword
+        }));
+      }
+      
       alert('Password changed successfully!');
       setFormData(prev => ({
         ...prev,

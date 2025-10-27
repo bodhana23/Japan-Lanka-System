@@ -67,11 +67,6 @@ const ManagerDashboard: React.FC = () => {
   const [orderSortBy, setOrderSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
 
-  // Debug effect to track showProfile changes
-  useEffect(() => {
-    console.log('Manager Dashboard - showProfile changed to:', showProfile);
-  }, [showProfile]);
-
   // User state
   const [user, setUser] = useState<UserProfile>({
     email: 'manager1@gmail.com',
