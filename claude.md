@@ -11,6 +11,7 @@
 - React 18.2.0
 - TypeScript 4.9.5
 - React Router DOM 6.22.3
+- **Vite** (migrated from Create React App)
 - Context API for state management
 - Pure CSS styling
 
@@ -240,12 +241,38 @@ interface Order {
 - Prevents any browser default border styles from appearing
 - "Back to Home" and "Cart" buttons now perfectly match
 
+### Build System Migration
+
+#### 10. Migrated from Create React App to Vite
+- **Removed:** `react-scripts`, `public/index.html`, `src/index.tsx`, `src/react-app-env.d.ts`
+- **Added:**
+  - `vite.config.ts` - Vite configuration with port 3000 and auto-open
+  - `frontend/index.html` - HTML entry point (moved to root)
+  - `src/main.tsx` - New entry point (replaces index.tsx)
+  - `src/vite-env.d.ts` - Vite environment types
+  - `tsconfig.node.json` - TypeScript config for Vite
+- **Benefits:**
+  - ⚡ Faster development server startup
+  - ⚡ Lightning-fast Hot Module Replacement (HMR)
+  - ⚡ Faster build times
+  - 📦 Smaller bundle size
+  - 🔧 Better TypeScript support
+- **Updated Scripts:**
+  - `npm run dev` or `npm start` - Start Vite dev server
+  - `npm run build` - Build with TypeScript check + Vite
+  - `npm run preview` - Preview production build
+- **Server Configuration:**
+  - Port: 3000 (same as before)
+  - Auto-open browser on start
+  - Build output: `build/` directory
+
 ### Important Notes
 - ✅ All existing functionality preserved
 - ✅ No breaking changes to current user flows
 - ✅ Cart works for both logged-in and window shoppers
 - ✅ SessionStorage used for redirect URLs (clears on browser close)
 - ✅ Responsive design maintained across all screen sizes
-- ✅ Server running successfully on http://localhost:3000
+- ✅ **Vite dev server** running on http://localhost:3000
 - ✅ Go Back button on login page for better navigation
 - ✅ Compact toast notifications (less intrusive)
+- ✅ **Significantly faster** development experience with Vite
