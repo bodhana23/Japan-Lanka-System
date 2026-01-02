@@ -30,6 +30,15 @@ const Home: React.FC = () => {
     setImageError(true);
   };
 
+  const handleSearchPartsClick = () => {
+    navigate('/browse-parts');
+  };
+
+  const handleSearchVehiclesClick = () => {
+    // Future implementation
+    alert('Vehicle search feature coming soon!');
+  };
+
   return (
     <div className="home-page">
       {/* Header Section */}
@@ -90,6 +99,32 @@ const Home: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Window Shopper Section */}
+      <section className="window-shopper-section">
+        <div className="window-shopper-container">
+          <h2 className="shopper-title">Browse Our Collection</h2>
+          <p className="shopper-description">
+            Explore our extensive catalog of quality automobile parts and vehicles. No account needed to browse!
+          </p>
+          <div className="shopper-buttons">
+            <button className="shopper-btn shopper-btn-parts" onClick={handleSearchPartsClick}>
+              <span className="shopper-icon">🔧</span>
+              <div className="shopper-btn-content">
+                <span className="shopper-btn-title">Search for Parts</span>
+                <span className="shopper-btn-subtitle">Browse our parts catalog</span>
+              </div>
+            </button>
+            <button className="shopper-btn shopper-btn-vehicles" onClick={handleSearchVehiclesClick}>
+              <span className="shopper-icon">🚗</span>
+              <div className="shopper-btn-content">
+                <span className="shopper-btn-title">Search for Vehicles</span>
+                <span className="shopper-btn-subtitle">Coming soon!</span>
+              </div>
+            </button>
           </div>
         </div>
       </section>

@@ -2,14 +2,14 @@
   position: fixed;
   top: 100px;
   right: 20px;
-  min-width: 300px;
-  max-width: 500px;
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 10000;
   animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-out 2.7s;
   backdrop-filter: blur(10px);
@@ -54,37 +54,37 @@
 }
 
 .toast-icon {
-  width: 30px;
-  height: 30px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .toast-message {
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 
 .toast-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   font-weight: 700;
   transition: all 0.3s ease;
   flex-shrink: 0;

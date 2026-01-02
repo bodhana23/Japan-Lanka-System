@@ -77,9 +77,17 @@ const Login: React.FC = () => {
             phoneNumber: registeredUser.phoneNumber,
             password: registeredUser.password
           };
-          
+
           localStorage.setItem('currentUser', JSON.stringify(userData));
-          
+
+          // Check if there's a redirect URL (for window shoppers)
+          const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectUrl) {
+            sessionStorage.removeItem('redirectAfterLogin');
+            navigate(redirectUrl);
+            return;
+          }
+
           // Navigate based on role
           switch (registeredUser.role) {
             case 'customer':
@@ -153,8 +161,17 @@ const Login: React.FC = () => {
           phoneNumber: '0771234567',
           password: 'customer@2222'
         };
-        
+
         localStorage.setItem('currentUser', JSON.stringify(userData));
+
+        // Check if there's a redirect URL (for window shoppers)
+        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectUrl) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectUrl);
+          return;
+        }
+
         navigate('/dashboard');
         return;
       }
@@ -172,9 +189,21 @@ const Login: React.FC = () => {
     navigate('/register');
   };
 
+  const handleGoBack = () => {
+    // Check if there's history to go back to
+    if (window.history.length > 1) {
+      navigate(-1); // Go back to previous page
+    } else {
+      navigate('/'); // Fallback to home page
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="login-card">
+        <button className="go-back-btn" onClick={handleGoBack} type="button">
+          ← Go Back
+        </button>
         <div className="company-header">
           <h1>Japan Lanka Enterprises</h1>
           <p>Management System</p>

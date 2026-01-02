@@ -109,9 +109,21 @@ const Register: React.FC = () => {
       
       existingUsers.push(userData);
       localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
-      
-      alert('Registration successful! Please login with your new credentials.');
-      navigate('/'); // Redirect to login page
+
+      // Auto-login the newly registered user
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+
+      // Check if there's a redirect URL (for window shoppers who register)
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        alert('Registration successful! Redirecting to checkout...');
+        navigate(redirectUrl);
+        return;
+      }
+
+      alert('Registration successful! Welcome to Japan Lanka Enterprises.');
+      navigate('/dashboard'); // Redirect to customer dashboard
     } catch (error) {
       console.error('Error accessing localStorage:', error);
       alert('An error occurred during registration. Please try again.');

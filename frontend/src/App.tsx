@@ -61,6 +61,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<CustomerDashboard />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/browse-parts" element={<Shop />} /> {/* Window shopper route */}
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/manager-dashboard" element={<ManagerDashboard />} />
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
