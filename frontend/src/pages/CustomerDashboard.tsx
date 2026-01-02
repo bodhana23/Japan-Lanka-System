@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../components/ProfileModal';
 import './CustomerDashboard.css';
 
 interface OrderItem {
@@ -54,359 +55,6 @@ interface UserProfile {
   phoneNumber: string;
 }
 
-interface EditProfileModalProps {
-  user: UserProfile;
-  onClose: () => void;
-  onUpdate: (user: UserProfile) => void;
-}
-
-const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUpdate }) => {
-  const [formData, setFormData] = useState({
-    fullName: user.fullName || '',
-    email: user.email || '',
-    phoneNumber: user.phoneNumber || '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  const [activeTab, setActiveTab] = useState<'info' | 'password'>('info');
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [isLoading, setIsLoading] = useState(false);
-
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    // Full name validation
-    if (!formData.fullName || formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters long';
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Phone validation
-    const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
-    if (!formData.phoneNumber || !phoneRegex.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validatePasswordForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    if (!formData.currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
-    }
-
-    if (!formData.newPassword || formData.newPassword.length < 6) {
-      newErrors.newPassword = 'New password must be at least 6 characters long';
-    }
-
-    if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors({...errors, [name]: ''});
-    }
-  };
-
-  const handleInfoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const updatedUser: UserProfile = {
-        email: formData.email,
-        fullName: formData.fullName,
-        role: user.role,
-        phoneNumber: formData.phoneNumber
-      };
-
-      onUpdate(updatedUser);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      alert('Error updating profile. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validatePasswordForm()) return;
-
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // TODO: Implement password change logic
-      alert('Password changed successfully!');
-      setFormData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }));
-      setActiveTab('info');
-    } catch (error) {
-      alert('Error changing password. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content edit-profile-modal">
-        <div className="modal-header">
-          <div className="modal-title-section">
-            <div className="profile-icon">👤</div>
-            <h2>Edit Customer Profile</h2>
-          </div>
-          <button onClick={onClose} className="close-modal" disabled={isLoading}>×</button>
-        </div>
-
-        <div className="edit-profile-form">
-          {/* Profile Picture Section */}
-          <div className="profile-picture-section">
-            <div className="profile-avatar">
-              <div className="avatar-placeholder">
-                {(formData.fullName && formData.fullName.length > 0) ? formData.fullName.charAt(0).toUpperCase() : 'U'}
-              </div>
-            </div>
-            <p className="profile-email">{formData.email}</p>
-            <p className="profile-role">Customer</p>
-          </div>
-
-          {/* Modal Tabs */}
-          <div className="modal-tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
-              onClick={() => setActiveTab('info')}
-              disabled={isLoading}
-            >
-              <span className="tab-icon">📝</span>
-              Personal Info
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'password' ? 'active' : ''}`}
-              onClick={() => setActiveTab('password')}
-              disabled={isLoading}
-            >
-              <span className="tab-icon">🔒</span>
-              Change Password
-            </button>
-          </div>
-
-          <div className="modal-body">
-            {activeTab === 'info' ? (
-              <form onSubmit={handleInfoSubmit} className="edit-form">
-                <div className="form-fields">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="fullName">
-                        <span className="label-icon">👤</span>
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                        placeholder="Enter your full name"
-                        className={errors.fullName ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.fullName && <span className="error-message">{errors.fullName}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="email">
-                        <span className="label-icon">📧</span>
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Enter your email address"
-                        className={errors.email ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.email && <span className="error-message">{errors.email}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="phoneNumber">
-                        <span className="label-icon">📱</span>
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        id="phoneNumber"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={handleChange}
-                        placeholder="Enter your phone number"
-                        className={errors.phoneNumber ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="form-actions">
-                  <button type="button" onClick={onClose} className="cancel-btn" disabled={isLoading}>
-                    Cancel
-                  </button>
-                  <button type="submit" className={`save-btn ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <span className="loading-spinner"></span>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <span className="save-icon">💾</span>
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handlePasswordSubmit} className="edit-form">
-                <div className="form-fields">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="currentPassword">
-                        <span className="label-icon">🔐</span>
-                        Current Password *
-                      </label>
-                      <input
-                        type="password"
-                        id="currentPassword"
-                        name="currentPassword"
-                        value={formData.currentPassword}
-                        onChange={handleChange}
-                        placeholder="Enter your current password"
-                        className={errors.currentPassword ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.currentPassword && <span className="error-message">{errors.currentPassword}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="newPassword">
-                        <span className="label-icon">🔑</span>
-                        New Password *
-                      </label>
-                      <input
-                        type="password"
-                        id="newPassword"
-                        name="newPassword"
-                        value={formData.newPassword}
-                        onChange={handleChange}
-                        placeholder="Enter new password (min 6 characters)"
-                        className={errors.newPassword ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                        minLength={6}
-                      />
-                      {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="confirmPassword">
-                        <span className="label-icon">✅</span>
-                        Confirm New Password *
-                      </label>
-                      <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="Confirm your new password"
-                        className={errors.confirmPassword ? 'error' : ''}
-                        disabled={isLoading}
-                        required
-                      />
-                      {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-actions">
-                  <button type="button" onClick={onClose} className="cancel-btn" disabled={isLoading}>
-                    Cancel
-                  </button>
-                  <button type="submit" className={`save-btn ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <span className="loading-spinner"></span>
-                        Changing...
-                      </>
-                    ) : (
-                      <>
-                        <span className="save-icon">🔑</span>
-                        Change Password
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const CustomerDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile>({
     email: '',
@@ -414,7 +62,6 @@ const CustomerDashboard: React.FC = () => {
     role: 'customer',
     phoneNumber: ''
   });
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [viewMode, setViewMode] = useState<'orders' | 'returns'>('orders');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -698,31 +345,6 @@ const CustomerDashboard: React.FC = () => {
     navigate('/shop');
   };
 
-  const handleEditProfile = () => {
-    setShowEditProfile(true);
-  };
-
-  const handleCloseEditProfile = () => {
-    setShowEditProfile(false);
-  };
-
-  const handleUpdateProfile = (updatedUser: UserProfile) => {
-    setUser(updatedUser);
-    try {
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      setShowEditProfile(false);
-    } catch (error) {
-      console.error('Error saving user data to localStorage:', error);
-      // More specific error handling
-      if (error instanceof DOMException && error.code === 22) {
-        alert('Storage quota exceeded. Please clear some browser data and try again.');
-      } else {
-        alert('Warning: Profile changes may not persist after refresh due to storage restrictions.');
-      }
-      // Still close the modal even if save fails
-      setShowEditProfile(false);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -843,70 +465,6 @@ const CustomerDashboard: React.FC = () => {
       </div>
 
       <main className="dashboard-main">
-        {/* Profile Section - Conditionally Rendered */}
-        {showProfile && (
-          <section className="profile-section">
-            <div className="section-header">
-              <h2>Customer Profile</h2>
-              <div className="profile-action-buttons">
-                <button onClick={handleEditProfile} className="edit-profile-btn">
-                  <span className="edit-icon">✏️</span>
-                  Edit Profile
-                </button>
-                <button onClick={() => setShowProfile(!showProfile)} className="hide-profile-btn">
-                  <span className="hide-icon">🙈</span>
-                  Hide Profile
-                </button>
-              </div>
-            </div>
-            
-            <div className="profile-card-horizontal">
-              <div className="profile-avatar-section">
-                <div className="profile-avatar-large">
-                  <div className="avatar-large">
-                    {(user.fullName && user.fullName.length > 0) ? user.fullName.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="profile-details-horizontal">
-                <div className="profile-info-grid">
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">👤</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Full Name</span>
-                      <span className="profile-value">{user.fullName || user.email || 'Not set'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">📧</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Email Address</span>
-                      <span className="profile-value">{user.email}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">📱</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Phone Number</span>
-                      <span className="profile-value">{user.phoneNumber || 'Not provided'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">🏷️</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Role</span>
-                      <span className="profile-value">{user.role}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Orders Section */}
         {viewMode === 'orders' && (
@@ -985,57 +543,23 @@ const CustomerDashboard: React.FC = () => {
             <h2>Return Requests</h2>
             <div className="returns-list">
               {returnRequests.length > 0 ? (
-                returnRequests.map((returnReq) => {
-                  const relatedOrder = orders.find(o => o.id === returnReq.orderId);
-                  return (
+                returnRequests.map((returnReq) => (
                     <div key={returnReq.id} className="return-card" onClick={() => setSelectedReturn(returnReq)}>
                       <div className="return-header">
                         <div className="return-ids">
                           <span className="return-id">#{returnReq.id}</span>
-                          <span className="original-order-id">
-                            Order: #{returnReq.orderId}
-                            {relatedOrder && (
-                              <span className="order-status-tag"> ({getStatusBadge(relatedOrder.status).text})</span>
-                            )}
-                          </span>
                         </div>
                         <span className={`status-badge ${getReturnStatusBadge(returnReq.status).class}`}>
                           {getReturnStatusBadge(returnReq.status).text}
                         </span>
                       </div>
-                    <div className="return-details">
-                      <p className="return-items">
-                        <strong>Returned Items:</strong> {returnReq.items.join(', ')}
-                      </p>
-                      <div className="return-reason-box">
-                        <strong>Reason:</strong> "{returnReq.description}"
+                      <div className="return-details">
+                        <p className="return-items">
+                          <strong>Items:</strong> {returnReq.items.join(', ')}
+                        </p>
                       </div>
-                      <div className="return-meta">
-                        {returnReq.refundAmount && (
-                          <span className="return-amount">Refund: Rs. {returnReq.refundAmount.toFixed(2)}</span>
-                        )}
-                        <span className="return-date">
-                          {(() => {
-                            try {
-                              if (!returnReq.requestDate) return 'No Date';
-                              const date = new Date(returnReq.requestDate);
-                              if (isNaN(date.getTime())) return 'Invalid Date';
-                              return date.toLocaleDateString('en-US', { 
-                                year: 'numeric', 
-                                month: 'short', 
-                                day: 'numeric' 
-                              });
-                            } catch (error) {
-                              console.error('Date parsing error:', error);
-                              return 'Invalid Date';
-                            }
-                          })()}
-                        </span>
-                      </div>
-                    </div>
                   </div>
-                );
-                })
+                ))
               ) : (
                 <div className="no-returns-container">
                   <p className="no-returns">No return requests found.</p>
@@ -1047,12 +571,12 @@ const CustomerDashboard: React.FC = () => {
         )}
       </main>
 
-      {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <EditProfileModal
+      {/* Profile Modal */}
+      {showProfile && (
+        <ProfileModal
           user={user}
-          onClose={handleCloseEditProfile}
-          onUpdate={handleUpdateProfile}
+          onClose={() => setShowProfile(false)}
+          roleLabel="Customer"
         />
       )}
 
@@ -1065,9 +589,8 @@ const CustomerDashboard: React.FC = () => {
               <button className="close-button" onClick={() => setSelectedOrder(null)}>×</button>
             </div>
             
-            <div className="modal-content">
-              {/* Order Status and Tracking */}
-              <div className="order-tracking-section">
+            {/* Order Status and Tracking */}
+            <div className="order-tracking-section">
                 <h3>Order Status</h3>
                 <div className="order-timeline">
                   <div className={`timeline-step ${selectedOrder.trackingInfo?.orderPlaced ? 'completed' : ''}`}>
@@ -1210,7 +733,6 @@ const CustomerDashboard: React.FC = () => {
                   )}
                 </div>
               )}
-            </div>
           </div>
         </div>
       )}
@@ -1242,9 +764,8 @@ const CustomerDashboard: React.FC = () => {
               <button className="close-button" onClick={() => setSelectedReturn(null)}>×</button>
             </div>
             
-            <div className="modal-content">
-              {/* Return Status */}
-              <div className="return-status-section">
+            {/* Return Status */}
+            <div className="return-status-section">
                 <div className="status-display">
                   <span className="status-label">Current Status:</span>
                   <span className={`status-badge-large ${getReturnStatusBadge(selectedReturn.status).class}`}>
@@ -1336,7 +857,6 @@ const CustomerDashboard: React.FC = () => {
                   )}
                 </div>
               )}
-            </div>
           </div>
         </div>
       )}
