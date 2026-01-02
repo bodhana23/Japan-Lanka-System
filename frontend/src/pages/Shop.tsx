@@ -30,6 +30,19 @@ const Shop: React.FC = () => {
     searchQuery: ''
   });
 
+  // Check if user is logged in (window shopper vs logged-in customer)
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  React.useEffect(() => {
+    try {
+      const currentUser = localStorage.getItem('currentUser');
+      setIsLoggedIn(!!currentUser);
+    } catch (error) {
+      console.error('Error checking login status:', error);
+      setIsLoggedIn(false);
+    }
+  }, []);
+
   // Vehicle parts inventory for demo - Sri Lankan realistic data with enhanced filtering data
   const allProducts: Product[] = useMemo(() => [
     {
@@ -393,12 +406,22 @@ const Shop: React.FC = () => {
       alert('Your cart is empty!');
       return;
     }
-    
-    navigate('/checkout');
+
+    if (!isLoggedIn) {
+      // Store the intent to checkout after login
+      sessionStorage.setItem('redirectAfterLogin', '/checkout');
+      navigate('/login');
+    } else {
+      navigate('/checkout');
+    }
   };
 
   const handleBackToDashboard = () => {
     navigate('/dashboard');
+  };
+
+  const handleBackToHome = () => {
+    navigate('/');
   };
 
   return (
@@ -407,8 +430,8 @@ const Shop: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Auto Parts</h1>
           <div className="header-actions">
-            <button 
-              onClick={() => setShowCart(!showCart)} 
+            <button
+              onClick={() => setShowCart(!showCart)}
               className="cart-btn"
             >
               🛒 Cart
@@ -416,9 +439,15 @@ const Shop: React.FC = () => {
                 <span className="cart-badge">{getTotalItems()}</span>
               )}
             </button>
-            <button onClick={handleBackToDashboard} className="back-btn">
-              ← Back to Dashboard
-            </button>
+            {isLoggedIn ? (
+              <button onClick={handleBackToDashboard} className="back-btn">
+                ← Back to Dashboard
+              </button>
+            ) : (
+              <button onClick={handleBackToHome} className="back-btn">
+                ← Back to Home
+              </button>
+            )}
           </div>
         </div>
       </header>

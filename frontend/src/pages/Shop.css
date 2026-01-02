@@ -96,12 +96,14 @@
   background: linear-gradient(135deg, #00b894 0%, #00a085 100%) !important;
   color: white !important;
   box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4) !important;
+  border: none !important;
 }
 
 .back-btn {
   background: linear-gradient(135deg, #00b894 0%, #00a085 100%) !important;
   color: white !important;
   box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4) !important;
+  border: none !important;
 }
 
 .cart-btn:hover {
