@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../components/ProfileModal';
 import './AuditorDashboard.css';
 
 interface UserProfile {
@@ -375,8 +376,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onUp
 const AuditorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'inventory' | 'activity'>('inventory');
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showProfile, setShowProfile] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
 
   const [user, setUser] = useState<UserProfile>({
     email: 'auditor@japanlanka.com',
@@ -524,14 +524,6 @@ const AuditorDashboard: React.FC = () => {
     navigate('/');
   };
 
-  const handleUpdateProfile = (updatedUser: UserProfile) => {
-    setUser(updatedUser);
-    setShowEditProfile(false);
-  };
-
-  const handleEditProfile = () => {
-    setShowEditProfile(true);
-  };
 
   const getActivityLogIcon = (type: ActivityLog['type']) => {
     switch (type) {
@@ -545,11 +537,11 @@ const AuditorDashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {showEditProfile && (
-        <EditProfileModal
+      {showProfile && (
+        <ProfileModal
           user={user}
-          onClose={() => setShowEditProfile(false)}
-          onUpdate={handleUpdateProfile}
+          onClose={() => setShowProfile(false)}
+          roleLabel="Auditor"
         />
       )}
 
@@ -573,69 +565,7 @@ const AuditorDashboard: React.FC = () => {
       </header>
 
       <main className="dashboard-main">
-        {showProfile && (
-          <div className="profile-wrapper">
-            <div className="section-header">
-              <h2>Auditor Profile</h2>
-              <div className="profile-action-buttons">
-                <button onClick={handleEditProfile} className="edit-profile-btn">
-                  <span className="edit-icon">✏️</span>
-                  Edit Profile
-                </button>
-                <button onClick={() => setShowProfile(!showProfile)} className="hide-profile-btn">
-                  <span className="hide-icon">🙈</span>
-                  Hide Profile
-                </button>
-              </div>
-            </div>
-            
-            <div className="profile-card-horizontal">
-              <div className="profile-avatar-section">
-                <div className="profile-avatar-large">
-                  <div className="avatar-large">
-                    {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'A'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="profile-details-horizontal">
-                <div className="profile-info-grid">
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">👤</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Full Name</span>
-                      <span className="profile-value">{user.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">📧</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Email Address</span>
-                      <span className="profile-value">{user.email}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">🔑</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Password</span>
-                      <span className="profile-value">••••••••</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">🏷️</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Role</span>
-                      <span className="profile-value">{user.role}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         <nav className="auditor-tabs">
           <button 

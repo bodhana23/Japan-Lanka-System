@@ -36,9 +36,6 @@
 }
 
 .go-back-btn {
-  position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
   background: transparent;
   border: 2px solid #00b894;
   color: #00b894;
@@ -51,7 +48,8 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  z-index: 10;
+  margin-bottom: 1.5rem;
+  align-self: flex-start;
 }
 
 .go-back-btn:hover {

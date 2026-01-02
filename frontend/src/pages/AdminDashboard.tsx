@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../components/ProfileModal';
 import './AdminDashboard.css';
 
 interface Product {
@@ -58,7 +59,6 @@ interface NewUserForm {
 const AdminDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'inventory' | 'users'>('analytics');
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -635,58 +635,7 @@ const AdminDashboard: React.FC = () => {
 
       <main className="dashboard-main">
         {/* Profile Section - Conditionally Rendered */}
-        {showProfile && (
-          <div className="profile-section">
-            <div className="section-header">
-              <h2>Admin Profile</h2>
-              <button 
-                onClick={() => setShowEditProfile(true)} 
-                className="edit-profile-btn"
-              >
-                <span className="edit-icon">✏️</span>
-                Edit Profile
-              </button>
-            </div>
-            
-            <div className="profile-card-horizontal">
-              <div className="profile-avatar-section">
-                <div className="profile-avatar-large">
-                  <div className="avatar-large">
-                    {user?.name?.charAt(0).toUpperCase() || 'A'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="profile-details-horizontal">
-                <div className="profile-info-grid">
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">👤</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Name</span>
-                      <span className="profile-value">{user?.name || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">📧</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Email Address</span>
-                      <span className="profile-value">{user?.email || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">👔</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Role</span>
-                      <span className="profile-value">Administrator</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Dashboard Stats Cards */}
         <div className="dashboard-stats-grid">
@@ -1110,16 +1059,11 @@ const AdminDashboard: React.FC = () => {
       </main>
 
       {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <EditProfileModal
+      {showProfile && (
+        <ProfileModal
           user={user}
-          onClose={() => setShowEditProfile(false)}
-          onSave={(updatedProfile: UserProfile) => {
-            setUser(updatedProfile);
-            localStorage.setItem('currentUser', JSON.stringify(updatedProfile));
-            setShowEditProfile(false);
-            showToast('Profile updated successfully!', 'success');
-          }}
+          onClose={() => setShowProfile(false)}
+          roleLabel="Administrator"
         />
       )}
 

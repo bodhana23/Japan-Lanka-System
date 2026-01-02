@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../components/ProfileModal';
 import './ManagerDashboard.css';
 
 interface Product {
@@ -49,7 +50,6 @@ const ManagerDashboard: React.FC = () => {
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
 
@@ -1001,67 +1001,7 @@ const ManagerDashboard: React.FC = () => {
 
       <main className="dashboard-main">
         {/* Profile Section - Conditionally Rendered */}
-        {showProfile && (
-          <div className="profile-section">
-            <div className="section-header">
-              <h2>Manager Profile</h2>
-              <div className="profile-header-buttons">
-                <button 
-                  className="edit-profile-btn"
-                  onClick={() => setShowEditProfile(true)}
-                >
-                  <span className="edit-icon">✏️</span>
-                  Edit Profile
-                </button>
-                <button 
-                  className="hide-profile-btn"
-                  onClick={() => setShowProfile(false)}
-                >
-                  <span className="hide-icon">👁️‍🗨️</span>
-                  Hide Profile
-                </button>
-              </div>
-            </div>
-            
-            <div className="profile-card-horizontal">
-              <div className="profile-avatar-section">
-                <div className="profile-avatar-large">
-                  <div className="avatar-large">
-                    {(user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'M'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="profile-details-horizontal">
-                <div className="profile-info-grid">
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">�</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Full Name</span>
-                      <span className="profile-value">{user.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">📧</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Email Address</span>
-                      <span className="profile-value">{user.email}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-item-horizontal">
-                    <div className="profile-item-icon">�</div>
-                    <div className="profile-item-content">
-                      <span className="profile-label">Role</span>
-                      <span className="profile-value">{user.role}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Statistics Overview Cards */}
         <div className="manager-stats-grid">
@@ -1714,16 +1654,11 @@ const ManagerDashboard: React.FC = () => {
       )}
 
       {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <EditProfileModal
+      {showProfile && (
+        <ProfileModal
           user={user}
-          onClose={() => setShowEditProfile(false)}
-          onSave={(updatedProfile: UserProfile) => {
-            setUser(updatedProfile);
-            localStorage.setItem('currentUser', JSON.stringify(updatedProfile));
-            setShowEditProfile(false);
-            alert('Profile updated successfully!');
-          }}
+          onClose={() => setShowProfile(false)}
+          roleLabel="Manager"
         />
       )}
 
@@ -1937,227 +1872,7 @@ const EditProductModal: React.FC<{
   );
 };
 
-// Edit Profile Modal Component
-const EditProfileModal: React.FC<{
-  user: UserProfile;
-  onClose: () => void;
-  onSave: (user: UserProfile) => void;
-}> = ({ user, onClose, onSave }) => {
-  const [formData, setFormData] = useState<UserProfile>(user);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    // Name validation
-    if (!formData.name || formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters long';
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Password validation (only if changing password)
-    if (showPasswordChange) {
-      if (!newPassword || newPassword.length < 6) {
-        newErrors.newPassword = 'Password must be at least 6 characters long';
-      }
-      
-      if (newPassword !== confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedUser = {
-        ...formData,
-        password: showPasswordChange ? newPassword : formData.password
-      };
-      
-      onSave(updatedUser);
-    } catch (error) {
-      alert('Error updating profile. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: keyof UserProfile, value: string) => {
-    setFormData({...formData, [field]: value});
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors({...errors, [field]: ''});
-    }
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content edit-profile-modal">
-        <div className="modal-header">
-          <div className="modal-title-section">
-            <div className="profile-icon">👤</div>
-            <h2>Edit Manager Profile</h2>
-          </div>
-          <button onClick={onClose} className="close-modal" disabled={isLoading}>×</button>
-        </div>
-
-        <div className="edit-profile-form">
-          {/* Profile Picture Section */}
-          <div className="profile-picture-section">
-            <div className="profile-avatar">
-              <div className="avatar-placeholder">
-                {(formData.name && formData.name.length > 0) ? formData.name.charAt(0).toUpperCase() : 'M'}
-              </div>
-            </div>
-            <p className="profile-email">{formData.email}</p>
-            <p className="profile-role">{formData.role}</p>
-          </div>
-
-          {/* Form Fields */}
-          <div className="form-fields">
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="name">
-                  <span className="label-icon">📝</span>
-                  Full Name *
-                </label>
-                <input 
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter your full name"
-                  className={errors.name ? 'error' : ''}
-                  disabled={isLoading}
-                />
-                {errors.name && <span className="error-message">{errors.name}</span>}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="email">
-                  <span className="label-icon">�</span>
-                  Email Address *
-                </label>
-                <input 
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Enter your email address"
-                  className={errors.email ? 'error' : ''}
-                  disabled={isLoading}
-                />
-                {errors.email && <span className="error-message">{errors.email}</span>}
-              </div>
-            </div>
-
-            {/* Password Change Section */}
-            <div className="password-section">
-              <div className="password-header">
-                <h4>Password Settings</h4>
-                <button 
-                  type="button"
-                  className="toggle-password-btn"
-                  onClick={() => setShowPasswordChange(!showPasswordChange)}
-                  disabled={isLoading}
-                >
-                  {showPasswordChange ? 'Cancel Password Change' : 'Change Password'}
-                </button>
-              </div>
-
-              {showPasswordChange && (
-                <div className="password-fields">
-                  <div className="form-group">
-                    <label htmlFor="newPassword">
-                      <span className="label-icon">🔒</span>
-                      New Password *
-                    </label>
-                    <input 
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password (min 6 characters)"
-                      className={errors.newPassword ? 'error' : ''}
-                      disabled={isLoading}
-                    />
-                    {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="confirmPassword">
-                      <span className="label-icon">🔒</span>
-                      Confirm New Password *
-                    </label>
-                    <input 
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className={errors.confirmPassword ? 'error' : ''}
-                      disabled={isLoading}
-                    />
-                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          <button 
-            onClick={onClose} 
-            className="cancel-btn"
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleSave} 
-            className={`save-btn ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <span className="loading-spinner"></span>
-                Saving...
-              </>
-            ) : (
-              <>
-                <span className="save-icon">💾</span>
-                Save Changes
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Return Chat Modal Component
 const ReturnChatModal: React.FC<{
