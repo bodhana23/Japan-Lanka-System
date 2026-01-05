@@ -145,16 +145,35 @@ export const getPhoneValidationError = (phone: string): string | null => {
   if (!phone || typeof phone !== 'string' || phone.trim() === '') {
     return 'Phone number is required';
   }
-  
+
   const cleanPhone = phone.replace(/[\s\-()]/g, '');
-  
+
   if (cleanPhone.length !== 10) {
     return 'Phone number must be exactly 10 digits';
   }
-  
+
   if (!/^\d+$/.test(cleanPhone)) {
     return 'Phone number must contain only digits';
   }
-  
+
+  return null;
+};
+
+export const getOptionalPhoneValidationError = (phone: string): string | null => {
+  // If phone is empty, it's valid (optional)
+  if (!phone || typeof phone !== 'string' || phone.trim() === '') {
+    return null;
+  }
+
+  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+
+  if (cleanPhone.length !== 10) {
+    return 'Phone number must be exactly 10 digits';
+  }
+
+  if (!/^\d+$/.test(cleanPhone)) {
+    return 'Phone number must contain only digits';
+  }
+
   return null;
 };

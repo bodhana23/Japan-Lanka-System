@@ -39,6 +39,10 @@ const Home: React.FC = () => {
     alert('Vehicle search feature coming soon!');
   };
 
+  const handleEmployeeLoginClick = () => {
+    navigate('/employee-login');
+  };
+
   return (
     <div className="home-page">
       {/* Header Section */}
@@ -266,6 +270,12 @@ const Home: React.FC = () => {
                 <li>📍 Matara, Sri Lanka</li>
               </ul>
             </div>
+          </div>
+          <div className="footer-employee-login">
+            <button className="employee-login-btn" onClick={handleEmployeeLoginClick}>
+              <span className="employee-login-icon">👤</span>
+              Employee Login
+            </button>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2025 Japan Lanka Enterprises. All rights reserved.</p>

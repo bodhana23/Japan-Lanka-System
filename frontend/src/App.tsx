@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CartProvider } from './context/CartContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import EmployeeLogin from './pages/EmployeeLogin';
 import Register from './pages/Register';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Shop from './pages/Shop';
@@ -58,6 +59,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/employee-login" element={<EmployeeLogin />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<CustomerDashboard />} />
               <Route path="/shop" element={<Shop />} />

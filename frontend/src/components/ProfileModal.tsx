@@ -67,6 +67,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
     if (formData.newPassword || formData.currentPassword || formData.confirmPassword) {
       if (!formData.currentPassword) {
         newErrors.currentPassword = 'Current password is required to change password';
+      } else if (formData.currentPassword !== user.password) {
+        // Verify current password matches stored password
+        newErrors.currentPassword = 'Current password is incorrect';
       }
 
       if (formData.newPassword && formData.newPassword.length < 6) {

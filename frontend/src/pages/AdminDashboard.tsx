@@ -330,10 +330,16 @@ const AdminDashboard: React.FC = () => {
     return allSalesData.slice(-count);
   }, [dateRange, allSalesData]);
 
-  // Calculate monthly and yearly revenue - with safe division
+  // Calculate monthly and yearly revenue - with safe division and validation
   const monthlyRevenue = salesData[salesData.length - 1]?.sales || 0; // Current month
-  const yearlyRevenue = salesData.length > 0 
-    ? salesData.reduce((total: number, month) => total + month.sales, 0) * (12 / salesData.length)
+  const yearlyRevenue = salesData.length > 0
+    ? (() => {
+        const totalSales = salesData.reduce((total: number, month) => total + month.sales, 0);
+        // Protect against division edge cases
+        if (salesData.length === 0 || !isFinite(totalSales)) return 0;
+        const projectedYearly = totalSales * (12 / salesData.length);
+        return isFinite(projectedYearly) ? projectedYearly : 0;
+      })()
     : 0;
   
   // User statistics
@@ -741,12 +747,13 @@ const AdminDashboard: React.FC = () => {
                     {/* Trend Line Chart */}
                     <div className="mini-trend-chart">
                       {data.dailyTrend && data.dailyTrend.length > 0 && data.dailyTrend.map((value, i) => {
-                        const maxTrend = Math.max(...data.dailyTrend);
+                        const validValues = data.dailyTrend.filter(v => typeof v === 'number' && isFinite(v) && v > 0);
+                        const maxTrend = validValues.length > 0 ? Math.max(...validValues) : 0;
                         return (
-                          <div 
-                            key={i} 
-                            className="trend-bar" 
-                            style={{ height: `${maxTrend > 0 ? (value / maxTrend) * 100 : 0}%` }}
+                          <div
+                            key={i}
+                            className="trend-bar"
+                            style={{ height: `${maxTrend > 0 && isFinite(value) && value > 0 ? (value / maxTrend) * 100 : 0}%` }}
                           />
                         );
                       })}
@@ -838,9 +845,12 @@ const AdminDashboard: React.FC = () => {
               <h3>Top Selling Brands</h3>
               <div className="brand-chart">
                 {brandSales && brandSales.length > 0 && brandSales.map((brand, index) => {
+                  // Safe calculation of percentage with proper validation
                   const salesValues = brandSales.map(b => b.sales).filter(s => s > 0);
-                  const maxSales = salesValues.length > 0 ? Math.max(...salesValues) : 1;
-                  const percentage = maxSales > 0 ? (brand.sales / maxSales) * 100 : 0;
+                  const maxSales = salesValues.length > 0 ? Math.max(...salesValues) : 0;
+                  const percentage = maxSales > 0 && isFinite(maxSales) && brand.sales > 0
+                    ? Math.min((brand.sales / maxSales) * 100, 100)
+                    : 0;
                   return (
                     <div key={brand.brand} className="brand-bar-container">
                       <div className="brand-info">
