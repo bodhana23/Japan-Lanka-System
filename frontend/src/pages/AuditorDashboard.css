@@ -844,7 +844,7 @@
   margin-bottom: 1.5rem;
 }
 
-.tab-btn {
+.modal-tabs .tab-btn {
   background: #ffffff;
   color: #666666;
   border: 2px solid #e8e8e8;
@@ -855,13 +855,13 @@
   font-weight: 500;
 }
 
-.tab-btn:hover {
+.modal-tabs .tab-btn:hover {
   background: #f8f9fa;
   color: #333333;
   border-color: #00b894;
 }
 
-.tab-btn.active {
+.modal-tabs .tab-btn.active {
   background: #00b894;
   color: white;
   border-color: #00b894;

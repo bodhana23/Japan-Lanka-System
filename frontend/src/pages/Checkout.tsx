@@ -36,21 +36,30 @@ const Checkout: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    // Load customer data from localStorage
+    // Critical: Check authentication first
     try {
       const currentUser = localStorage.getItem('currentUser');
-      if (currentUser) {
-        const userData = JSON.parse(currentUser);
-        setShippingInfo(prev => ({
-          ...prev,
-          fullName: userData.fullName || userData.name || '',
-          phone: userData.phoneNumber || userData.phone || ''
-        }));
+      if (!currentUser) {
+        // User not authenticated - redirect to login
+        sessionStorage.setItem('redirectAfterLogin', '/checkout');
+        navigate('/login');
+        return;
       }
+
+      // Load customer data from authenticated user
+      const userData = JSON.parse(currentUser);
+      setShippingInfo(prev => ({
+        ...prev,
+        fullName: userData.fullName || userData.name || '',
+        phone: userData.phoneNumber || userData.phone || ''
+      }));
     } catch (error) {
       console.error('Error loading customer data:', error);
+      // On error, redirect to login for safety
+      sessionStorage.setItem('redirectAfterLogin', '/checkout');
+      navigate('/login');
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     // Redirect if cart is empty
@@ -150,12 +159,13 @@ const Checkout: React.FC = () => {
       // Save order to localStorage (simulating backend)
       const order = {
         id: newOrderId,
-        items: cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          model: item.model,
+        items: cart.map(item => `${item.name} (${item.model})`),
+        itemsDetailed: cart.map(item => ({
+          partName: item.name,
+          carModel: item.model,
           quantity: item.quantity,
-          price: item.price
+          unitPrice: item.price,
+          subtotal: item.price * item.quantity
         })),
         deliveryMethod: deliveryMethod,
         shippingInfo: deliveryMethod === 'shipping' ? shippingInfo : {

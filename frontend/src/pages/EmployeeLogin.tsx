@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
-import './Login.css';
+import './EmployeeLogin.css';
 
-const Login: React.FC = () => {
+const EmployeeLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -12,7 +12,7 @@ const Login: React.FC = () => {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedEmail = sanitizeInput(e.target.value);
     setEmail(sanitizedEmail);
-    
+
     // Clear email error when user starts typing
     if (errors.email) {
       setErrors(prev => ({ ...prev, email: '' }));
@@ -22,7 +22,7 @@ const Login: React.FC = () => {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedPassword = sanitizeInput(e.target.value);
     setPassword(sanitizedPassword);
-    
+
     // Clear password error when user starts typing
     if (errors.password) {
       setErrors(prev => ({ ...prev, password: '' }));
@@ -31,44 +31,43 @@ const Login: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setErrors({});
     const newErrors: {[key: string]: string} = {};
-    
+
     // Enhanced validation with specific error messages
     const emailError = getEmailValidationError(email);
     if (emailError) {
       newErrors.email = emailError;
     }
-    
+
     if (!password || password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters long';
     }
-    
+
     // If there are validation errors, display them and stop submission
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     try {
-      // First, check registered users (customers only)
+      // Check registered users for staff roles only (manager, admin, auditor)
       const registeredUsersStr = localStorage.getItem('registeredUsers') || '[]';
       const registeredUsers = JSON.parse(registeredUsersStr);
 
       // Validate registeredUsers is an array
-      if (!Array.isArray(registeredUsers)) {
-        console.error('registeredUsers is not an array');
-      } else {
+      if (Array.isArray(registeredUsers)) {
         const registeredUser = registeredUsers.find((user: any) => {
           if (!user || typeof user !== 'object' || !user.email || !user.password) {
             return false;
           }
-          // Only allow customer role in this login
-          return user.role === 'customer' && user.email.toLowerCase() === email.toLowerCase() && user.password === password;
+          // Only allow manager, admin, or auditor roles
+          const isStaff = ['manager', 'admin', 'auditor'].includes(user.role);
+          return isStaff && user.email.toLowerCase() === email.toLowerCase() && user.password === password;
         });
-      
+
         if (registeredUser) {
           // Store user info in localStorage for session management
           const userData = {
@@ -81,69 +80,84 @@ const Login: React.FC = () => {
 
           localStorage.setItem('currentUser', JSON.stringify(userData));
 
-          // Check if there's a redirect URL (for window shoppers)
-          const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-          if (redirectUrl) {
-            sessionStorage.removeItem('redirectAfterLogin');
-            navigate(redirectUrl);
-            return;
+          // Navigate based on role
+          switch (registeredUser.role) {
+            case 'manager':
+              navigate('/manager-dashboard');
+              break;
+            case 'admin':
+              navigate('/admin-dashboard');
+              break;
+            case 'auditor':
+              navigate('/auditor-dashboard');
+              break;
+            default:
+              navigate('/');
           }
-
-          // Navigate to customer dashboard
-          navigate('/dashboard');
           return;
         }
       }
 
-      // Hardcoded test customer account
-      if (email === 'customer2@gmail.com' && password === 'customer@2222') {
+      // Hardcoded staff credentials
+      if (email === 'manager1@gmail.com' && password === 'manager@1') {
         const userData = {
-          email: 'customer2@gmail.com',
-          fullName: 'customer2',
-          role: 'customer',
-          phoneNumber: '0771234567',
-          password: 'customer@2222'
+          email: 'manager1@gmail.com',
+          fullName: 'Manager User',
+          role: 'manager',
+          phoneNumber: '0112345678',
+          password: 'manager@1'
         };
 
         localStorage.setItem('currentUser', JSON.stringify(userData));
-
-        // Check if there's a redirect URL (for window shoppers)
-        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-        if (redirectUrl) {
-          sessionStorage.removeItem('redirectAfterLogin');
-          navigate(redirectUrl);
-          return;
-        }
-
-        navigate('/dashboard');
+        navigate('/manager-dashboard');
         return;
       }
-      
+
+      if (email === 'admin@gmail.com' && password === 'admin@1') {
+        const userData = {
+          email: 'admin@gmail.com',
+          fullName: 'Administrator',
+          role: 'admin',
+          phoneNumber: '0112345679',
+          password: 'admin@1'
+        };
+
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        navigate('/admin-dashboard');
+        return;
+      }
+
+      if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
+        const userData = {
+          email: 'auditor1@gmail.com',
+          fullName: 'Auditor User',
+          role: 'auditor',
+          phoneNumber: '0112345680',
+          password: 'auditor@1'
+        };
+
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        navigate('/auditor-dashboard');
+        return;
+      }
+
       // Invalid credentials
-      alert('Invalid customer credentials. Please check your email and password, or use Employee Login if you are a staff member.');
-      
+      alert('Invalid employee credentials. Please check your email and password.');
+
     } catch (error) {
       console.error('Login error:', error);
       alert('An error occurred during login. Please try again.');
     }
   };
 
-  const handleRegister = () => {
-    navigate('/register');
-  };
-
   const handleGoBack = () => {
-    // Check if there's history to go back to
-    if (window.history.length > 1) {
-      navigate(-1); // Go back to previous page
-    } else {
-      navigate('/'); // Fallback to home page
-    }
+    // Go back to home page
+    navigate('/');
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
+    <div className="employee-login-container">
+      <div className="employee-login-card">
         <button className="go-back-btn" onClick={handleGoBack} type="button">
           ← Go Back
         </button>
@@ -151,10 +165,10 @@ const Login: React.FC = () => {
           <h1>Japan Lanka Enterprises</h1>
           <p>Management System</p>
         </div>
-        
-        <form onSubmit={handleLogin} className="login-form">
-          <h2>Login</h2>
-          
+
+        <form onSubmit={handleLogin} className="employee-login-form">
+          <h2>Employee Login</h2>
+
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input
@@ -162,7 +176,7 @@ const Login: React.FC = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-              placeholder="Enter your email address "
+              placeholder="Enter your employee email"
               autoComplete="email"
               tabIndex={1}
               required
@@ -170,7 +184,7 @@ const Login: React.FC = () => {
             />
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -178,7 +192,7 @@ const Login: React.FC = () => {
               id="password"
               value={password}
               onChange={handlePasswordChange}
-              placeholder="Enter your password "
+              placeholder="Enter your password"
               autoComplete="current-password"
               tabIndex={2}
               required
@@ -186,20 +200,13 @@ const Login: React.FC = () => {
             />
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
-          
-          <button type="submit" className="login-btn">
+
+          <button type="submit" className="employee-login-btn-submit">
             Login
           </button>
-          
-          <div className="register-section">
-            <p>Don't have an account?</p>
-            <button 
-              type="button" 
-              className="register-btn"
-              onClick={handleRegister}
-            >
-              Register
-            </button>
+
+          <div className="info-section">
+            <p className="info-text">This portal is for employees only (Manager, Admin, Auditor)</p>
           </div>
         </form>
       </div>
@@ -207,4 +214,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default EmployeeLogin;

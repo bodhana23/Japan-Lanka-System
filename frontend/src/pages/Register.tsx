@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validatePassword, sanitizeInput, getEmailValidationError, getPhoneValidationError } from '../utils/validation';
+import { validatePassword, sanitizeInput, getEmailValidationError, getOptionalPhoneValidationError } from '../utils/validation';
 import './Register.css';
 
 const Register: React.FC = () => {
@@ -50,9 +50,9 @@ const Register: React.FC = () => {
     if (emailError) {
       newErrors.email = emailError;
     }
-    
-    // Phone validation with specific requirements
-    const phoneError = getPhoneValidationError(formData.phoneNumber);
+
+    // Phone validation - optional during registration
+    const phoneError = getOptionalPhoneValidationError(formData.phoneNumber);
     if (phoneError) {
       newErrors.phoneNumber = phoneError;
     }
@@ -178,15 +178,14 @@ const Register: React.FC = () => {
           </div>
           
           <div className="form-group">
-            <label htmlFor="phoneNumber">Phone Number</label>
+            <label htmlFor="phoneNumber">Phone Number <span className="optional-label">(Optional)</span></label>
             <input
               type="tel"
               id="phoneNumber"
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleChange}
-              placeholder="Enter exactly 10 digits (e.g., 0771234567)"
-              required
+              placeholder="Enter 10 digits (e.g., 0771234567) - Optional"
               className={errors.phoneNumber ? 'error' : ''}
             />
             {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
