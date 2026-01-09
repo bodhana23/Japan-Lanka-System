@@ -2249,6 +2249,8 @@
   flex: 1;
   min-width: 300px;
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .search-icon {
@@ -2258,6 +2260,8 @@
   transform: translateY(-50%);
   font-size: 1.2rem;
   color: #9CA3AF;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .search-input {
