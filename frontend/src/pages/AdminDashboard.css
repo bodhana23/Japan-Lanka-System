@@ -1182,16 +1182,6 @@
   overflow: hidden;
 }
 
-.profile-card-horizontal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #00b894 0%, #00a085 50%, #22c55e 100%);
-}
-
 .profile-avatar-section {
   flex-shrink: 0;
   display: flex;
