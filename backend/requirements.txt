@@ -1,0 +1,16 @@
+# Core dependencies
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg
+python-dotenv
+pydantic
+pydantic-settings
+email-validator
+
+# Authentication
+python-jose[cryptography]
+bcrypt
+
+# Optional: Firebase (install separately if needed)
+# firebase-admin
