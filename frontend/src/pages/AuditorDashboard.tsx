@@ -37,116 +37,13 @@ const AuditorDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
 
-  // Sample inventory logs
-  const [inventoryLogs] = useState<InventoryLog[]>([
-    {
-      id: 1,
-      productName: 'Brake Pads Set - Toyota Camry',
-      action: 'Stock Added',
-      user: 'Manager User',
-      timestamp: '2025-01-07 10:30:00',
-      previousQuantity: 25,
-      newQuantity: 50,
-      details: 'Added 25 units to inventory'
-    },
-    {
-      id: 2,
-      productName: 'Engine Oil Filter - Honda Civic',
-      action: 'Stock Updated',
-      user: 'Manager User',
-      timestamp: '2025-01-07 09:15:00',
-      previousQuantity: 10,
-      newQuantity: 2,
-      details: 'Sold 8 units to customer'
-    },
-    {
-      id: 3,
-      productName: 'LED Headlight Bulbs - Ford Focus',
-      action: 'Product Added',
-      user: 'Manager User',
-      timestamp: '2025-01-06 14:20:00',
-      newQuantity: 20,
-      details: 'New product added to inventory'
-    },
-    {
-      id: 4,
-      productName: 'Air Filter - Nissan Altima',
-      action: 'Stock Updated',
-      user: 'Manager User',
-      timestamp: '2025-01-06 11:45:00',
-      previousQuantity: 30,
-      newQuantity: 28,
-      details: 'Sold 2 units to customer'
-    },
-    {
-      id: 5,
-      productName: 'Spark Plugs Set - Honda Accord',
-      action: 'Price Updated',
-      user: 'Manager User',
-      timestamp: '2025-01-05 16:30:00',
-      details: 'Price changed from Rs. 3000 to Rs. 3200'
-    }
-  ]);
+  // TODO: Replace with API call when audit logs endpoint is available
+  // Currently no logs - will be populated from backend when audit logging is implemented
+  const [inventoryLogs] = useState<InventoryLog[]>([]);
 
-  // Sample activity logs
-  const [activityLogs] = useState<ActivityLog[]>([
-    {
-      id: 1,
-      activity: 'User Login',
-      user: 'manager@japanlanka.com',
-      timestamp: '2025-01-07 10:25:00',
-      type: 'success',
-      details: 'Successful login from Manager Dashboard'
-    },
-    {
-      id: 2,
-      activity: 'Order Status Updated',
-      user: 'manager@japanlanka.com',
-      timestamp: '2025-01-07 10:20:00',
-      type: 'info',
-      details: 'Order #ORD-001 status changed to In Progress'
-    },
-    {
-      id: 3,
-      activity: 'Product Deleted',
-      user: 'manager@japanlanka.com',
-      timestamp: '2025-01-07 09:50:00',
-      type: 'warning',
-      details: 'Product "Wiper Blades" removed from inventory'
-    },
-    {
-      id: 4,
-      activity: 'Failed Login Attempt',
-      user: 'unknown@domain.com',
-      timestamp: '2025-01-07 08:30:00',
-      type: 'error',
-      details: 'Multiple failed login attempts detected'
-    },
-    {
-      id: 5,
-      activity: 'Customer Registration',
-      user: 'newcustomer@gmail.com',
-      timestamp: '2025-01-06 15:45:00',
-      type: 'success',
-      details: 'New customer account created'
-    },
-    {
-      id: 6,
-      activity: 'Password Changed',
-      user: 'customer@gmail.com',
-      timestamp: '2025-01-06 14:30:00',
-      type: 'info',
-      details: 'Customer password successfully updated'
-    },
-    {
-      id: 7,
-      activity: 'System Backup',
-      user: 'system',
-      timestamp: '2025-01-06 02:00:00',
-      type: 'success',
-      details: 'Automated daily backup completed successfully'
-    }
-  ]);
+  // TODO: Replace with API call when activity logs endpoint is available
+  // Currently no logs - will be populated from backend when activity logging is implemented
+  const [activityLogs] = useState<ActivityLog[]>([]);
 
   // Check authentication on mount
   useEffect(() => {

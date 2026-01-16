@@ -81,3 +81,18 @@ Thumbs.db
 # Windows
 $RECYCLE.BIN/
 Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+*.egg-info/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/

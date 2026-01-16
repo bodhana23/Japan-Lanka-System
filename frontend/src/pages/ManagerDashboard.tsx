@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
+import { productsApi, ordersApi, Product as ApiProduct, Order as ApiOrder } from '../services/api';
 import './ManagerDashboard.css';
 
 interface Product {
@@ -80,490 +81,80 @@ const ManagerDashboard: React.FC = () => {
     password: 'manager@1'
   });
 
-  // Product management state - Vehicle parts inventory
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: 'P001',
-      name: 'Brake Pads Set',
-      brand: 'Toyota',
-      model: 'Camry 2018-2023',
-      price: 4500,
-      quantity: 25,
-      imageLink: 'https://example.com/brake-pads.jpg'
-    },
-    {
-      id: 'P002',
-      name: 'Engine Oil Filter',
-      brand: 'Honda',
-      model: 'Civic 2016-2021',
-      price: 1200,
-      quantity: 2,
-      imageLink: 'https://example.com/oil-filter.jpg'
-    },
-    {
-      id: 'P003',
-      name: 'LED Headlight Bulbs',
-      brand: 'BMW',
-      model: '3 Series 2019-2024',
-      price: 2800,
-      quantity: 1,
-      imageLink: 'https://example.com/headlight.jpg'
-    },
-    {
-      id: 'P004',
-      name: 'Air Filter',
-      brand: 'Ford',
-      model: 'Focus 2015-2020',
-      price: 1850,
-      quantity: 30,
-      imageLink: 'https://example.com/air-filter.jpg'
-    },
-    {
-      id: 'P005',
-      name: 'Spark Plugs Set',
-      brand: 'Nissan',
-      model: 'Altima 2017-2022',
-      price: 3200,
-      quantity: 15,
-      imageLink: 'https://example.com/spark-plugs.jpg'
-    },
-    {
-      id: 'P006',
-      name: 'Timing Belt',
-      brand: 'Honda',
-      model: 'Accord 2013-2017',
-      price: 5500,
-      quantity: 8,
-      imageLink: 'https://example.com/timing-belt.jpg'
-    }
-  ]);
+  // Product management state - fetched from API
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
 
-  // Customer orders state - Enhanced with diverse dates and amounts
-  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([
-    // Today's orders (Oct 25)
-    {
-      id: 'ORD-001',
-      customerName: 'John Silva',
-      customerEmail: 'john.silva@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 1, price: 4500 },
-        { name: 'Engine Oil Filter', quantity: 2, price: 1200 }
-      ],
-      totalAmount: 6900,
-      status: 'pending',
-      orderDate: '2025-10-25',
-      deliveryAddress: '123 Main Street, Colombo 03',
-      contactNumber: '+94 77 123 4567'
-    },
-    {
-      id: 'ORD-002',
-      customerName: 'Sarah Fernando',
-      customerEmail: 'sarah.fernando@gmail.com',
-      items: [
-        { name: 'LED Headlight Bulbs', quantity: 1, price: 2800 },
-        { name: 'Air Filter', quantity: 1, price: 1850 }
-      ],
-      totalAmount: 4650,
-      status: 'in_progress',
-      orderDate: '2025-10-25',
-      deliveryAddress: '456 Galle Road, Mount Lavinia',
-      contactNumber: '+94 71 987 6543'
-    },
-    {
-      id: 'ORD-003',
-      customerName: 'Michael Perera',
-      customerEmail: 'michael.perera@gmail.com',
-      items: [
-        { name: 'Spark Plugs Set', quantity: 1, price: 3200 },
-        { name: 'Timing Belt', quantity: 1, price: 5500 }
-      ],
-      totalAmount: 8700,
-      status: 'pending',
-      orderDate: '2025-10-25',
-      deliveryAddress: 'Self pickup from store',
-      contactNumber: '+94 76 555 1234'
-    },
-    // Recent orders (last week)
-    {
-      id: 'ORD-004',
-      customerName: 'Anna Rajapaksa',
-      customerEmail: 'anna.rajapaksa@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 2, price: 4500 },
-        { name: 'Engine Oil Filter', quantity: 3, price: 1200 }
-      ],
-      totalAmount: 12600,
-      status: 'delivered',
-      orderDate: '2025-10-24',
-      deliveryAddress: '789 Kandy Road, Kegalle',
-      contactNumber: '+94 75 444 9876'
-    },
-    {
-      id: 'ORD-005',
-      customerName: 'David Wickramasinghe',
-      customerEmail: 'david.w@gmail.com',
-      items: [
-        { name: 'LED Headlight Bulbs', quantity: 2, price: 2800 },
-        { name: 'Air Filter', quantity: 2, price: 1850 },
-        { name: 'Spark Plugs Set', quantity: 1, price: 3200 }
-      ],
-      totalAmount: 12500,
-      status: 'pending',
-      orderDate: '2025-10-25',
-      deliveryAddress: '321 Negombo Road, Katunayake',
-      contactNumber: '+94 77 333 2222'
-    },
-    {
-      id: 'ORD-006',
-      customerName: 'Priya Jayawardena',
-      customerEmail: 'priya.j@gmail.com',
-      items: [
-        { name: 'Timing Belt', quantity: 1, price: 5500 }
-      ],
-      totalAmount: 5500,
-      status: 'ready_to_pickup',
-      orderDate: '2025-10-25',
-      deliveryAddress: 'Self pickup from store',
-      contactNumber: '+94 76 111 2233'
-    },
-    {
-      id: 'ORD-007',
-      customerName: 'Kumar Fernando',
-      customerEmail: 'kumar.f@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 1, price: 4500 }
-      ],
-      totalAmount: 4500,
-      status: 'in_progress',
-      orderDate: '2025-10-25',
-      deliveryAddress: '999 Galle Road, Panadura',
-      contactNumber: '+94 77 999 8888'
-    },
-    {
-      id: 'ORD-008',
-      customerName: 'Nimal Perera',
-      customerEmail: 'nimal.p@gmail.com',
-      items: [
-        { name: 'Air Filter', quantity: 3, price: 1850 }
-      ],
-      totalAmount: 5550,
-      status: 'pending',
-      orderDate: '2025-10-25',
-      deliveryAddress: '555 Kandy Road, Kaduwela',
-      contactNumber: '+94 75 777 6666'
-    },
-    {
-      id: 'ORD-009',
-      customerName: 'Saman De Silva',
-      customerEmail: 'saman.d@gmail.com',
-      items: [
-        { name: 'Spark Plugs Set', quantity: 2, price: 3200 }
-      ],
-      totalAmount: 6400,
-      status: 'delivered',
-      orderDate: '2025-10-23',
-      deliveryAddress: '222 Baseline Road, Colombo 09',
-      contactNumber: '+94 71 555 4444'
-    },
-    {
-      id: 'ORD-010',
-      customerName: 'Chamari Silva',
-      customerEmail: 'chamari.s@gmail.com',
-      items: [
-        { name: 'LED Headlight Bulbs', quantity: 1, price: 2800 },
-        { name: 'Timing Belt', quantity: 1, price: 5500 }
-      ],
-      totalAmount: 8300,
-      status: 'in_progress',
-      orderDate: '2025-10-25',
-      deliveryAddress: '888 Nugegoda Road, Maharagama',
-      contactNumber: '+94 76 333 2222'
-    },
-    {
-      id: 'ORD-011',
-      customerName: 'Lasith Rajapaksa',
-      customerEmail: 'lasith.r@gmail.com',
-      items: [
-        { name: 'Engine Oil Filter', quantity: 4, price: 1200 }
-      ],
-      totalAmount: 4800,
-      status: 'ready_to_pickup',
-      orderDate: '2025-10-25',
-      deliveryAddress: 'Self pickup from store',
-      contactNumber: '+94 77 222 1111'
-    },
-    {
-      id: 'ORD-012',
-      customerName: 'Dilini Amarasinghe',
-      customerEmail: 'dilini.a@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 2, price: 4500 },
-        { name: 'Air Filter', quantity: 1, price: 1850 }
-      ],
-      totalAmount: 10850,
-      status: 'pending',
-      orderDate: '2025-10-25',
-      deliveryAddress: '777 Old Kottawa Road, Kottawa',
-      contactNumber: '+94 75 888 7777'
-    },
-    // Older orders (last 30 days)
-    {
-      id: 'ORD-013',
-      customerName: 'Rohan Gunasekara',
-      customerEmail: 'rohan.g@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 3, price: 4500 },
-        { name: 'LED Headlight Bulbs', quantity: 2, price: 2800 },
-        { name: 'Timing Belt', quantity: 1, price: 5500 }
-      ],
-      totalAmount: 24600,
-      status: 'delivered',
-      orderDate: '2025-10-20',
-      deliveryAddress: '100 Flower Road, Colombo 07',
-      contactNumber: '+94 77 100 2000'
-    },
-    {
-      id: 'ORD-014',
-      customerName: 'Ayesha Rahman',
-      customerEmail: 'ayesha.r@gmail.com',
-      items: [
-        { name: 'Spark Plugs Set', quantity: 1, price: 3200 }
-      ],
-      totalAmount: 3200,
-      status: 'delivered',
-      orderDate: '2025-10-18',
-      deliveryAddress: '200 Green Path, Colombo 03',
-      contactNumber: '+94 76 200 3000'
-    },
-    {
-      id: 'ORD-015',
-      customerName: 'Kasun Bandara',
-      customerEmail: 'kasun.b@gmail.com',
-      items: [
-        { name: 'Air Filter', quantity: 5, price: 1850 },
-        { name: 'Engine Oil Filter', quantity: 5, price: 1200 }
-      ],
-      totalAmount: 15250,
-      status: 'delivered',
-      orderDate: '2025-10-15',
-      deliveryAddress: '300 Ward Place, Colombo 07',
-      contactNumber: '+94 75 300 4000'
-    },
-    {
-      id: 'ORD-016',
-      customerName: 'Tharushi Silva',
-      customerEmail: 'tharushi.s@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 1, price: 4500 }
-      ],
-      totalAmount: 4500,
-      status: 'in_progress',
-      orderDate: '2025-10-22',
-      deliveryAddress: '400 Duplication Road, Colombo 04',
-      contactNumber: '+94 77 400 5000'
-    },
-    {
-      id: 'ORD-017',
-      customerName: 'Nuwan Fernando',
-      customerEmail: 'nuwan.f@gmail.com',
-      items: [
-        { name: 'LED Headlight Bulbs', quantity: 4, price: 2800 },
-        { name: 'Spark Plugs Set', quantity: 2, price: 3200 }
-      ],
-      totalAmount: 17600,
-      status: 'ready_to_pickup',
-      orderDate: '2025-10-23',
-      deliveryAddress: 'Self pickup from store',
-      contactNumber: '+94 76 500 6000'
-    },
-    {
-      id: 'ORD-018',
-      customerName: 'Menaka Wijesinghe',
-      customerEmail: 'menaka.w@gmail.com',
-      items: [
-        { name: 'Timing Belt', quantity: 2, price: 5500 },
-        { name: 'Engine Oil Filter', quantity: 6, price: 1200 }
-      ],
-      totalAmount: 18200,
-      status: 'pending',
-      orderDate: '2025-10-24',
-      deliveryAddress: '500 Hospital Road, Kalubowila',
-      contactNumber: '+94 75 600 7000'
-    },
-    {
-      id: 'ORD-019',
-      customerName: 'Rajitha Perera',
-      customerEmail: 'rajitha.p@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 4, price: 4500 },
-        { name: 'Air Filter', quantity: 4, price: 1850 }
-      ],
-      totalAmount: 25400,
-      status: 'delivered',
-      orderDate: '2025-10-10',
-      deliveryAddress: '600 Station Road, Nugegoda',
-      contactNumber: '+94 77 700 8000'
-    },
-    {
-      id: 'ORD-020',
-      customerName: 'Kavitha Jayasuriya',
-      customerEmail: 'kavitha.j@gmail.com',
-      items: [
-        { name: 'LED Headlight Bulbs', quantity: 1, price: 2800 }
-      ],
-      totalAmount: 2800,
-      status: 'pending',
-      orderDate: '2025-10-24',
-      deliveryAddress: '700 High Level Road, Maharagama',
-      contactNumber: '+94 76 800 9000'
-    },
-    {
-      id: 'ORD-021',
-      customerName: 'Sunimal Rodrigo',
-      customerEmail: 'sunimal.r@gmail.com',
-      items: [
-        { name: 'Spark Plugs Set', quantity: 3, price: 3200 },
-        { name: 'Timing Belt', quantity: 2, price: 5500 }
-      ],
-      totalAmount: 20600,
-      status: 'in_progress',
-      orderDate: '2025-10-21',
-      deliveryAddress: '800 Old Moor Street, Colombo 12',
-      contactNumber: '+94 75 900 1000'
-    },
-    {
-      id: 'ORD-022',
-      customerName: 'Harini Dissanayake',
-      customerEmail: 'harini.d@gmail.com',
-      items: [
-        { name: 'Air Filter', quantity: 1, price: 1850 },
-        { name: 'Engine Oil Filter', quantity: 1, price: 1200 }
-      ],
-      totalAmount: 3050,
-      status: 'ready_to_pickup',
-      orderDate: '2025-10-22',
-      deliveryAddress: 'Self pickup from store',
-      contactNumber: '+94 77 110 2200'
-    },
-    {
-      id: 'ORD-023',
-      customerName: 'Gayan Wickramaratne',
-      customerEmail: 'gayan.w@gmail.com',
-      items: [
-        { name: 'Brake Pads Set', quantity: 5, price: 4500 },
-        { name: 'LED Headlight Bulbs', quantity: 5, price: 2800 }
-      ],
-      totalAmount: 36500,
-      status: 'delivered',
-      orderDate: '2025-10-05',
-      deliveryAddress: '900 Parliament Road, Battaramulla',
-      contactNumber: '+94 76 220 3300'
-    },
-    {
-      id: 'ORD-024',
-      customerName: 'Madhavi Samaraweera',
-      customerEmail: 'madhavi.s@gmail.com',
-      items: [
-        { name: 'Timing Belt', quantity: 1, price: 5500 },
-        { name: 'Spark Plugs Set', quantity: 1, price: 3200 }
-      ],
-      totalAmount: 8700,
-      status: 'pending',
-      orderDate: '2025-10-23',
-      deliveryAddress: '110 Horton Place, Colombo 07',
-      contactNumber: '+94 75 330 4400'
-    },
-    {
-      id: 'ORD-025',
-      customerName: 'Buddhika Rathnayake',
-      customerEmail: 'buddhika.r@gmail.com',
-      items: [
-        { name: 'Engine Oil Filter', quantity: 10, price: 1200 }
-      ],
-      totalAmount: 12000,
-      status: 'in_progress',
-      orderDate: '2025-10-19',
-      deliveryAddress: '220 York Street, Colombo 01',
-      contactNumber: '+94 77 440 5500'
-    }
-  ]);
+  // Customer orders state - fetched from API
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  // Hardcoded return requests
-  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([
-    {
-      id: 'RET-001',
-      customerName: 'customer1',
-      customerEmail: 'customer1@gmail.com',
-      orderNumber: 'ORD-2024-001',
-      itemName: 'Brake Pads Set',
-      reason: 'Product damaged during shipping',
-      status: 'pending',
-      requestDate: '2025-10-24',
-      messages: [
-        {
-          sender: 'customer1',
-          message: 'The brake pads arrived with damaged packaging and some parts were missing.',
-          timestamp: '2025-10-24 10:30 AM'
-        }
-      ]
-    },
-    {
-      id: 'RET-002',
-      customerName: 'customer2',
-      customerEmail: 'customer2@gmail.com',
-      orderNumber: 'ORD-2024-002',
-      itemName: 'Engine Oil Filter',
-      reason: 'Wrong item received',
-      status: 'approved',
-      requestDate: '2025-10-20',
-      messages: [
-        {
-          sender: 'customer2',
-          message: 'I ordered an oil filter for Honda Civic but received a filter for Toyota Camry instead.',
-          timestamp: '2025-10-20 2:15 PM'
-        },
-        {
-          sender: 'manager1',
-          message: 'We apologize for the mistake. Return approved and correct oil filter will be sent.',
-          timestamp: '2025-10-20 3:45 PM'
-        }
-      ]
-    },
-    {
-      id: 'RET-003',
-      customerName: 'Nimal Perera',
-      customerEmail: 'nimal.p@gmail.com',
-      orderNumber: 'ORD-2024-003',
-      itemName: 'LED Headlight Bulbs',
-      reason: 'Not compatible with vehicle model',
-      status: 'pending',
-      requestDate: '2025-10-25',
-      messages: [
-        {
-          sender: 'Nimal Perera',
-          message: 'The LED bulbs do not fit my BMW 3 Series 2020 model. Need to return.',
-          timestamp: '2025-10-25 9:15 AM'
-        }
-      ]
-    },
-    {
-      id: 'RET-004',
-      customerName: 'Chamari Silva',
-      customerEmail: 'chamari.s@gmail.com',
-      orderNumber: 'ORD-2024-004',
-      itemName: 'Spark Plugs Set',
-      reason: 'Defective product',
-      status: 'pending',
-      requestDate: '2025-10-25',
-      messages: [
-        {
-          sender: 'Chamari Silva',
-          message: 'One of the spark plugs is defective and won\'t fit properly in the engine.',
-          timestamp: '2025-10-25 11:45 AM'
-        }
-      ]
-    }
-  ]);
+  // Return requests state - will be fetched from API when endpoint is available
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        setProductsError(null);
+        const response = await productsApi.getProducts({ page_size: 100, include_inactive: true });
+        const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          model: p.model,
+          price: p.price,
+          quantity: p.quantity_available,
+          imageLink: p.image_url || ''
+        }));
+        setProducts(transformedProducts);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setProductsError('Failed to load products.');
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch orders from API
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setIsLoadingOrders(true);
+        setOrdersError(null);
+        const response = await ordersApi.getOrders({ page_size: 100 });
+        const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => ({
+          id: o.id,
+          customerName: o.customer_name || 'Unknown Customer',
+          customerEmail: o.customer_email || '',
+          items: o.items.map(item => ({
+            name: item.product_name || `Product ${item.product_id}`,
+            quantity: item.quantity,
+            price: item.unit_price
+          })),
+          totalAmount: o.total_amount,
+          status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
+          orderDate: o.created_at.split('T')[0],
+          deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
+          contactNumber: o.customer_phone
+        }));
+        setCustomerOrders(transformedOrders);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        setOrdersError('Failed to load orders.');
+      } finally {
+        setIsLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',

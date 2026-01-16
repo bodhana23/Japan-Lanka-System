@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
+import { usersApi, User as ApiUser } from '../services/api';
 import './AdminDashboard.css';
 
 interface Product {
@@ -84,7 +85,8 @@ const AdminDashboard: React.FC = () => {
     console.log('Admin Dashboard - showProfile changed to:', showProfile);
   }, [showProfile]);
 
-  // Enhanced financial data with detailed breakdowns
+  // TODO: Replace with API call when analytics endpoint is available
+  // This is placeholder data for the analytics dashboard
   const [allSalesData] = useState<SalesData[]>([
     {
       month: 'November 2024',
@@ -301,27 +303,37 @@ const AdminDashboard: React.FC = () => {
     { brand: 'Nissan', sales: 480000, units: 112 }
   ]);
 
-  // Users data for user management
-  const [users, setUsers] = useState<User[]>([
-    { id: 'U001', fullName: 'Rajesh Kumar', email: 'rajesh.kumar@japanlanka.lk', role: 'manager', dateCreated: '2024-01-15', status: 'active' },
-    { id: 'U002', fullName: 'Priya Fernando', email: 'priya.fernando@japanlanka.lk', role: 'manager', dateCreated: '2024-02-20', status: 'active' },
-    { id: 'U003', fullName: 'Anil Perera', email: 'anil.perera@japanlanka.lk', role: 'auditor', dateCreated: '2024-03-10', status: 'active' },
-    { id: 'U004', fullName: 'Saman Silva', email: 'saman.silva@japanlanka.lk', role: 'auditor', dateCreated: '2024-03-25', status: 'active' },
-    { id: 'U005', fullName: 'Nimal Jayawardena', email: 'nimal.j@gmail.com', role: 'customer', dateCreated: '2024-04-05', status: 'active' },
-    { id: 'U006', fullName: 'Kamala Wickramasinghe', email: 'kamala.w@gmail.com', role: 'customer', dateCreated: '2024-04-18', status: 'active' },
-    { id: 'U007', fullName: 'Sunil Bandara', email: 'sunil.b@gmail.com', role: 'customer', dateCreated: '2024-05-02', status: 'active' },
-    { id: 'U008', fullName: 'Kumari Dissanayake', email: 'kumari.d@gmail.com', role: 'customer', dateCreated: '2024-05-15', status: 'active' },
-    { id: 'U009', fullName: 'Lakshmi Rodrigo', email: 'lakshmi.r@gmail.com', role: 'customer', dateCreated: '2024-06-01', status: 'active' },
-    { id: 'U010', fullName: 'Dinesh Gunasekara', email: 'dinesh.g@gmail.com', role: 'customer', dateCreated: '2024-06-20', status: 'active' },
-    { id: 'U011', fullName: 'Anjali Mendis', email: 'anjali.m@japanlanka.lk', role: 'manager', dateCreated: '2024-07-05', status: 'active' },
-    { id: 'U012', fullName: 'Ruwan Karunaratne', email: 'ruwan.k@gmail.com', role: 'customer', dateCreated: '2024-07-22', status: 'active' },
-    { id: 'U013', fullName: 'Sanduni Ranasinghe', email: 'sanduni.r@gmail.com', role: 'customer', dateCreated: '2024-08-10', status: 'inactive' },
-    { id: 'U014', fullName: 'Chamara De Silva', email: 'chamara.d@japanlanka.lk', role: 'auditor', dateCreated: '2024-08-28', status: 'active' },
-    { id: 'U015', fullName: 'Thilini Gunawardena', email: 'thilini.g@gmail.com', role: 'customer', dateCreated: '2024-09-05', status: 'active' },
-    { id: 'U016', fullName: 'Mahesh Senanayake', email: 'mahesh.s@gmail.com', role: 'customer', dateCreated: '2024-09-18', status: 'active' },
-    { id: 'U017', fullName: 'Dilini Amarasinghe', email: 'dilini.a@gmail.com', role: 'customer', dateCreated: '2024-09-30', status: 'active' },
-    { id: 'U018', fullName: 'Kasun Jayasuriya', email: 'kasun.j@gmail.com', role: 'customer', dateCreated: '2024-10-10', status: 'active' }
-  ]);
+  // Users data - fetched from API
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        setUsersError(null);
+        const response = await usersApi.getUsers({ page_size: 100 });
+        const transformedUsers: User[] = response.items.map((u: ApiUser) => ({
+          id: u.id,
+          fullName: u.full_name,
+          email: u.email,
+          role: u.role as 'manager' | 'auditor' | 'customer',
+          dateCreated: u.created_at.split('T')[0],
+          status: u.is_active ? 'active' : 'inactive'
+        }));
+        setUsers(transformedUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsersError('Failed to load users.');
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   // Filter sales data based on date range
   const salesData = useMemo(() => {
