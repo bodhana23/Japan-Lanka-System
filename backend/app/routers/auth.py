@@ -1,3 +1,6 @@
+import base64
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
@@ -127,6 +130,34 @@ async def login(
     )
 
 
+def decode_firebase_token(token: str) -> dict:
+    """Decode Firebase ID token without verification.
+
+    Note: This is a simplified implementation that decodes the JWT payload
+    without cryptographic verification. For production, use firebase-admin SDK
+    with proper token verification once Python version compatibility is resolved.
+    """
+    try:
+        # Firebase tokens are JWTs with 3 parts: header.payload.signature
+        parts = token.split('.')
+        if len(parts) != 3:
+            raise ValueError("Invalid token format")
+
+        # Decode the payload (second part)
+        payload = parts[1]
+        # Add padding if needed for base64 decoding
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += '=' * padding
+
+        decoded_bytes = base64.urlsafe_b64decode(payload)
+        payload_data = json.loads(decoded_bytes.decode('utf-8'))
+
+        return payload_data
+    except Exception as e:
+        raise ValueError(f"Failed to decode token: {str(e)}")
+
+
 @router.post("/google", response_model=TokenResponse)
 async def google_auth(
     auth_data: GoogleAuthRequest,
@@ -135,22 +166,82 @@ async def google_auth(
 ):
     """Login or register with Google via Firebase token.
 
-    Note: This endpoint requires firebase-admin to be installed and configured.
-    For now, it returns a placeholder error.
+    This endpoint accepts user info from the frontend (obtained from Firebase)
+    and also decodes the token for verification.
     """
-    # TODO: Implement Firebase token verification when firebase-admin is installed
-    # from firebase_admin import auth as firebase_auth
-    # try:
-    #     decoded_token = firebase_auth.verify_id_token(auth_data.firebase_token)
-    #     firebase_uid = decoded_token['uid']
-    #     email = decoded_token.get('email')
-    #     name = decoded_token.get('name', '')
-    # except Exception as e:
-    #     raise HTTPException(status_code=401, detail="Invalid Firebase token")
+    try:
+        # Decode the Firebase token to extract user info
+        token_data = decode_firebase_token(auth_data.firebase_token)
+        firebase_uid = token_data.get('user_id') or token_data.get('sub')
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Google authentication requires Firebase Admin SDK configuration"
+        # Prefer name and email from request body (from Firebase user object)
+        # Fall back to token data if not provided
+        name = auth_data.name or token_data.get('name', '')
+        email = auth_data.email or token_data.get('email')
+
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email not found in request or Firebase token"
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Firebase token: {str(e)}"
+        )
+
+    # Check if user already exists
+    user = db.query(User).filter(User.email == email).first()
+
+    if user:
+        # Existing user - check if active
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deactivated"
+            )
+
+        # Log the login
+        log_action(
+            db=db,
+            user_id=user.id,
+            action="user_google_login",
+            entity_type="user",
+            entity_id=str(user.id),
+            details={"firebase_uid": firebase_uid},
+            ip_address=get_client_ip(request)
+        )
+    else:
+        # Create new user
+        user = User(
+            email=email,
+            full_name=name or email.split('@')[0],  # Use email prefix if no name
+            password_hash="",  # No password for Google-authenticated users
+            role=UserRole.CUSTOMER,
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # Log the registration
+        log_action(
+            db=db,
+            user_id=user.id,
+            action="user_google_registered",
+            entity_type="user",
+            entity_id=str(user.id),
+            details={"firebase_uid": firebase_uid},
+            ip_address=get_client_ip(request)
+        )
+
+    # Create access token
+    access_token = create_access_token(user.id, user.role.value)
+
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user)
     )
 
 

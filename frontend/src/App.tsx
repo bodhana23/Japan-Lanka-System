@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import EmployeeLogin from './pages/EmployeeLogin';
@@ -53,8 +54,9 @@ const NotFound: React.FC = () => (
 function App() {
   return (
     <ErrorBoundary>
-      <CartProvider>
-        <Router>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
           <div className="App">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -73,9 +75,10 @@ function App() {
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
-          </div>
-        </Router>
-      </CartProvider>
+            </div>
+          </Router>
+        </CartProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

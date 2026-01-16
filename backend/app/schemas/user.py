@@ -26,6 +26,8 @@ class UserLogin(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     firebase_token: str
+    name: Optional[str] = None  # User's display name from Google
+    email: Optional[str] = None  # User's email from Google (backup)
 
 
 class UserUpdate(BaseModel):
