@@ -114,6 +114,31 @@ export interface UserListResponse {
   total_pages: number;
 }
 
+// Return Request types
+export interface ReturnRequest {
+  id: string;
+  order_id: string;
+  user_id: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+  order_total?: number;
+  order_status?: string;
+  order_date?: string;
+  customer_name?: string;
+  customer_email?: string;
+}
+
+export interface ReturnRequestListResponse {
+  items: ReturnRequest[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 // API Error type
 export interface ApiError {
   detail: string;
@@ -319,6 +344,49 @@ export const usersApi = {
 
   updateUserStatus: async (id: string, isActive: boolean): Promise<User> => {
     const response = await api.put<User>(`/users/${id}/status`, { is_active: isActive });
+    return response.data;
+  },
+};
+
+// ============ RETURNS API ============
+
+export const returnsApi = {
+  getMyReturns: async (status?: string, page?: number, pageSize?: number): Promise<ReturnRequestListResponse> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (page) params.append('page', String(page));
+    if (pageSize) params.append('page_size', String(pageSize));
+    const response = await api.get<ReturnRequestListResponse>(`/returns/my-requests?${params.toString()}`);
+    return response.data;
+  },
+
+  createReturn: async (orderId: string, reason: string): Promise<ReturnRequest> => {
+    const response = await api.post<ReturnRequest>('/returns', {
+      order_id: orderId,
+      reason,
+    });
+    return response.data;
+  },
+
+  getAllReturns: async (status?: string, page?: number, pageSize?: number): Promise<ReturnRequestListResponse> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (page) params.append('page', String(page));
+    if (pageSize) params.append('page_size', String(pageSize));
+    const response = await api.get<ReturnRequestListResponse>(`/returns?${params.toString()}`);
+    return response.data;
+  },
+
+  getReturn: async (id: string): Promise<ReturnRequest> => {
+    const response = await api.get<ReturnRequest>(`/returns/${id}`);
+    return response.data;
+  },
+
+  updateReturnStatus: async (id: string, status: ReturnRequest['status'], adminNotes?: string): Promise<ReturnRequest> => {
+    const response = await api.put<ReturnRequest>(`/returns/${id}/status`, {
+      status,
+      admin_notes: adminNotes,
+    });
     return response.data;
   },
 };

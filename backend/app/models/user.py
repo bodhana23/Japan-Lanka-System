@@ -37,6 +37,7 @@ class User(Base):
     # Relationships
     orders = relationship("Order", back_populates="user", lazy="dynamic")
     audit_logs = relationship("AuditLog", back_populates="user", lazy="dynamic")
+    return_requests = relationship("ReturnRequest", back_populates="user", lazy="dynamic")
 
     def __repr__(self):
         return f"<User {self.email}>"
