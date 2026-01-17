@@ -49,6 +49,7 @@ class Order(Base):
     # Relationships
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", lazy="joined", cascade="all, delete-orphan")
+    return_requests = relationship("ReturnRequest", back_populates="order", lazy="dynamic")
 
     def __repr__(self):
         return f"<Order {self.id} - {self.status.value}>"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
-import { ordersApi, Order as ApiOrder } from '../services/api';
+import { ordersApi, returnsApi, Order as ApiOrder, ReturnRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import './CustomerDashboard.css';
 
@@ -29,7 +29,9 @@ const CustomerDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingReturns, setIsLoadingReturns] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Get current date formatted nicely
@@ -77,6 +79,23 @@ const CustomerDashboard: React.FC = () => {
     fetchOrders();
   }, []);
 
+  // Fetch return requests from API
+  useEffect(() => {
+    const fetchReturnRequests = async () => {
+      try {
+        setIsLoadingReturns(true);
+        const response = await returnsApi.getMyReturns();
+        setReturnRequests(response.items);
+      } catch (err) {
+        console.error('Error fetching return requests:', err);
+      } finally {
+        setIsLoadingReturns(false);
+      }
+    };
+
+    fetchReturnRequests();
+  }, []);
+
   // Calculate stats
   const stats = useMemo(() => {
     const total = orders.length;
@@ -103,7 +122,7 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleViewOrders = () => {
-    navigate('/shop'); // Will navigate to orders page when available
+    navigate('/my-orders');
   };
 
   const handleCategoryClick = (categoryId: string) => {
@@ -119,6 +138,16 @@ const CustomerDashboard: React.FC = () => {
       'ready_to_pickup': { text: 'Ready', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
       'cancelled': { text: 'Cancelled', color: '#e74c3c', bgColor: '#fdedec' },
+    };
+    return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
+  };
+
+  const getReturnStatusInfo = (status: string) => {
+    const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
+      'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
+      'approved': { text: 'Approved', color: '#27ae60', bgColor: '#eafaf1' },
+      'rejected': { text: 'Rejected', color: '#e74c3c', bgColor: '#fdedec' },
+      'completed': { text: 'Completed', color: '#3498db', bgColor: '#ebf5fb' },
     };
     return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
   };
@@ -275,11 +304,11 @@ const CustomerDashboard: React.FC = () => {
                   <div key={order.id} className="cd-order-card">
                     <div className="cd-order-header">
                       <span className="cd-order-id">#{order.id.slice(-8).toUpperCase()}</span>
-                      <span 
+                      <span
                         className="cd-order-status"
-                        style={{ 
-                          color: statusInfo.color, 
-                          backgroundColor: statusInfo.bgColor 
+                        style={{
+                          color: statusInfo.color,
+                          backgroundColor: statusInfo.bgColor
                         }}
                       >
                         {statusInfo.text}
@@ -301,6 +330,71 @@ const CustomerDashboard: React.FC = () => {
                         {order.deliveryMethod === 'pickup' ? '🏪 Pickup' : '🚚 Delivery'}
                       </span>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Return Requests Section */}
+        <section className="cd-recent-orders-section">
+          <div className="cd-section-header">
+            <h2 className="cd-section-title">
+              <span className="cd-section-icon">🔄</span>
+              Return Requests
+            </h2>
+          </div>
+
+          {isLoadingReturns ? (
+            <div className="cd-loading">
+              <div className="cd-loading-spinner"></div>
+              <p>Loading return requests...</p>
+            </div>
+          ) : returnRequests.length === 0 ? (
+            <div className="cd-empty-orders">
+              <span className="cd-empty-icon">✅</span>
+              <h3>No return requests</h3>
+              <p>You haven't submitted any return requests yet.</p>
+            </div>
+          ) : (
+            <div className="cd-orders-grid">
+              {returnRequests.map((request) => {
+                const statusInfo = getReturnStatusInfo(request.status);
+                return (
+                  <div key={request.id} className="cd-order-card">
+                    <div className="cd-order-header">
+                      <span className="cd-order-id">Order #{request.order_id.slice(-8).toUpperCase()}</span>
+                      <span
+                        className="cd-order-status"
+                        style={{
+                          color: statusInfo.color,
+                          backgroundColor: statusInfo.bgColor
+                        }}
+                      >
+                        {statusInfo.text}
+                      </span>
+                    </div>
+                    <div className="cd-order-body">
+                      <div className="cd-order-date">
+                        <span className="cd-order-date-icon">📅</span>
+                        {formatDate(request.created_at)}
+                      </div>
+                      <div className="cd-order-items">
+                        {request.reason.length > 50
+                          ? `${request.reason.substring(0, 50)}...`
+                          : request.reason}
+                      </div>
+                    </div>
+                    {request.admin_notes && (
+                      <div className="cd-order-footer">
+                        <span className="cd-order-delivery" style={{ fontStyle: 'italic' }}>
+                          Admin: {request.admin_notes.length > 40
+                            ? `${request.admin_notes.substring(0, 40)}...`
+                            : request.admin_notes}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
