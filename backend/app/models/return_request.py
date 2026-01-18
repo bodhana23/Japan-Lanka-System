@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, Text, Enum, ForeignKey
@@ -7,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.utils.timezone import get_current_time
 
 
 class ReturnStatus(str, PyEnum):
@@ -29,12 +29,13 @@ class ReturnRequest(Base):
         default=ReturnStatus.PENDING
     )
     admin_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_current_time, nullable=False)
+    updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 
     # Relationships
     order = relationship("Order", back_populates="return_requests")
     user = relationship("User", back_populates="return_requests")
+    notifications = relationship("Notification", back_populates="related_return", lazy="dynamic")
 
     def __repr__(self):
         return f"<ReturnRequest {self.id} - {self.status.value}>"

@@ -7,6 +7,7 @@ python-dotenv
 pydantic
 pydantic-settings
 email-validator
+pytz
 
 # Authentication
 python-jose[cryptography]

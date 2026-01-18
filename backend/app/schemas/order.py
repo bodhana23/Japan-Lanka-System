@@ -27,33 +27,36 @@ class OrderItemResponse(BaseModel):
 
 
 # Order schemas
-class OrderBase(BaseModel):
+class OrderCreate(BaseModel):
     delivery_method: DeliveryMethod
-    customer_phone: str = Field(..., min_length=1, max_length=20)
     shipping_address: Optional[str] = Field(None, max_length=500)
     shipping_city: Optional[str] = Field(None, max_length=100)
     shipping_postal_code: Optional[str] = Field(None, max_length=20)
     notes: Optional[str] = None
-
-
-class OrderCreate(OrderBase):
     items: List[OrderItemCreate] = Field(..., min_length=1)
 
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
+    notes: Optional[str] = None  # Optional notes for status change
 
 
-class OrderResponse(OrderBase):
+class OrderResponse(BaseModel):
     id: UUID
     user_id: UUID
     status: OrderStatus
+    delivery_method: DeliveryMethod
     total_amount: Decimal
+    shipping_address: Optional[str] = None
+    shipping_city: Optional[str] = None
+    shipping_postal_code: Optional[str] = None
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse] = []
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None  # Fetched from user relationship
 
     class Config:
         from_attributes = True

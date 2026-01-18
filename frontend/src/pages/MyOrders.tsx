@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ordersApi, returnsApi, Order } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { formatDateTime } from '../utils/dateUtils';
 import './MyOrders.css';
 
 const MyOrders: React.FC = () => {
@@ -96,15 +97,6 @@ const MyOrders: React.FC = () => {
     return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   const formatCurrency = (amount: number) => {
     return `Rs. ${Number(amount).toLocaleString()}`;
   };
@@ -175,7 +167,7 @@ const MyOrders: React.FC = () => {
                   <div className="mo-order-header">
                     <div className="mo-order-info">
                       <span className="mo-order-id">#{order.id.slice(0, 8).toUpperCase()}</span>
-                      <span className="mo-order-date">{formatDate(order.created_at)}</span>
+                      <span className="mo-order-date">{formatDateTime(order.created_at)}</span>
                     </div>
                     <span
                       className="mo-order-status"

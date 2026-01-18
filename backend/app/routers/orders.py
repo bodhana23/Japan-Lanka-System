@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Order, OrderItem, Product, User, AuditLog
+from app.models import Order, OrderItem, Product, User, AuditLog, OrderStatusHistory, InventoryTransaction
 from app.models.order import OrderStatus, DeliveryMethod
+from app.models.inventory_transaction import TransactionType
 from app.schemas.order import (
     OrderCreate,
     OrderStatusUpdate,
@@ -17,7 +18,12 @@ from app.schemas.order import (
     OrderItemResponse,
     OrderListResponse,
 )
+from app.schemas.order_status_history import (
+    OrderStatusHistoryResponse,
+    OrderStatusHistoryListResponse,
+)
 from app.utils.deps import get_current_user, require_manager_or_admin
+from app.services.notification_service import notify_order_status_change
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -53,13 +59,13 @@ def order_to_response(order: Order) -> OrderResponse:
         shipping_address=order.shipping_address,
         shipping_city=order.shipping_city,
         shipping_postal_code=order.shipping_postal_code,
-        customer_phone=order.customer_phone,
         notes=order.notes,
         created_at=order.created_at,
         updated_at=order.updated_at,
         items=items,
         customer_name=order.user.full_name if order.user else None,
-        customer_email=order.user.email if order.user else None
+        customer_email=order.user.email if order.user else None,
+        customer_phone=order.user.phone_number if order.user else None
     )
 
 
@@ -223,13 +229,22 @@ async def create_order(
         shipping_address=order_data.shipping_address,
         shipping_city=order_data.shipping_city,
         shipping_postal_code=order_data.shipping_postal_code,
-        customer_phone=order_data.customer_phone,
         notes=order_data.notes
     )
     db.add(order)
     db.flush()  # Get order ID
 
-    # Create order items and update product quantities
+    # Create initial order status history
+    status_history = OrderStatusHistory(
+        order_id=order.id,
+        old_status=None,
+        new_status=OrderStatus.PENDING,
+        changed_by_user_id=current_user.id,
+        notes="Order created"
+    )
+    db.add(status_history)
+
+    # Create order items and update product quantities with inventory tracking
     for item_data in order_items:
         order_item = OrderItem(
             order_id=order.id,
@@ -239,8 +254,22 @@ async def create_order(
         )
         db.add(order_item)
 
-        # Reduce product quantity
-        item_data["product"].quantity_available -= item_data["quantity"]
+        # Reduce product quantity and track inventory
+        product = item_data["product"]
+        quantity_before = product.quantity_available
+        product.quantity_available -= item_data["quantity"]
+
+        inventory_transaction = InventoryTransaction(
+            product_id=product.id,
+            user_id=current_user.id,
+            transaction_type=TransactionType.STOCK_OUT,
+            quantity_change=-item_data["quantity"],
+            quantity_before=quantity_before,
+            quantity_after=product.quantity_available,
+            reason=f"Order #{str(order.id)[:8]}",
+            reference_order_id=order.id
+        )
+        db.add(inventory_transaction)
 
     # Create audit log
     audit_log = AuditLog(
@@ -279,11 +308,44 @@ async def update_order_status(
     old_status = order.status
     order.status = status_update.status
 
-    # If cancelled, restore product quantities
+    # Create status history record
+    status_history = OrderStatusHistory(
+        order_id=order.id,
+        old_status=old_status,
+        new_status=status_update.status,
+        changed_by_user_id=current_user.id,
+        notes=status_update.notes if hasattr(status_update, 'notes') else None
+    )
+    db.add(status_history)
+
+    # If cancelled, restore product quantities with inventory tracking
     if status_update.status == OrderStatus.CANCELLED and old_status != OrderStatus.CANCELLED:
         for item in order.items:
             if item.product:
+                quantity_before = item.product.quantity_available
                 item.product.quantity_available += item.quantity
+
+                # Track inventory restoration
+                inventory_transaction = InventoryTransaction(
+                    product_id=item.product.id,
+                    user_id=current_user.id,
+                    transaction_type=TransactionType.RETURN_IN,
+                    quantity_change=item.quantity,
+                    quantity_before=quantity_before,
+                    quantity_after=item.product.quantity_available,
+                    reason=f"Order #{str(order.id)[:8]} cancelled",
+                    reference_order_id=order.id
+                )
+                db.add(inventory_transaction)
+
+    # Create notification for the customer
+    notify_order_status_change(
+        db=db,
+        user_id=order.user_id,
+        order_id=order.id,
+        old_status=old_status.value,
+        new_status=status_update.status.value
+    )
 
     # Create audit log
     audit_log = AuditLog(
@@ -300,3 +362,48 @@ async def update_order_status(
     db.refresh(order)
 
     return order_to_response(order)
+
+
+@router.get("/{order_id}/history", response_model=OrderStatusHistoryListResponse)
+async def get_order_status_history(
+    order_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get status change history for an order."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+
+    # Customers can only view their own orders
+    if current_user.role.value == "customer" and order.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+
+    history = db.query(OrderStatusHistory).filter(
+        OrderStatusHistory.order_id == order_id
+    ).order_by(OrderStatusHistory.created_at.desc()).all()
+
+    items = []
+    for h in history:
+        items.append(OrderStatusHistoryResponse(
+            id=h.id,
+            order_id=h.order_id,
+            old_status=h.old_status,
+            new_status=h.new_status,
+            changed_by_user_id=h.changed_by_user_id,
+            changed_by_name=h.changed_by.full_name if h.changed_by else None,
+            notes=h.notes,
+            created_at=h.created_at
+        ))
+
+    return OrderStatusHistoryListResponse(
+        items=items,
+        total=len(items)
+    )

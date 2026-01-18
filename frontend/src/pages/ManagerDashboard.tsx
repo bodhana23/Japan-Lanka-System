@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
 import { productsApi, ordersApi, Product as ApiProduct, Order as ApiOrder } from '../services/api';
+import { formatDateTime } from '../utils/dateUtils';
 import './ManagerDashboard.css';
 
 interface Product {
@@ -140,7 +141,7 @@ const ManagerDashboard: React.FC = () => {
           })),
           totalAmount: o.total_amount,
           status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
-          orderDate: o.created_at.split('T')[0],
+          orderDate: o.created_at,
           deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
           contactNumber: o.customer_phone
         }));
@@ -1073,16 +1074,7 @@ const ManagerDashboard: React.FC = () => {
                       <div className="order-info">
                         <h3 className="order-id">Order #{order.id}</h3>
                         <p className="customer-name">{order.customerName}</p>
-                        <p className="order-date">
-                          {(() => {
-                            try {
-                              const date = new Date(order.orderDate);
-                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-LK');
-                            } catch {
-                              return 'Invalid Date';
-                            }
-                          })()}
-                        </p>
+                        <p className="order-date">{formatDateTime(order.orderDate)}</p>
                       </div>
                       <div className="order-status">
                         <select 

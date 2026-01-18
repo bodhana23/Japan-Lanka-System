@@ -5,10 +5,16 @@ from app.config import settings
 from app.database import engine, Base
 
 # Import all models to register them with Base
-from app.models import User, Product, Order, OrderItem, AuditLog, ReturnRequest  # noqa: F401
+from app.models import (  # noqa: F401
+    User, Product, Order, OrderItem, AuditLog, ReturnRequest,
+    Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction
+)
 
 # Import routers
-from app.routers import auth_router, products_router, orders_router, users_router, returns_router
+from app.routers import (
+    auth_router, products_router, orders_router, users_router, returns_router,
+    cart_router, notifications_router, inventory_router
+)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -34,6 +40,9 @@ app.include_router(products_router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(returns_router, prefix=settings.API_V1_PREFIX)
+app.include_router(cart_router, prefix=settings.API_V1_PREFIX)
+app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
+app.include_router(inventory_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")

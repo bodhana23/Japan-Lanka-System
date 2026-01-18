@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
 import { ordersApi, returnsApi, Order as ApiOrder, ReturnRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { formatDateTime } from '../utils/dateUtils';
 import './CustomerDashboard.css';
 
 interface Order {
@@ -64,7 +65,7 @@ const CustomerDashboard: React.FC = () => {
           items: o.items.map(item => item.product_name || `Product ${item.product_id}`),
           amount: o.total_amount,
           status: o.status,
-          orderDate: o.created_at.split('T')[0],
+          orderDate: o.created_at,
           deliveryMethod: o.delivery_method,
         }));
         setOrders(transformedOrders);
@@ -150,14 +151,6 @@ const CustomerDashboard: React.FC = () => {
       'completed': { text: 'Completed', color: '#3498db', bgColor: '#ebf5fb' },
     };
     return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -317,7 +310,7 @@ const CustomerDashboard: React.FC = () => {
                     <div className="cd-order-body">
                       <div className="cd-order-date">
                         <span className="cd-order-date-icon">📅</span>
-                        {formatDate(order.orderDate)}
+                        {formatDateTime(order.orderDate)}
                       </div>
                       <div className="cd-order-items">
                         {order.items.slice(0, 2).join(', ')}
@@ -378,7 +371,7 @@ const CustomerDashboard: React.FC = () => {
                     <div className="cd-order-body">
                       <div className="cd-order-date">
                         <span className="cd-order-date-icon">📅</span>
-                        {formatDate(request.created_at)}
+                        {formatDateTime(request.created_at)}
                       </div>
                       <div className="cd-order-items">
                         {request.reason.length > 50
