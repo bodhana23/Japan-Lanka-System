@@ -32,6 +32,26 @@ from app.schemas.audit import (
     AuditLogListResponse,
     AuditLogFilter,
 )
+from app.schemas.cart import (
+    CartItemCreate,
+    CartItemUpdate,
+    CartItemResponse,
+    CartResponse,
+)
+from app.schemas.order_status_history import (
+    OrderStatusHistoryResponse,
+    OrderStatusHistoryListResponse,
+)
+from app.schemas.notification import (
+    NotificationResponse,
+    NotificationListResponse,
+    UnreadCountResponse,
+)
+from app.schemas.inventory_transaction import (
+    InventoryAdjustmentCreate,
+    InventoryTransactionResponse,
+    InventoryTransactionListResponse,
+)
 
 __all__ = [
     # User schemas
@@ -59,6 +79,22 @@ __all__ = [
     "OrderResponse",
     "OrderListResponse",
     "OrderFilter",
+    # Order Status History schemas
+    "OrderStatusHistoryResponse",
+    "OrderStatusHistoryListResponse",
+    # Cart schemas
+    "CartItemCreate",
+    "CartItemUpdate",
+    "CartItemResponse",
+    "CartResponse",
+    # Notification schemas
+    "NotificationResponse",
+    "NotificationListResponse",
+    "UnreadCountResponse",
+    # Inventory Transaction schemas
+    "InventoryAdjustmentCreate",
+    "InventoryTransactionResponse",
+    "InventoryTransactionListResponse",
     # Audit schemas
     "AuditLogResponse",
     "AuditLogListResponse",

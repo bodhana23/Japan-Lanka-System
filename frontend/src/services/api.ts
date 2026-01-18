@@ -98,12 +98,57 @@ export interface CreateOrderItem {
 
 export interface CreateOrderRequest {
   delivery_method: 'pickup' | 'shipping';
-  customer_phone: string;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
   notes?: string;
   items: CreateOrderItem[];
+}
+
+// Cart types
+export interface CartItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  product_brand: string;
+  product_image_url?: string;
+  unit_price: number;
+  quantity: number;
+  subtotal: number;
+  available_stock: number;
+  created_at: string;
+}
+
+export interface Cart {
+  id: string;
+  user_id: string;
+  items: CartItem[];
+  total_items: number;
+  total_price: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Notification types
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'order_update' | 'return_update' | 'system' | 'promotion';
+  is_read: boolean;
+  related_order_id?: string;
+  related_return_id?: string;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  items: Notification[];
+  total: number;
+  unread_count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface UserListResponse {
@@ -387,6 +432,80 @@ export const returnsApi = {
       status,
       admin_notes: adminNotes,
     });
+    return response.data;
+  },
+};
+
+// ============ CART API ============
+
+export const cartApi = {
+  getCart: async (): Promise<Cart> => {
+    const response = await api.get<Cart>('/cart');
+    return response.data;
+  },
+
+  addItem: async (productId: string, quantity: number = 1): Promise<Cart> => {
+    const response = await api.post<Cart>('/cart/items', {
+      product_id: productId,
+      quantity,
+    });
+    return response.data;
+  },
+
+  updateItem: async (itemId: string, quantity: number): Promise<Cart> => {
+    const response = await api.put<Cart>(`/cart/items/${itemId}`, { quantity });
+    return response.data;
+  },
+
+  removeItem: async (itemId: string): Promise<Cart> => {
+    const response = await api.delete<Cart>(`/cart/items/${itemId}`);
+    return response.data;
+  },
+
+  clearCart: async (): Promise<Cart> => {
+    const response = await api.delete<Cart>('/cart');
+    return response.data;
+  },
+};
+
+// ============ NOTIFICATIONS API ============
+
+export const notificationsApi = {
+  getNotifications: async (params?: {
+    type?: string;
+    unread_only?: boolean;
+    page?: number;
+    page_size?: number;
+  }): Promise<NotificationListResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get<NotificationListResponse>(`/notifications?${searchParams.toString()}`);
+    return response.data;
+  },
+
+  getUnreadCount: async (): Promise<{ unread_count: number }> => {
+    const response = await api.get<{ unread_count: number }>('/notifications/unread-count');
+    return response.data;
+  },
+
+  markAsRead: async (id: string): Promise<Notification> => {
+    const response = await api.put<Notification>(`/notifications/${id}/read`);
+    return response.data;
+  },
+
+  markAllAsRead: async (): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/notifications/read-all');
+    return response.data;
+  },
+
+  deleteNotification: async (id: string): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`/notifications/${id}`);
     return response.data;
   },
 };

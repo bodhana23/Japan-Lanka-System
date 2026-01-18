@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { ordersApi, CreateOrderRequest } from '../services/api';
 import './Checkout.css';
 
 interface ShippingInfo {
@@ -20,10 +22,12 @@ type DeliveryMethod = 'pickup' | 'shipping';
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { cart, getTotalPrice, clearCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: '',
@@ -36,30 +40,22 @@ const Checkout: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    // Critical: Check authentication first
-    try {
-      const currentUser = localStorage.getItem('currentUser');
-      if (!currentUser) {
-        // User not authenticated - redirect to login
-        sessionStorage.setItem('redirectAfterLogin', '/checkout');
-        navigate('/login');
-        return;
-      }
-
-      // Load customer data from authenticated user
-      const userData = JSON.parse(currentUser);
-      setShippingInfo(prev => ({
-        ...prev,
-        fullName: userData.fullName || userData.name || '',
-        phone: userData.phoneNumber || userData.phone || ''
-      }));
-    } catch (error) {
-      console.error('Error loading customer data:', error);
-      // On error, redirect to login for safety
+    // Check authentication
+    if (!isAuthenticated) {
       sessionStorage.setItem('redirectAfterLogin', '/checkout');
       navigate('/login');
+      return;
     }
-  }, [navigate]);
+
+    // Load customer data from authenticated user
+    if (user) {
+      setShippingInfo(prev => ({
+        ...prev,
+        fullName: user.full_name || '',
+        phone: user.phone_number || ''
+      }));
+    }
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     // Redirect if cart is empty
@@ -132,12 +128,6 @@ const Checkout: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const generateOrderId = (): string => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `ORD-${timestamp}-${random}`;
-  };
-
   const handlePlaceOrder = async () => {
     if (!validateForm()) {
       // Scroll to first error
@@ -148,55 +138,44 @@ const Checkout: React.FC = () => {
     }
 
     setIsProcessing(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setOrderError(null);
 
     try {
-      // Generate order
-      const newOrderId = generateOrderId();
-      
-      // Save order to localStorage (simulating backend)
-      const order = {
-        id: newOrderId,
-        items: cart.map(item => `${item.name} (${item.model})`),
-        itemsDetailed: cart.map(item => ({
-          partName: item.name,
-          carModel: item.model,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          subtotal: item.price * item.quantity
+      // Build order request for API
+      const orderRequest: CreateOrderRequest = {
+        delivery_method: deliveryMethod!,
+        items: cart.map(item => ({
+          product_id: item.productId,
+          quantity: item.quantity
         })),
-        deliveryMethod: deliveryMethod,
-        shippingInfo: deliveryMethod === 'shipping' ? shippingInfo : {
-          fullName: shippingInfo.fullName,
-          phone: shippingInfo.phone,
-          address: 'Pickup from store',
-          city: '',
-          postalCode: ''
-        },
-        totalAmount: getTotalPrice(),
-        orderDate: new Date().toISOString(),
-        status: 'pending'
+        notes: undefined
       };
 
-      // Get existing orders
-      const existingOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-      existingOrders.push(order);
-      localStorage.setItem('customerOrders', JSON.stringify(existingOrders));
+      // Add shipping info if delivery method is shipping
+      if (deliveryMethod === 'shipping') {
+        orderRequest.shipping_address = shippingInfo.address;
+        orderRequest.shipping_city = shippingInfo.city;
+        orderRequest.shipping_postal_code = shippingInfo.postalCode;
+      }
 
-      setOrderId(newOrderId);
+      // Create order via API
+      const createdOrder = await ordersApi.createOrder(orderRequest);
+
+      // Clear cart after successful order
+      await clearCart();
+
+      setOrderId(createdOrder.id.substring(0, 8).toUpperCase());
       setShowSuccessModal(true);
-      clearCart();
 
       // Redirect to dashboard after 3 seconds
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error placing order:', error);
-      alert('Failed to place order. Please try again.');
+      const errorMessage = error.response?.data?.detail || 'Failed to place order. Please try again.';
+      setOrderError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -213,7 +192,7 @@ const Checkout: React.FC = () => {
           <div className="success-modal">
             <div className="success-icon">✓</div>
             <h2>Order Placed Successfully!</h2>
-            <p className="order-id">Order ID: <strong>{orderId}</strong></p>
+            <p className="order-id">Order ID: <strong>#{orderId}</strong></p>
             <p className="delivery-info">
               {deliveryMethod === 'pickup' ? (
                 <>📍 <strong>Pickup from Store</strong> - We'll contact you when ready</>
@@ -251,6 +230,14 @@ const Checkout: React.FC = () => {
           <div className="checkout-left">
             <section className="shipping-section">
               <h2>Contact & Delivery Information</h2>
+
+              {orderError && (
+                <div className="error-banner">
+                  <span className="error-icon">⚠️</span>
+                  <span>{orderError}</span>
+                </div>
+              )}
+
               <form className="shipping-form">
                 {/* Delivery Method Selection */}
                 <div className="form-group">
@@ -258,7 +245,7 @@ const Checkout: React.FC = () => {
                     Delivery Method <span className="required">*</span>
                   </label>
                   <div className="delivery-method-options">
-                    <div 
+                    <div
                       className={`delivery-option ${deliveryMethod === 'pickup' ? 'selected' : ''} ${errors.deliveryMethod && !deliveryMethod ? 'error' : ''}`}
                       onClick={() => {
                         setDeliveryMethod('pickup');
@@ -274,8 +261,8 @@ const Checkout: React.FC = () => {
                         {deliveryMethod === 'pickup' && <span className="radio-checked">✓</span>}
                       </div>
                     </div>
-                    
-                    <div 
+
+                    <div
                       className={`delivery-option ${deliveryMethod === 'shipping' ? 'selected' : ''} ${errors.deliveryMethod && !deliveryMethod ? 'error' : ''}`}
                       onClick={() => {
                         setDeliveryMethod('shipping');
@@ -421,14 +408,14 @@ const Checkout: React.FC = () => {
           <div className="checkout-right">
             <section className="order-summary-section">
               <h2>Order Summary</h2>
-              
+
               <div className="order-items">
                 {cart.map(item => (
                   <div key={item.id} className="order-item">
-                    <div className="item-icon">{item.image}</div>
+                    <div className="item-icon">{item.image || '📦'}</div>
                     <div className="item-details">
                       <h4>{item.name}</h4>
-                      <p className="item-model">{item.model}</p>
+                      <p className="item-model">{item.brand} {item.model}</p>
                       <p className="item-quantity">Qty: {item.quantity}</p>
                     </div>
                     <div className="item-price">

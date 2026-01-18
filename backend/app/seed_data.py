@@ -465,7 +465,6 @@ def seed_orders(db: Session, users: dict, products: list) -> list:
         shipping_address="123 Main Street",
         shipping_city="Colombo",
         shipping_postal_code="00100",
-        customer_phone="0774567890",
         notes="Please call before delivery",
         created_at=datetime.utcnow() - timedelta(days=10)
     )
@@ -496,7 +495,6 @@ def seed_orders(db: Session, users: dict, products: list) -> list:
         status=OrderStatus.READY_TO_PICKUP,
         delivery_method=DeliveryMethod.PICKUP,
         total_amount=Decimal("14700.00"),
-        customer_phone="0774567890",
         notes=None,
         created_at=datetime.utcnow() - timedelta(days=3)
     )
@@ -529,7 +527,6 @@ def seed_orders(db: Session, users: dict, products: list) -> list:
         shipping_address="456 Park Avenue",
         shipping_city="Kandy",
         shipping_postal_code="20000",
-        customer_phone="0774567890",
         notes="Leave at door if not home",
         created_at=datetime.utcnow() - timedelta(days=2)
     )
@@ -559,7 +556,6 @@ def seed_orders(db: Session, users: dict, products: list) -> list:
         status=OrderStatus.PENDING,
         delivery_method=DeliveryMethod.PICKUP,
         total_amount=Decimal("18500.00"),
-        customer_phone="0774567890",
         notes=None,
         created_at=datetime.utcnow() - timedelta(hours=6)
     )
@@ -585,7 +581,6 @@ def seed_orders(db: Session, users: dict, products: list) -> list:
         shipping_address="789 Lake Road",
         shipping_city="Galle",
         shipping_postal_code="80000",
-        customer_phone="0774567890",
         notes=None,
         created_at=datetime.utcnow() - timedelta(days=1)
     )

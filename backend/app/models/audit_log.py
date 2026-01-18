@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.utils.timezone import get_current_time
 
 
 class AuditLog(Base):
@@ -18,7 +18,7 @@ class AuditLog(Base):
     entity_id = Column(String(50), nullable=True)
     details = Column(JSONB, nullable=True)
     ip_address = Column(String(45), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=get_current_time, nullable=False, index=True)
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")

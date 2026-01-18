@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, Numeric
@@ -7,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.utils.timezone import get_current_time
 
 
 class Product(Base):
@@ -24,11 +24,13 @@ class Product(Base):
     quantity_available = Column(Integer, nullable=False, default=0)
     image_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_current_time, nullable=False)
+    updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 
     # Relationships
     order_items = relationship("OrderItem", back_populates="product", lazy="dynamic")
+    cart_items = relationship("CartItem", back_populates="product", lazy="dynamic", cascade="all, delete-orphan")
+    inventory_transactions = relationship("InventoryTransaction", back_populates="product", lazy="dynamic", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Product {self.name} ({self.brand})>"

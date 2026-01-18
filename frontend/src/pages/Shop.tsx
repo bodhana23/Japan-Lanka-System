@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart, Product } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { productsApi, Product as ApiProduct } from '../services/api';
+import NotificationBell from '../components/NotificationBell';
 import './Shop.css';
 
 interface FilterState {
@@ -18,6 +20,7 @@ interface FilterState {
 const Shop: React.FC = () => {
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
+  const { isAuthenticated } = useAuth();
   const [showCart, setShowCart] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -30,19 +33,6 @@ const Shop: React.FC = () => {
     inStockOnly: false,
     searchQuery: ''
   });
-
-  // Check if user is logged in (window shopper vs logged-in customer)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  React.useEffect(() => {
-    try {
-      const currentUser = localStorage.getItem('currentUser');
-      setIsLoggedIn(!!currentUser);
-    } catch (error) {
-      console.error('Error checking login status:', error);
-      setIsLoggedIn(false);
-    }
-  }, []);
 
   // Products state - fetched from API
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -219,7 +209,7 @@ const Shop: React.FC = () => {
       return;
     }
 
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       // Store the intent to checkout after login
       sessionStorage.setItem('redirectAfterLogin', '/checkout');
       navigate('/login');
@@ -242,6 +232,7 @@ const Shop: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Auto Parts</h1>
           <div className="header-actions">
+            <NotificationBell />
             <button
               onClick={() => setShowCart(!showCart)}
               className="cart-btn"
@@ -251,7 +242,7 @@ const Shop: React.FC = () => {
                 <span className="cart-badge">{getTotalItems()}</span>
               )}
             </button>
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <button onClick={handleBackToDashboard} className="back-btn">
                 ← Back to Dashboard
               </button>

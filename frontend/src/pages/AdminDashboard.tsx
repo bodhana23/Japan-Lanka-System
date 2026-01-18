@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
 import { usersApi, User as ApiUser } from '../services/api';
+import { formatDate } from '../utils/dateUtils';
 import './AdminDashboard.css';
 
 interface Product {
@@ -320,7 +321,7 @@ const AdminDashboard: React.FC = () => {
           fullName: u.full_name,
           email: u.email,
           role: u.role as 'manager' | 'auditor' | 'customer',
-          dateCreated: u.created_at.split('T')[0],
+          dateCreated: u.created_at,
           status: u.is_active ? 'active' : 'inactive'
         }));
         setUsers(transformedUsers);
@@ -964,7 +965,7 @@ const AdminDashboard: React.FC = () => {
                             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                           </span>
                         </td>
-                        <td>{new Date(user.dateCreated).toLocaleDateString('en-GB')}</td>
+                        <td>{formatDate(user.dateCreated)}</td>
                         <td>
                           <button 
                             className={`status-toggle ${user.status}`}

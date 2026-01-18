@@ -576,3 +576,36 @@
     padding: 0 1rem;
   }
 }
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border: 2px solid #fc8181;
+  border-radius: 12px;
+  color: #c53030;
+  font-size: 0.95rem;
+  font-weight: 500;
+  animation: shakeError 0.5s ease;
+}
+
+.error-banner .error-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+@keyframes shakeError {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}

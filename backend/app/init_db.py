@@ -11,7 +11,10 @@ Usage:
 from app.database import engine, Base
 
 # Import all models to register them with Base
-from app.models import User, Product, Order, OrderItem, AuditLog, ReturnRequest
+from app.models import (
+    User, Product, Order, OrderItem, AuditLog, ReturnRequest,
+    Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction
+)
 
 
 def init_db():

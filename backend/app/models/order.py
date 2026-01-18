@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, Text, Numeric, Enum, ForeignKey
@@ -7,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.utils.timezone import get_current_time
 
 
 class OrderStatus(str, PyEnum):
@@ -41,15 +41,17 @@ class Order(Base):
     shipping_address = Column(String(500), nullable=True)
     shipping_city = Column(String(100), nullable=True)
     shipping_postal_code = Column(String(20), nullable=True)
-    customer_phone = Column(String(20), nullable=False)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_current_time, nullable=False)
+    updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", lazy="joined", cascade="all, delete-orphan")
     return_requests = relationship("ReturnRequest", back_populates="order", lazy="dynamic")
+    status_history = relationship("OrderStatusHistory", back_populates="order", lazy="dynamic", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="related_order", lazy="dynamic")
+    inventory_transactions = relationship("InventoryTransaction", back_populates="reference_order", lazy="dynamic")
 
     def __repr__(self):
         return f"<Order {self.id} - {self.status.value}>"

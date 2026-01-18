@@ -13,6 +13,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => void;
   updateUser: (data: { full_name?: string; phone_number?: string }) => Promise<void>;
+  onLoginSuccess?: () => void;
+  setOnLoginSuccess: (callback: (() => void) | undefined) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +27,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [onLoginSuccessCallback, setOnLoginSuccessCallback] = useState<(() => void) | undefined>(undefined);
 
   // Check for existing token on app load
   useEffect(() => {
@@ -71,6 +74,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(response.user);
     localStorage.setItem('token', response.access_token);
     localStorage.setItem('currentUser', JSON.stringify(response.user));
+
+    // Call the login success callback (e.g., to sync cart)
+    if (onLoginSuccessCallback) {
+      // Use setTimeout to ensure state is updated first
+      setTimeout(() => {
+        onLoginSuccessCallback();
+      }, 100);
+    }
+  };
+
+  const setOnLoginSuccess = (callback: (() => void) | undefined) => {
+    setOnLoginSuccessCallback(() => callback);
   };
 
   const login = async (email: string, password: string): Promise<void> => {
@@ -142,6 +157,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     logout,
     updateUser,
+    onLoginSuccess: onLoginSuccessCallback,
+    setOnLoginSuccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
