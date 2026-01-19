@@ -35,7 +35,7 @@ class CartItemResponse(BaseModel):
 # Cart schemas
 class CartResponse(BaseModel):
     id: UUID
-    user_id: UUID
+    customer_id: UUID
     items: List[CartItemResponse] = []
     total_items: int
     total_price: Decimal

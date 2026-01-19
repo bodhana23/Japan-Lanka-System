@@ -23,13 +23,13 @@ class OrderStatusHistory(Base):
         Enum(OrderStatus, name="order_status", create_type=False),
         nullable=False
     )
-    changed_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    changed_by_employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, index=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False, index=True)
 
     # Relationships
     order = relationship("Order", back_populates="status_history")
-    changed_by = relationship("User", back_populates="order_status_changes")
+    changed_by = relationship("Employee", back_populates="order_status_changes")
 
     def __repr__(self):
         return f"<OrderStatusHistory {self.old_status} -> {self.new_status}>"

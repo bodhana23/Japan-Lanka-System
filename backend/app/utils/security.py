@@ -23,8 +23,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
-def create_access_token(user_id: UUID, role: str, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token."""
+def create_access_token(
+    user_id: UUID,
+    user_type: str,
+    role: Optional[str] = None,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """Create a JWT access token.
+
+    Args:
+        user_id: The user's UUID
+        user_type: Either 'customer' or 'employee'
+        role: The employee role (only required for employees)
+        expires_delta: Optional custom expiration time
+    """
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -32,10 +44,16 @@ def create_access_token(user_id: UUID, role: str, expires_delta: Optional[timede
 
     to_encode = {
         "sub": str(user_id),
-        "role": role,
+        "user_type": user_type,
         "exp": expire,
         "iat": datetime.utcnow()
     }
+
+    # Include role for employees, set to 'customer' for customers
+    if role:
+        to_encode["role"] = role
+    else:
+        to_encode["role"] = "customer"
 
     encoded_jwt = jwt.encode(
         to_encode,

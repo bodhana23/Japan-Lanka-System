@@ -12,16 +12,16 @@ class Cart(Base):
     __tablename__ = "carts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 
     # Relationships
-    user = relationship("User", back_populates="cart")
+    customer = relationship("Customer", back_populates="cart")
     items = relationship("CartItem", back_populates="cart", lazy="joined", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Cart {self.id} for user {self.user_id}>"
+        return f"<Cart {self.id} for customer {self.customer_id}>"
 
 
 class CartItem(Base):

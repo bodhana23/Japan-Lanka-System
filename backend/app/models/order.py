@@ -27,7 +27,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False, index=True)
     status = Column(
         Enum(OrderStatus, name="order_status", create_type=True),
         nullable=False,
@@ -46,7 +46,7 @@ class Order(Base):
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 
     # Relationships
-    user = relationship("User", back_populates="orders")
+    customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", lazy="joined", cascade="all, delete-orphan")
     return_requests = relationship("ReturnRequest", back_populates="order", lazy="dynamic")
     status_history = relationship("OrderStatusHistory", back_populates="order", lazy="dynamic", cascade="all, delete-orphan")

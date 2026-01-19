@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
+import { employeeAuthApi, EmployeeAuthResponse } from '../services/api';
+import { AxiosError } from 'axios';
 import './EmployeeLogin.css';
+
+interface ApiError {
+  detail: string;
+}
 
 const EmployeeLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,8 +28,7 @@ const EmployeeLogin: React.FC = () => {
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitizedPassword = sanitizeInput(e.target.value);
-    setPassword(sanitizedPassword);
+    setPassword(e.target.value);
 
     // Clear password error when user starts typing
     if (errors.password) {
@@ -29,7 +36,7 @@ const EmployeeLogin: React.FC = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Clear previous errors
@@ -52,101 +59,58 @@ const EmployeeLogin: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      // Check registered users for staff roles only (manager, admin, auditor)
-      const registeredUsersStr = localStorage.getItem('registeredUsers') || '[]';
-      const registeredUsers = JSON.parse(registeredUsersStr);
+      // Call the employee login API
+      const response: EmployeeAuthResponse = await employeeAuthApi.login(email, password);
 
-      // Validate registeredUsers is an array
-      if (Array.isArray(registeredUsers)) {
-        const registeredUser = registeredUsers.find((user: any) => {
-          if (!user || typeof user !== 'object' || !user.email || !user.password) {
-            return false;
-          }
-          // Only allow manager, admin, or auditor roles
-          const isStaff = ['manager', 'admin', 'auditor'].includes(user.role);
-          return isStaff && user.email.toLowerCase() === email.toLowerCase() && user.password === password;
-        });
+      // Store token and user info
+      localStorage.setItem('token', response.access_token);
 
-        if (registeredUser) {
-          // Store user info in localStorage for session management
-          const userData = {
-            email: registeredUser.email,
-            fullName: registeredUser.fullName,
-            role: registeredUser.role,
-            phoneNumber: registeredUser.phoneNumber,
-            password: registeredUser.password
-          };
+      // Convert employee data to user format for consistency
+      const userData = {
+        id: response.user.id,
+        email: response.user.email,
+        full_name: response.user.full_name,
+        fullName: response.user.full_name, // For backwards compatibility
+        role: response.role.toLowerCase(), // Convert MANAGER -> manager
+        is_active: response.user.is_active,
+        created_at: response.user.created_at,
+        updated_at: response.user.updated_at,
+      };
 
-          localStorage.setItem('currentUser', JSON.stringify(userData));
+      localStorage.setItem('currentUser', JSON.stringify(userData));
 
-          // Navigate based on role
-          switch (registeredUser.role) {
-            case 'manager':
-              navigate('/manager-dashboard');
-              break;
-            case 'admin':
-              navigate('/admin-dashboard');
-              break;
-            case 'auditor':
-              navigate('/auditor-dashboard');
-              break;
-            default:
-              navigate('/');
-          }
-          return;
-        }
+      // Navigate based on role
+      switch (response.role.toUpperCase()) {
+        case 'MANAGER':
+          navigate('/manager-dashboard');
+          break;
+        case 'ADMIN':
+          navigate('/admin-dashboard');
+          break;
+        case 'AUDITOR':
+          navigate('/auditor-dashboard');
+          break;
+        default:
+          navigate('/');
       }
-
-      // Hardcoded staff credentials
-      if (email === 'manager1@gmail.com' && password === 'manager@1') {
-        const userData = {
-          email: 'manager1@gmail.com',
-          fullName: 'Manager User',
-          role: 'manager',
-          phoneNumber: '0112345678',
-          password: 'manager@1'
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        navigate('/manager-dashboard');
-        return;
-      }
-
-      if (email === 'admin@gmail.com' && password === 'admin@1') {
-        const userData = {
-          email: 'admin@gmail.com',
-          fullName: 'Administrator',
-          role: 'admin',
-          phoneNumber: '0112345679',
-          password: 'admin@1'
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        navigate('/admin-dashboard');
-        return;
-      }
-
-      if (email === 'auditor1@gmail.com' && password === 'auditor@1') {
-        const userData = {
-          email: 'auditor1@gmail.com',
-          fullName: 'Auditor User',
-          role: 'auditor',
-          phoneNumber: '0112345680',
-          password: 'auditor@1'
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        navigate('/auditor-dashboard');
-        return;
-      }
-
-      // Invalid credentials
-      alert('Invalid employee credentials. Please check your email and password.');
-
     } catch (error) {
-      console.error('Login error:', error);
-      alert('An error occurred during login. Please try again.');
+      const axiosError = error as AxiosError<ApiError>;
+
+      if (axiosError.response?.status === 429) {
+        // Rate limited
+        setErrors({ form: axiosError.response.data.detail });
+      } else if (axiosError.response?.data?.detail) {
+        setErrors({ form: axiosError.response.data.detail });
+      } else if (axiosError.message === 'Network Error') {
+        setErrors({ form: 'Cannot connect to server. Please make sure the backend is running.' });
+      } else {
+        setErrors({ form: 'An error occurred during login. Please try again.' });
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -155,10 +119,14 @@ const EmployeeLogin: React.FC = () => {
     navigate('/');
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="employee-login-container">
       <div className="employee-login-card">
-        <button className="go-back-btn" onClick={handleGoBack} type="button">
+        <button className="go-back-btn" onClick={handleGoBack} type="button" disabled={isLoading}>
           ← Go Back
         </button>
         <div className="company-header">
@@ -168,6 +136,12 @@ const EmployeeLogin: React.FC = () => {
 
         <form onSubmit={handleLogin} className="employee-login-form">
           <h2>Employee Login</h2>
+
+          {errors.form && (
+            <div className="form-error-message">
+              {errors.form}
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
@@ -180,6 +154,7 @@ const EmployeeLogin: React.FC = () => {
               autoComplete="email"
               tabIndex={1}
               required
+              disabled={isLoading}
               className={errors.email ? 'error' : ''}
             />
             {errors.email && <span className="error-message">{errors.email}</span>}
@@ -187,22 +162,44 @@ const EmployeeLogin: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={handlePasswordChange}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              tabIndex={2}
-              required
-              className={errors.password ? 'error' : ''}
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={handlePasswordChange}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                tabIndex={2}
+                required
+                disabled={isLoading}
+                className={errors.password ? 'error' : ''}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={togglePasswordVisibility}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                )}
+              </button>
+            </div>
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
-          <button type="submit" className="employee-login-btn-submit">
-            Login
+          <button type="submit" className="employee-login-btn-submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
           <div className="info-section">

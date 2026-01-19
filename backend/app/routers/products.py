@@ -1,5 +1,7 @@
+"""Product management router."""
+
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 import math
 
@@ -8,14 +10,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.database import get_db
-from app.models import Product, User
+from app.models import Product, Customer, Employee
 from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
     ProductResponse,
     ProductListResponse,
 )
-from app.utils.deps import get_current_user, get_current_user_optional, require_manager_or_admin
+from app.utils.deps import get_current_user_optional, require_manager_or_admin, CurrentUser
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -32,7 +34,7 @@ async def list_products(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     include_inactive: bool = Query(False, description="Include inactive products (staff only)"),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """List all products with optional filtering.
@@ -41,8 +43,8 @@ async def list_products(
     """
     query = db.query(Product)
 
-    # Only show active products to non-staff users
-    is_staff = current_user and current_user.role.value in ["manager", "admin", "auditor"]
+    # Only show active products to non-staff users (employees are staff)
+    is_staff = current_user and isinstance(current_user, Employee)
     if not (include_inactive and is_staff):
         query = query.filter(Product.is_active == True)
 
@@ -98,7 +100,7 @@ async def list_products(
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
     product_id: UUID,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """Get a single product by ID."""
@@ -110,8 +112,8 @@ async def get_product(
             detail="Product not found"
         )
 
-    # Only show inactive products to staff
-    is_staff = current_user and current_user.role.value in ["manager", "admin", "auditor"]
+    # Only show inactive products to staff (employees)
+    is_staff = current_user and isinstance(current_user, Employee)
     if not product.is_active and not is_staff:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -124,7 +126,7 @@ async def get_product(
 @router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product_data: ProductCreate,
-    current_user: User = Depends(require_manager_or_admin),
+    current_user: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Create a new product. Manager or Admin only."""
@@ -140,7 +142,7 @@ async def create_product(
 async def update_product(
     product_id: UUID,
     update_data: ProductUpdate,
-    current_user: User = Depends(require_manager_or_admin),
+    current_user: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Update a product. Manager or Admin only."""
@@ -171,7 +173,7 @@ async def update_product(
 @router.delete("/{product_id}", response_model=ProductResponse)
 async def delete_product(
     product_id: UUID,
-    current_user: User = Depends(require_manager_or_admin),
+    current_user: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Soft delete a product (set is_active to False). Manager or Admin only."""

@@ -1,3 +1,5 @@
+"""Inventory router for inventory management."""
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -7,14 +9,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import InventoryTransaction, Product, User, AuditLog
+from app.models import InventoryTransaction, Product, Employee, AuditLog
 from app.models.inventory_transaction import TransactionType
 from app.schemas.inventory_transaction import (
     InventoryAdjustmentCreate,
     InventoryTransactionResponse,
     InventoryTransactionListResponse,
 )
-from app.utils.deps import get_current_user, require_manager_or_admin
+from app.utils.deps import require_manager_or_admin
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -34,8 +36,8 @@ def transaction_to_response(transaction: InventoryTransaction) -> InventoryTrans
         product_id=transaction.product_id,
         product_name=transaction.product.name if transaction.product else None,
         product_brand=transaction.product.brand if transaction.product else None,
-        user_id=transaction.user_id,
-        user_name=transaction.user.full_name if transaction.user else None,
+        employee_id=transaction.employee_id,
+        employee_name=transaction.employee.full_name if transaction.employee else None,
         transaction_type=transaction.transaction_type,
         quantity_change=transaction.quantity_change,
         quantity_before=transaction.quantity_before,
@@ -54,7 +56,7 @@ async def list_transactions(
     to_date: Optional[datetime] = Query(None, description="Filter until this date"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    current_user: User = Depends(require_manager_or_admin),
+    current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """List all inventory transactions. Manager or Admin only."""
@@ -92,7 +94,7 @@ async def get_product_transactions(
     product_id: UUID,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    current_user: User = Depends(require_manager_or_admin),
+    current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Get inventory transactions for a specific product. Manager or Admin only."""
@@ -126,7 +128,7 @@ async def get_product_transactions(
 async def create_adjustment(
     adjustment: InventoryAdjustmentCreate,
     request: Request,
-    current_user: User = Depends(require_manager_or_admin),
+    current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Create a manual inventory adjustment. Manager or Admin only."""
@@ -150,18 +152,10 @@ async def create_adjustment(
     # Update product quantity
     product.quantity_available = new_quantity
 
-    # Determine transaction type
-    if adjustment.quantity_change > 0:
-        transaction_type = TransactionType.STOCK_IN
-    elif adjustment.quantity_change < 0:
-        transaction_type = TransactionType.STOCK_OUT
-    else:
-        transaction_type = TransactionType.ADJUSTMENT
-
     # Create inventory transaction
     transaction = InventoryTransaction(
         product_id=product.id,
-        user_id=current_user.id,
+        employee_id=current_employee.id,
         transaction_type=TransactionType.ADJUSTMENT,
         quantity_change=adjustment.quantity_change,
         quantity_before=quantity_before,
@@ -172,7 +166,7 @@ async def create_adjustment(
 
     # Create audit log
     audit_log = AuditLog(
-        user_id=current_user.id,
+        employee_id=current_employee.id,
         action="inventory_adjustment",
         entity_type="product",
         entity_id=str(product.id),

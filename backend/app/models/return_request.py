@@ -16,13 +16,22 @@ class ReturnStatus(str, PyEnum):
     COMPLETED = "completed"
 
 
+class ReturnReason(str, PyEnum):
+    DAMAGED_DEFECTIVE = "Damaged/Defective"
+    WRONG_ITEM = "Wrong Item Received"
+    NOT_AS_DESCRIBED = "Item Not As Described"
+    CHANGED_MIND = "Changed My Mind"
+    OTHER = "Other"
+
+
 class ReturnRequest(Base):
     __tablename__ = "return_requests"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    reason = Column(Text, nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False, index=True)
+    reason = Column(String(100), nullable=False)  # Reason category
+    description = Column(Text, nullable=True)  # Additional description/details
     status = Column(
         Enum(ReturnStatus, name="return_status", create_type=True),
         nullable=False,
@@ -34,8 +43,9 @@ class ReturnRequest(Base):
 
     # Relationships
     order = relationship("Order", back_populates="return_requests")
-    user = relationship("User", back_populates="return_requests")
+    customer = relationship("Customer", back_populates="return_requests")
     notifications = relationship("Notification", back_populates="related_return", lazy="dynamic")
+    return_items = relationship("ReturnItem", back_populates="return_request", lazy="joined", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ReturnRequest {self.id} - {self.status.value}>"

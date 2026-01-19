@@ -6,14 +6,14 @@ from app.database import engine, Base
 
 # Import all models to register them with Base
 from app.models import (  # noqa: F401
-    User, Product, Order, OrderItem, AuditLog, ReturnRequest,
+    Customer, Employee, Product, Order, OrderItem, AuditLog, ReturnRequest,
     Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction
 )
 
 # Import routers
 from app.routers import (
-    auth_router, products_router, orders_router, users_router, returns_router,
-    cart_router, notifications_router, inventory_router
+    auth_customer_router, auth_employee_router, products_router, orders_router,
+    users_router, returns_router, cart_router, notifications_router, inventory_router
 )
 
 # Create database tables
@@ -35,7 +35,11 @@ app.add_middleware(
 )
 
 # Register routers with API prefix
-app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+# Auth routers - separate endpoints for customers and employees
+app.include_router(auth_customer_router, prefix=settings.API_V1_PREFIX)
+app.include_router(auth_employee_router, prefix=settings.API_V1_PREFIX)
+
+# Other routers
 app.include_router(products_router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)

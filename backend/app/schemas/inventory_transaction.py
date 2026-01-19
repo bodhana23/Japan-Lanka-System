@@ -18,8 +18,8 @@ class InventoryTransactionResponse(BaseModel):
     product_id: UUID
     product_name: Optional[str] = None
     product_brand: Optional[str] = None
-    user_id: Optional[UUID] = None
-    user_name: Optional[str] = None
+    employee_id: Optional[UUID] = None
+    employee_name: Optional[str] = None
     transaction_type: TransactionType
     quantity_change: int
     quantity_before: int
