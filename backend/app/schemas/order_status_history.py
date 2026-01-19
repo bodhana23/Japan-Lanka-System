@@ -12,7 +12,7 @@ class OrderStatusHistoryResponse(BaseModel):
     order_id: UUID
     old_status: Optional[OrderStatus] = None
     new_status: OrderStatus
-    changed_by_user_id: Optional[UUID] = None
+    changed_by_employee_id: Optional[UUID] = None
     changed_by_name: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime

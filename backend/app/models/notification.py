@@ -1,7 +1,9 @@
+"""Notification model for user notifications."""
+
 import uuid
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -20,7 +22,9 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Polymorphic reference: either customer_id or employee_id must be set
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)
+    employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id", ondelete="CASCADE"), nullable=True, index=True)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
     type = Column(
@@ -33,10 +37,20 @@ class Notification(Base):
     related_return_id = Column(UUID(as_uuid=True), ForeignKey("return_requests.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False, index=True)
 
+    # Constraint: exactly one of customer_id or employee_id must be set
+    __table_args__ = (
+        CheckConstraint(
+            '(customer_id IS NOT NULL AND employee_id IS NULL) OR (customer_id IS NULL AND employee_id IS NOT NULL)',
+            name='check_notification_user_type'
+        ),
+    )
+
     # Relationships
-    user = relationship("User", back_populates="notifications")
+    customer = relationship("Customer", back_populates="notifications")
+    employee = relationship("Employee", back_populates="notifications")
     related_order = relationship("Order", back_populates="notifications")
     related_return = relationship("ReturnRequest", back_populates="notifications")
 
     def __repr__(self):
-        return f"<Notification {self.title} for user {self.user_id}>"
+        user_id = self.customer_id or self.employee_id
+        return f"<Notification {self.title} for {user_id}>"

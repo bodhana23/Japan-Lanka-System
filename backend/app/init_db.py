@@ -12,7 +12,7 @@ from app.database import engine, Base
 
 # Import all models to register them with Base
 from app.models import (
-    User, Product, Order, OrderItem, AuditLog, ReturnRequest,
+    Customer, Employee, Product, Order, OrderItem, AuditLog, ReturnRequest, ReturnItem,
     Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction
 )
 

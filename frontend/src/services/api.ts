@@ -18,6 +18,24 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface Employee {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'MANAGER' | 'ADMIN' | 'AUDITOR';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeAuthResponse {
+  access_token: string;
+  token_type: string;
+  user_type: string;
+  role: string;
+  user: Employee;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -160,11 +178,28 @@ export interface UserListResponse {
 }
 
 // Return Request types
+export interface ReturnItem {
+  id: string;
+  order_item_id: string;
+  quantity: number;
+  created_at: string;
+  product_id?: string;
+  product_name?: string;
+  unit_price?: number;
+  original_quantity?: number;
+}
+
+export interface ReturnItemCreate {
+  order_item_id: string;
+  quantity: number;
+}
+
 export interface ReturnRequest {
   id: string;
   order_id: string;
-  user_id: string;
+  customer_id: string;
   reason: string;
+  description?: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   admin_notes?: string;
   created_at: string;
@@ -174,6 +209,7 @@ export interface ReturnRequest {
   order_date?: string;
   customer_name?: string;
   customer_email?: string;
+  items: ReturnItem[];
 }
 
 export interface ReturnRequestListResponse {
@@ -182,6 +218,39 @@ export interface ReturnRequestListResponse {
   page: number;
   page_size: number;
   total_pages: number;
+}
+
+export interface CreateReturnRequest {
+  order_id: string;
+  reason: string;
+  description?: string;
+  items: ReturnItemCreate[];
+}
+
+// Eligible order types for returns
+export interface EligibleOrderItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  already_returned_quantity: number;
+  returnable_quantity: number;
+}
+
+export interface EligibleOrder {
+  id: string;
+  created_at: string;
+  total_amount: number;
+  status: string;
+  delivery_method: string;
+  items: EligibleOrderItem[];
+  has_pending_return: boolean;
+}
+
+export interface EligibleOrdersResponse {
+  items: EligibleOrder[];
+  total: number;
 }
 
 // API Error type
@@ -233,7 +302,7 @@ api.interceptors.response.use(
 
 export const authApi = {
   register: async (email: string, fullName: string, password: string, phoneNumber?: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', {
+    const response = await api.post<AuthResponse>('/auth/customer/register', {
       email,
       full_name: fullName,
       password,
@@ -243,7 +312,7 @@ export const authApi = {
   },
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', {
+    const response = await api.post<AuthResponse>('/auth/customer/login', {
       email,
       password,
     });
@@ -251,7 +320,7 @@ export const authApi = {
   },
 
   googleAuth: async (firebaseToken: string, displayName?: string, email?: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/google', {
+    const response = await api.post<AuthResponse>('/auth/customer/google', {
       firebase_token: firebaseToken,
       name: displayName || '',
       email: email || '',
@@ -260,12 +329,34 @@ export const authApi = {
   },
 
   getMe: async (): Promise<User> => {
-    const response = await api.get<User>('/auth/me');
+    const response = await api.get<User>('/auth/customer/profile');
     return response.data;
   },
 
   updateMe: async (data: { full_name?: string; phone_number?: string }): Promise<User> => {
-    const response = await api.put<User>('/auth/me', data);
+    const response = await api.put<User>('/auth/customer/profile', data);
+    return response.data;
+  },
+};
+
+// ============ EMPLOYEE AUTH API ============
+
+export const employeeAuthApi = {
+  login: async (email: string, password: string): Promise<EmployeeAuthResponse> => {
+    const response = await api.post<EmployeeAuthResponse>('/auth/employee/login', {
+      email,
+      password,
+    });
+    return response.data;
+  },
+
+  getProfile: async (): Promise<Employee> => {
+    const response = await api.get<Employee>('/auth/employee/profile');
+    return response.data;
+  },
+
+  updateProfile: async (data: { full_name?: string }): Promise<Employee> => {
+    const response = await api.put<Employee>('/auth/employee/profile', data);
     return response.data;
   },
 };
@@ -405,11 +496,13 @@ export const returnsApi = {
     return response.data;
   },
 
-  createReturn: async (orderId: string, reason: string): Promise<ReturnRequest> => {
-    const response = await api.post<ReturnRequest>('/returns', {
-      order_id: orderId,
-      reason,
-    });
+  getEligibleOrders: async (): Promise<EligibleOrdersResponse> => {
+    const response = await api.get<EligibleOrdersResponse>('/returns/eligible-orders');
+    return response.data;
+  },
+
+  createReturn: async (data: CreateReturnRequest): Promise<ReturnRequest> => {
+    const response = await api.post<ReturnRequest>('/returns', data);
     return response.data;
   },
 

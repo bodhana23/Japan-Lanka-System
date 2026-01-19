@@ -22,7 +22,7 @@ class InventoryTransaction(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)  # Who made the change
+    employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, index=True)  # Employee who made the change
     transaction_type = Column(
         Enum(TransactionType, name="transaction_type", create_type=True),
         nullable=False
@@ -36,7 +36,7 @@ class InventoryTransaction(Base):
 
     # Relationships
     product = relationship("Product", back_populates="inventory_transactions")
-    user = relationship("User", back_populates="inventory_transactions")
+    employee = relationship("Employee", back_populates="inventory_transactions")
     reference_order = relationship("Order", back_populates="inventory_transactions")
 
     def __repr__(self):

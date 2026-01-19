@@ -1,15 +1,18 @@
 # Pydantic schemas
-from app.schemas.user import (
-    UserCreate,
-    UserLogin,
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerLogin,
     GoogleAuthRequest,
-    UserUpdate,
-    UserRoleUpdate,
-    UserStatusUpdate,
-    UserResponse,
-    UserListResponse,
-    TokenResponse,
+    CustomerUpdate,
+    CustomerResponse,
+    CustomerTokenResponse,
     MessageResponse,
+)
+from app.schemas.employee import (
+    EmployeeLogin,
+    EmployeeUpdate,
+    EmployeeResponse,
+    EmployeeTokenResponse,
 )
 from app.schemas.product import (
     ProductCreate,
@@ -52,19 +55,32 @@ from app.schemas.inventory_transaction import (
     InventoryTransactionResponse,
     InventoryTransactionListResponse,
 )
+from app.schemas.return_request import (
+    ReturnItemCreate,
+    ReturnItemResponse,
+    ReturnRequestCreate,
+    ReturnRequestStatusUpdate,
+    ReturnRequestResponse,
+    ReturnRequestListResponse,
+    EligibleOrderItemResponse,
+    EligibleOrderResponse,
+    EligibleOrdersListResponse,
+)
 
 __all__ = [
-    # User schemas
-    "UserCreate",
-    "UserLogin",
+    # Customer schemas
+    "CustomerCreate",
+    "CustomerLogin",
     "GoogleAuthRequest",
-    "UserUpdate",
-    "UserRoleUpdate",
-    "UserStatusUpdate",
-    "UserResponse",
-    "UserListResponse",
-    "TokenResponse",
+    "CustomerUpdate",
+    "CustomerResponse",
+    "CustomerTokenResponse",
     "MessageResponse",
+    # Employee schemas
+    "EmployeeLogin",
+    "EmployeeUpdate",
+    "EmployeeResponse",
+    "EmployeeTokenResponse",
     # Product schemas
     "ProductCreate",
     "ProductUpdate",
@@ -95,6 +111,16 @@ __all__ = [
     "InventoryAdjustmentCreate",
     "InventoryTransactionResponse",
     "InventoryTransactionListResponse",
+    # Return Request schemas
+    "ReturnItemCreate",
+    "ReturnItemResponse",
+    "ReturnRequestCreate",
+    "ReturnRequestStatusUpdate",
+    "ReturnRequestResponse",
+    "ReturnRequestListResponse",
+    "EligibleOrderItemResponse",
+    "EligibleOrderResponse",
+    "EligibleOrdersListResponse",
     # Audit schemas
     "AuditLogResponse",
     "AuditLogListResponse",

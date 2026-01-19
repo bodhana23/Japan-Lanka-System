@@ -126,6 +126,10 @@ const CustomerDashboard: React.FC = () => {
     navigate('/my-orders');
   };
 
+  const handleRequestReturn = () => {
+    navigate('/request-return');
+  };
+
   const handleCategoryClick = (categoryId: string) => {
     // Navigate to shop with category filter
     navigate(`/shop?category=${categoryId}`);
@@ -246,11 +250,11 @@ const CustomerDashboard: React.FC = () => {
             </span>
             <span className="cd-action-arrow">→</span>
           </button>
-          <button className="cd-action-btn cd-action-secondary" onClick={handleViewOrders}>
-            <span className="cd-action-icon">📋</span>
+          <button className="cd-action-btn cd-action-secondary" onClick={handleRequestReturn}>
+            <span className="cd-action-icon">🔄</span>
             <span className="cd-action-text">
-              <span className="cd-action-title">View All Orders</span>
-              <span className="cd-action-subtitle">Track your purchases</span>
+              <span className="cd-action-title">Request Returns</span>
+              <span className="cd-action-subtitle">Return delivered items</span>
             </span>
             <span className="cd-action-arrow">→</span>
           </button>
@@ -331,12 +335,17 @@ const CustomerDashboard: React.FC = () => {
         </section>
 
         {/* Return Requests Section */}
-        <section className="cd-recent-orders-section">
+        <section className="cd-recent-orders-section cd-returns-section">
           <div className="cd-section-header">
             <h2 className="cd-section-title">
               <span className="cd-section-icon">🔄</span>
-              Return Requests
+              My Return Requests
             </h2>
+            {returnRequests.length > 0 && (
+              <button className="cd-view-all-btn" onClick={handleRequestReturn}>
+                New Request →
+              </button>
+            )}
           </div>
 
           {isLoadingReturns ? (
@@ -349,15 +358,21 @@ const CustomerDashboard: React.FC = () => {
               <span className="cd-empty-icon">✅</span>
               <h3>No return requests</h3>
               <p>You haven't submitted any return requests yet.</p>
+              <button className="cd-shop-now-btn" onClick={handleRequestReturn}>
+                Request a Return
+              </button>
             </div>
           ) : (
             <div className="cd-orders-grid">
-              {returnRequests.map((request) => {
+              {returnRequests.slice(0, 5).map((request) => {
                 const statusInfo = getReturnStatusInfo(request.status);
                 return (
-                  <div key={request.id} className="cd-order-card">
+                  <div key={request.id} className="cd-order-card cd-return-card">
                     <div className="cd-order-header">
-                      <span className="cd-order-id">Order #{request.order_id.slice(-8).toUpperCase()}</span>
+                      <div className="cd-return-ids">
+                        <span className="cd-order-id">Return #{request.id.slice(-8).toUpperCase()}</span>
+                        <span className="cd-return-order-ref">Order #{request.order_id.slice(-8).toUpperCase()}</span>
+                      </div>
                       <span
                         className="cd-order-status"
                         style={{
@@ -373,19 +388,36 @@ const CustomerDashboard: React.FC = () => {
                         <span className="cd-order-date-icon">📅</span>
                         {formatDateTime(request.created_at)}
                       </div>
-                      <div className="cd-order-items">
-                        {request.reason.length > 50
-                          ? `${request.reason.substring(0, 50)}...`
-                          : request.reason}
+                      <div className="cd-return-reason">
+                        <span className="cd-reason-label">Reason:</span> {request.reason}
                       </div>
+                      {request.description && (
+                        <div className="cd-order-items">
+                          {request.description.length > 60
+                            ? `${request.description.substring(0, 60)}...`
+                            : request.description}
+                        </div>
+                      )}
+                      {request.items && request.items.length > 0 && (
+                        <div className="cd-return-items-count">
+                          {request.items.length} item{request.items.length > 1 ? 's' : ''} to return
+                        </div>
+                      )}
                     </div>
                     {request.admin_notes && (
                       <div className="cd-order-footer">
-                        <span className="cd-order-delivery" style={{ fontStyle: 'italic' }}>
-                          Admin: {request.admin_notes.length > 40
-                            ? `${request.admin_notes.substring(0, 40)}...`
+                        <span className="cd-admin-note">
+                          <span className="cd-admin-label">Admin Note:</span>
+                          {request.admin_notes.length > 50
+                            ? `${request.admin_notes.substring(0, 50)}...`
                             : request.admin_notes}
                         </span>
+                      </div>
+                    )}
+                    {request.order_total && (
+                      <div className="cd-order-footer">
+                        <span className="cd-order-amount">{formatCurrency(request.order_total)}</span>
+                        <span className="cd-order-delivery">Original Order</span>
                       </div>
                     )}
                   </div>

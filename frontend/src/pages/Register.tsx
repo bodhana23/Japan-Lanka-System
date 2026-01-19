@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { validatePassword, sanitizeInput, getEmailValidationError, getOptionalPhoneValidationError } from '../utils/validation';
+import { validateStrongPassword, sanitizeInput, getEmailValidationError, getOptionalPhoneValidationError } from '../utils/validation';
 import { AxiosError } from 'axios';
 import './Register.css';
 
@@ -17,6 +17,8 @@ const Register: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -25,7 +27,10 @@ const Register: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const sanitizedValue = typeof value === 'string' ? sanitizeInput(value) : value;
+    // Don't sanitize password fields
+    const sanitizedValue = (name === 'password' || name === 'confirmPassword')
+      ? value
+      : (typeof value === 'string' ? sanitizeInput(value) : value);
     setFormData(prev => ({
       ...prev,
       [name]: sanitizedValue
@@ -40,6 +45,33 @@ const Register: React.FC = () => {
     }
   };
 
+  const validateFullName = (name: string): string | null => {
+    if (!name.trim()) {
+      return 'Full Name is required';
+    }
+    if (name.trim().length < 2) {
+      return 'Full Name must be at least 2 characters long';
+    }
+    if (/\d/.test(name)) {
+      return 'Full Name cannot contain numbers';
+    }
+    if (!/^[a-zA-Z\s\-'\.]+$/.test(name.trim())) {
+      return 'Full Name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+    return null;
+  };
+
+  const validateSriLankanPhone = (phone: string): string | null => {
+    if (!phone || phone.trim() === '') {
+      return null; // Optional field
+    }
+    const cleaned = phone.replace(/[\s\-()]/g, '');
+    if (!/^0\d{9}$/.test(cleaned)) {
+      return 'Phone number must be 10 digits starting with 0 (e.g., 0771234567)';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -47,11 +79,10 @@ const Register: React.FC = () => {
     setErrors({});
     const newErrors: {[key: string]: string} = {};
 
-    // Comprehensive validation with specific error messages
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full Name is required';
-    } else if (formData.fullName.length < 2) {
-      newErrors.fullName = 'Full Name must be at least 2 characters long';
+    // Full name validation (matching backend)
+    const nameError = validateFullName(formData.fullName);
+    if (nameError) {
+      newErrors.fullName = nameError;
     }
 
     // Email validation with specific requirements
@@ -60,14 +91,16 @@ const Register: React.FC = () => {
       newErrors.email = emailError;
     }
 
-    // Phone validation - optional during registration
-    const phoneError = getOptionalPhoneValidationError(formData.phoneNumber);
+    // Phone validation - Sri Lankan format (optional)
+    const phoneError = validateSriLankanPhone(formData.phoneNumber);
     if (phoneError) {
       newErrors.phoneNumber = phoneError;
     }
 
-    if (!validatePassword(formData.password)) {
-      newErrors.password = 'Password must be at least 6 characters long';
+    // Strong password validation (matching backend requirements)
+    const passwordValidation = validateStrongPassword(formData.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.errors.join('. ');
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -104,11 +137,22 @@ const Register: React.FC = () => {
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
       if (axiosError.response?.data?.detail) {
-        // Check if it's an email already exists error
-        if (axiosError.response.data.detail.toLowerCase().includes('email')) {
-          setErrors({ email: axiosError.response.data.detail });
+        // Parse validation errors from Pydantic
+        const detail = axiosError.response.data.detail;
+        if (typeof detail === 'string') {
+          if (detail.toLowerCase().includes('email')) {
+            setErrors({ email: detail });
+          } else if (detail.toLowerCase().includes('password')) {
+            setErrors({ password: detail });
+          } else if (detail.toLowerCase().includes('name')) {
+            setErrors({ fullName: detail });
+          } else if (detail.toLowerCase().includes('phone')) {
+            setErrors({ phoneNumber: detail });
+          } else {
+            setErrors({ form: detail });
+          }
         } else {
-          setErrors({ form: axiosError.response.data.detail });
+          setErrors({ form: 'Validation error. Please check your inputs.' });
         }
       } else if (axiosError.message === 'Network Error') {
         setErrors({ form: 'Cannot connect to server. Please make sure the backend is running.' });
@@ -176,7 +220,7 @@ const Register: React.FC = () => {
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Enter your full name"
+              placeholder="Enter your full name (letters only)"
               required
               disabled={isLoading}
               className={errors.fullName ? 'error' : ''}
@@ -192,7 +236,7 @@ const Register: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter your email address (must contain @)"
+              placeholder="Enter your email address"
               required
               disabled={isLoading}
               className={errors.email ? 'error' : ''}
@@ -208,7 +252,7 @@ const Register: React.FC = () => {
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleChange}
-              placeholder="Enter 10 digits (e.g., 0771234567) - Optional"
+              placeholder="e.g., 0771234567 (10 digits starting with 0)"
               disabled={isLoading}
               className={errors.phoneNumber ? 'error' : ''}
             />
@@ -217,34 +261,79 @@ const Register: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password (min 6 characters)"
-              required
-              minLength={6}
-              disabled={isLoading}
-              className={errors.password ? 'error' : ''}
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Min 8 chars, upper, lower, number, special"
+                required
+                minLength={8}
+                disabled={isLoading}
+                className={errors.password ? 'error' : ''}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                )}
+              </button>
+            </div>
             {errors.password && <span className="error-message">{errors.password}</span>}
+            <div className="password-requirements">
+              Password must contain: 8+ characters, uppercase, lowercase, number, special character
+            </div>
           </div>
 
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-              disabled={isLoading}
-              className={errors.confirmPassword ? 'error' : ''}
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                required
+                disabled={isLoading}
+                className={errors.confirmPassword ? 'error' : ''}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                )}
+              </button>
+            </div>
             {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
           </div>
 

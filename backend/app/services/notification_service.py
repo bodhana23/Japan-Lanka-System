@@ -1,3 +1,5 @@
+"""Notification service for creating and managing notifications."""
+
 from typing import Optional
 from uuid import UUID
 
@@ -13,18 +15,18 @@ class NotificationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_notification(
+    def create_customer_notification(
         self,
-        user_id: UUID,
+        customer_id: UUID,
         title: str,
         message: str,
         notification_type: NotificationType,
         related_order_id: Optional[UUID] = None,
         related_return_id: Optional[UUID] = None
     ) -> Notification:
-        """Create a new notification."""
+        """Create a new notification for a customer."""
         notification = Notification(
-            user_id=user_id,
+            customer_id=customer_id,
             title=title,
             message=message,
             type=notification_type,
@@ -34,76 +36,97 @@ class NotificationService:
         self.db.add(notification)
         return notification
 
-    def create_order_notification(
+    def create_employee_notification(
         self,
-        user_id: UUID,
+        employee_id: UUID,
+        title: str,
+        message: str,
+        notification_type: NotificationType,
+        related_order_id: Optional[UUID] = None,
+        related_return_id: Optional[UUID] = None
+    ) -> Notification:
+        """Create a new notification for an employee."""
+        notification = Notification(
+            employee_id=employee_id,
+            title=title,
+            message=message,
+            type=notification_type,
+            related_order_id=related_order_id,
+            related_return_id=related_return_id
+        )
+        self.db.add(notification)
+        return notification
+
+    def create_order_notification_for_customer(
+        self,
+        customer_id: UUID,
         order_id: UUID,
         title: str,
         message: str
     ) -> Notification:
-        """Create an order-related notification."""
-        return self.create_notification(
-            user_id=user_id,
+        """Create an order-related notification for a customer."""
+        return self.create_customer_notification(
+            customer_id=customer_id,
             title=title,
             message=message,
             notification_type=NotificationType.ORDER_UPDATE,
             related_order_id=order_id
         )
 
-    def create_return_notification(
+    def create_return_notification_for_customer(
         self,
-        user_id: UUID,
+        customer_id: UUID,
         return_id: UUID,
         title: str,
         message: str
     ) -> Notification:
-        """Create a return request-related notification."""
-        return self.create_notification(
-            user_id=user_id,
+        """Create a return request-related notification for a customer."""
+        return self.create_customer_notification(
+            customer_id=customer_id,
             title=title,
             message=message,
             notification_type=NotificationType.RETURN_UPDATE,
             related_return_id=return_id
         )
 
-    def create_system_notification(
+    def create_system_notification_for_customer(
         self,
-        user_id: UUID,
+        customer_id: UUID,
         title: str,
         message: str
     ) -> Notification:
-        """Create a system notification."""
-        return self.create_notification(
-            user_id=user_id,
+        """Create a system notification for a customer."""
+        return self.create_customer_notification(
+            customer_id=customer_id,
             title=title,
             message=message,
             notification_type=NotificationType.SYSTEM
         )
 
-    def create_promotion_notification(
+    def create_system_notification_for_employee(
         self,
-        user_id: UUID,
+        employee_id: UUID,
         title: str,
         message: str
     ) -> Notification:
-        """Create a promotion notification."""
-        return self.create_notification(
-            user_id=user_id,
+        """Create a system notification for an employee."""
+        return self.create_employee_notification(
+            employee_id=employee_id,
             title=title,
             message=message,
-            notification_type=NotificationType.PROMOTION
+            notification_type=NotificationType.SYSTEM
         )
 
 
 # Convenience functions for use without instantiating the service
 def notify_order_status_change(
     db: Session,
-    user_id: UUID,
+    customer_id: UUID,
     order_id: UUID,
     old_status: str,
     new_status: str
 ) -> Notification:
-    """Send notification when order status changes."""
+    """Send notification to customer when order status changes."""
     service = NotificationService(db)
 
     status_messages = {
@@ -119,8 +142,8 @@ def notify_order_status_change(
         f"Your order status has been updated from {old_status} to {new_status}."
     )
 
-    return service.create_order_notification(
-        user_id=user_id,
+    return service.create_order_notification_for_customer(
+        customer_id=customer_id,
         order_id=order_id,
         title=f"Order Status: {new_status.replace('_', ' ').title()}",
         message=message
@@ -129,11 +152,11 @@ def notify_order_status_change(
 
 def notify_return_status_change(
     db: Session,
-    user_id: UUID,
+    customer_id: UUID,
     return_id: UUID,
     new_status: str
 ) -> Notification:
-    """Send notification when return request status changes."""
+    """Send notification to customer when return request status changes."""
     service = NotificationService(db)
 
     status_messages = {
@@ -147,8 +170,8 @@ def notify_return_status_change(
         f"Your return request status has been updated to {new_status}."
     )
 
-    return service.create_return_notification(
-        user_id=user_id,
+    return service.create_return_notification_for_customer(
+        customer_id=customer_id,
         return_id=return_id,
         title=f"Return Request: {new_status.title()}",
         message=message

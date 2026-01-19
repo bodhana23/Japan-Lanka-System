@@ -818,3 +818,75 @@
 .cd-category-card:hover {
   box-shadow: 0 8px 25px color-mix(in srgb, var(--category-color, #28a745) 40%, transparent);
 }
+
+/* ================================================
+   RETURN REQUESTS SECTION ENHANCEMENTS
+   ================================================ */
+.cd-returns-section {
+  position: relative;
+}
+
+.cd-returns-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #9b59b6, #8e44ad, #3498db);
+  border-radius: 20px 20px 0 0;
+}
+
+.cd-return-card {
+  border-left: 4px solid #9b59b6;
+}
+
+.cd-return-ids {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cd-return-order-ref {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.cd-return-reason {
+  font-size: 0.9rem;
+  color: #495057;
+  margin-bottom: 4px;
+}
+
+.cd-reason-label {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.cd-return-items-count {
+  font-size: 0.85rem;
+  color: #9b59b6;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.cd-admin-note {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cd-admin-label {
+  font-weight: 600;
+  color: #495057;
+  font-style: normal;
+}
+
+/* Return status specific colors */
+.cd-return-card .cd-order-status {
+  font-size: 0.75rem;
+}

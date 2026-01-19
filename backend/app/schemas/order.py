@@ -43,7 +43,7 @@ class OrderStatusUpdate(BaseModel):
 
 class OrderResponse(BaseModel):
     id: UUID
-    user_id: UUID
+    customer_id: UUID
     status: OrderStatus
     delivery_method: DeliveryMethod
     total_amount: Decimal

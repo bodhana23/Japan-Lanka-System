@@ -1,6 +1,8 @@
+"""Orders router for order management."""
+
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 import math
 
@@ -8,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Order, OrderItem, Product, User, AuditLog, OrderStatusHistory, InventoryTransaction
+from app.models import Order, OrderItem, Product, Customer, Employee, AuditLog, OrderStatusHistory, InventoryTransaction
 from app.models.order import OrderStatus, DeliveryMethod
 from app.models.inventory_transaction import TransactionType
 from app.schemas.order import (
@@ -22,7 +24,7 @@ from app.schemas.order_status_history import (
     OrderStatusHistoryResponse,
     OrderStatusHistoryListResponse,
 )
-from app.utils.deps import get_current_user, require_manager_or_admin
+from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
 from app.services.notification_service import notify_order_status_change
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -52,7 +54,7 @@ def order_to_response(order: Order) -> OrderResponse:
 
     return OrderResponse(
         id=order.id,
-        user_id=order.user_id,
+        customer_id=order.customer_id,
         status=order.status,
         delivery_method=order.delivery_method,
         total_amount=order.total_amount,
@@ -63,9 +65,9 @@ def order_to_response(order: Order) -> OrderResponse:
         created_at=order.created_at,
         updated_at=order.updated_at,
         items=items,
-        customer_name=order.user.full_name if order.user else None,
-        customer_email=order.user.email if order.user else None,
-        customer_phone=order.user.phone_number if order.user else None
+        customer_name=order.customer.full_name if order.customer else None,
+        customer_email=order.customer.email if order.customer else None,
+        customer_phone=order.customer.phone_number if order.customer else None
     )
 
 
@@ -77,7 +79,7 @@ async def list_orders(
     to_date: Optional[datetime] = Query(None, description="Filter orders until this date"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """List orders.
@@ -87,9 +89,9 @@ async def list_orders(
     """
     query = db.query(Order)
 
-    # Role-based filtering
-    if current_user.role.value == "customer":
-        query = query.filter(Order.user_id == current_user.id)
+    # Role-based filtering: customers see only their orders
+    if isinstance(current_user, Customer):
+        query = query.filter(Order.customer_id == current_user.id)
 
     # Apply filters
     if status_filter:
@@ -124,11 +126,11 @@ async def get_my_orders(
     status_filter: Optional[OrderStatus] = Query(None, alias="status", description="Filter by status"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
     """Get current customer's orders."""
-    query = db.query(Order).filter(Order.user_id == current_user.id)
+    query = db.query(Order).filter(Order.customer_id == current_customer.id)
 
     if status_filter:
         query = query.filter(Order.status == status_filter)
@@ -150,7 +152,7 @@ async def get_my_orders(
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(
     order_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get a single order by ID."""
@@ -163,7 +165,7 @@ async def get_order(
         )
 
     # Customers can only view their own orders
-    if current_user.role.value == "customer" and order.user_id != current_user.id:
+    if isinstance(current_user, Customer) and order.customer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -176,10 +178,10 @@ async def get_order(
 async def create_order(
     order_data: OrderCreate,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
-    """Create a new order."""
+    """Create a new order (customers only)."""
     # Validate shipping info for shipping orders
     if order_data.delivery_method == DeliveryMethod.SHIPPING:
         if not order_data.shipping_address or not order_data.shipping_city:
@@ -222,7 +224,7 @@ async def create_order(
 
     # Create order
     order = Order(
-        user_id=current_user.id,
+        customer_id=current_customer.id,
         status=OrderStatus.PENDING,
         delivery_method=order_data.delivery_method,
         total_amount=total_amount,
@@ -234,12 +236,12 @@ async def create_order(
     db.add(order)
     db.flush()  # Get order ID
 
-    # Create initial order status history
+    # Create initial order status history (no employee, customer-initiated)
     status_history = OrderStatusHistory(
         order_id=order.id,
         old_status=None,
         new_status=OrderStatus.PENDING,
-        changed_by_user_id=current_user.id,
+        changed_by_employee_id=None,  # Customer-initiated
         notes="Order created"
     )
     db.add(status_history)
@@ -261,7 +263,7 @@ async def create_order(
 
         inventory_transaction = InventoryTransaction(
             product_id=product.id,
-            user_id=current_user.id,
+            employee_id=None,  # Customer-initiated, no employee
             transaction_type=TransactionType.STOCK_OUT,
             quantity_change=-item_data["quantity"],
             quantity_before=quantity_before,
@@ -273,7 +275,7 @@ async def create_order(
 
     # Create audit log
     audit_log = AuditLog(
-        user_id=current_user.id,
+        customer_id=current_customer.id,
         action="order_created",
         entity_type="order",
         entity_id=str(order.id),
@@ -293,7 +295,7 @@ async def update_order_status(
     order_id: UUID,
     status_update: OrderStatusUpdate,
     request: Request,
-    current_user: User = Depends(require_manager_or_admin),
+    current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
     """Update order status. Manager or Admin only."""
@@ -313,7 +315,7 @@ async def update_order_status(
         order_id=order.id,
         old_status=old_status,
         new_status=status_update.status,
-        changed_by_user_id=current_user.id,
+        changed_by_employee_id=current_employee.id,
         notes=status_update.notes if hasattr(status_update, 'notes') else None
     )
     db.add(status_history)
@@ -328,7 +330,7 @@ async def update_order_status(
                 # Track inventory restoration
                 inventory_transaction = InventoryTransaction(
                     product_id=item.product.id,
-                    user_id=current_user.id,
+                    employee_id=current_employee.id,
                     transaction_type=TransactionType.RETURN_IN,
                     quantity_change=item.quantity,
                     quantity_before=quantity_before,
@@ -341,7 +343,7 @@ async def update_order_status(
     # Create notification for the customer
     notify_order_status_change(
         db=db,
-        user_id=order.user_id,
+        customer_id=order.customer_id,
         order_id=order.id,
         old_status=old_status.value,
         new_status=status_update.status.value
@@ -349,7 +351,7 @@ async def update_order_status(
 
     # Create audit log
     audit_log = AuditLog(
-        user_id=current_user.id,
+        employee_id=current_employee.id,
         action="order_status_updated",
         entity_type="order",
         entity_id=str(order.id),
@@ -367,7 +369,7 @@ async def update_order_status(
 @router.get("/{order_id}/history", response_model=OrderStatusHistoryListResponse)
 async def get_order_status_history(
     order_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get status change history for an order."""
@@ -380,7 +382,7 @@ async def get_order_status_history(
         )
 
     # Customers can only view their own orders
-    if current_user.role.value == "customer" and order.user_id != current_user.id:
+    if isinstance(current_user, Customer) and order.customer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -397,7 +399,7 @@ async def get_order_status_history(
             order_id=h.order_id,
             old_status=h.old_status,
             new_status=h.new_status,
-            changed_by_user_id=h.changed_by_user_id,
+            changed_by_employee_id=h.changed_by_employee_id,
             changed_by_name=h.changed_by.full_name if h.changed_by else None,
             notes=h.notes,
             created_at=h.created_at

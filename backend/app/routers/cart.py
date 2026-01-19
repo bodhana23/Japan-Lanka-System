@@ -1,3 +1,5 @@
+"""Cart router for shopping cart management."""
+
 from decimal import Decimal
 from uuid import UUID
 
@@ -5,23 +7,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Cart, CartItem, Product, User
+from app.models import Cart, CartItem, Product, Customer
 from app.schemas.cart import (
     CartItemCreate,
     CartItemUpdate,
     CartItemResponse,
     CartResponse,
 )
-from app.utils.deps import get_current_user
+from app.utils.deps import get_current_customer
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 
 
-def get_or_create_cart(user: User, db: Session) -> Cart:
-    """Get user's cart or create one if it doesn't exist."""
-    cart = db.query(Cart).filter(Cart.user_id == user.id).first()
+def get_or_create_cart(customer: Customer, db: Session) -> Cart:
+    """Get customer's cart or create one if it doesn't exist."""
+    cart = db.query(Cart).filter(Cart.customer_id == customer.id).first()
     if not cart:
-        cart = Cart(user_id=user.id)
+        cart = Cart(customer_id=customer.id)
         db.add(cart)
         db.commit()
         db.refresh(cart)
@@ -55,7 +57,7 @@ def cart_to_response(cart: Cart) -> CartResponse:
 
     return CartResponse(
         id=cart.id,
-        user_id=cart.user_id,
+        customer_id=cart.customer_id,
         items=items,
         total_items=total_items,
         total_price=total_price,
@@ -66,18 +68,18 @@ def cart_to_response(cart: Cart) -> CartResponse:
 
 @router.get("", response_model=CartResponse)
 async def get_cart(
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
-    """Get current user's cart with all items."""
-    cart = get_or_create_cart(current_user, db)
+    """Get current customer's cart with all items."""
+    cart = get_or_create_cart(current_customer, db)
     return cart_to_response(cart)
 
 
 @router.post("/items", response_model=CartResponse, status_code=status.HTTP_201_CREATED)
 async def add_item_to_cart(
     item_data: CartItemCreate,
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
     """Add an item to the cart."""
@@ -100,7 +102,7 @@ async def add_item_to_cart(
             detail=f"Insufficient stock. Available: {product.quantity_available}"
         )
 
-    cart = get_or_create_cart(current_user, db)
+    cart = get_or_create_cart(current_customer, db)
 
     # Check if item already in cart
     existing_item = db.query(CartItem).filter(
@@ -136,11 +138,11 @@ async def add_item_to_cart(
 async def update_cart_item(
     item_id: UUID,
     update_data: CartItemUpdate,
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
     """Update cart item quantity."""
-    cart = get_or_create_cart(current_user, db)
+    cart = get_or_create_cart(current_customer, db)
 
     cart_item = db.query(CartItem).filter(
         CartItem.id == item_id,
@@ -170,11 +172,11 @@ async def update_cart_item(
 @router.delete("/items/{item_id}", response_model=CartResponse)
 async def remove_cart_item(
     item_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
     """Remove an item from the cart."""
-    cart = get_or_create_cart(current_user, db)
+    cart = get_or_create_cart(current_customer, db)
 
     cart_item = db.query(CartItem).filter(
         CartItem.id == item_id,
@@ -196,11 +198,11 @@ async def remove_cart_item(
 
 @router.delete("", response_model=CartResponse)
 async def clear_cart(
-    current_user: User = Depends(get_current_user),
+    current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
     """Clear all items from the cart."""
-    cart = get_or_create_cart(current_user, db)
+    cart = get_or_create_cart(current_customer, db)
 
     # Delete all cart items
     db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
