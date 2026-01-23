@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, Edit, User, Mail, Phone, Tag, Lock, Key, CheckCircle, Save } from 'lucide-react';
 import './ProfileModal.css';
 
 interface UserProfile {
@@ -156,7 +157,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
             onClick={() => setActiveTab('view')}
             disabled={isLoading}
           >
-            <span className="tab-icon">👁️</span>
+            <Eye size={16} className="tab-icon" />
             View Profile
           </button>
           <button
@@ -164,7 +165,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
             onClick={() => setActiveTab('edit')}
             disabled={isLoading}
           >
-            <span className="tab-icon">✏️</span>
+            <Edit size={16} className="tab-icon" />
             Edit Profile
           </button>
         </div>
@@ -174,7 +175,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
             <div className="profile-view-content">
               <div className="profile-field-group">
                 <div className="profile-field">
-                  <span className="field-icon">👤</span>
+                  <User size={16} className="field-icon" />
                   <div className="field-content">
                     <span className="field-label">Full Name</span>
                     <span className="field-value">{displayName}</span>
@@ -182,7 +183,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                 </div>
 
                 <div className="profile-field">
-                  <span className="field-icon">📧</span>
+                  <Mail size={16} className="field-icon" />
                   <div className="field-content">
                     <span className="field-label">Email Address</span>
                     <span className="field-value">{user.email}</span>
@@ -191,7 +192,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 {user.phoneNumber && (
                   <div className="profile-field">
-                    <span className="field-icon">📱</span>
+                    <Phone size={16} className="field-icon" />
                     <div className="field-content">
                       <span className="field-label">Phone Number</span>
                       <span className="field-value">{user.phoneNumber}</span>
@@ -200,7 +201,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                 )}
 
                 <div className="profile-field">
-                  <span className="field-icon">🏷️</span>
+                  <Tag size={16} className="field-icon" />
                   <div className="field-content">
                     <span className="field-label">Role</span>
                     <span className="field-value">{displayRole}</span>
@@ -208,7 +209,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                 </div>
 
                 <div className="profile-field">
-                  <span className="field-icon">🔐</span>
+                  <Lock size={16} className="field-icon" />
                   <div className="field-content">
                     <span className="field-label">Password</span>
                     <span className="field-value">••••••••</span>
@@ -223,7 +224,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="fullName">
-                    <span className="label-icon">👤</span>
+                    <User size={16} className="label-icon" />
                     Full Name *
                   </label>
                   <input
@@ -242,7 +243,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="email">
-                    <span className="label-icon">📧</span>
+                    <Mail size={16} className="label-icon" />
                     Email Address *
                   </label>
                   <input
@@ -261,7 +262,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="phoneNumber">
-                    <span className="label-icon">📱</span>
+                    <Phone size={16} className="label-icon" />
                     Phone Number
                   </label>
                   <input
@@ -284,7 +285,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="currentPassword">
-                    <span className="label-icon">🔐</span>
+                    <Lock size={16} className="label-icon" />
                     Current Password
                   </label>
                   <input
@@ -302,7 +303,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="newPassword">
-                    <span className="label-icon">🔑</span>
+                    <Key size={16} className="label-icon" />
                     New Password
                   </label>
                   <input
@@ -321,7 +322,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
 
                 <div className="form-group">
                   <label htmlFor="confirmPassword">
-                    <span className="label-icon">✅</span>
+                    <CheckCircle size={16} className="label-icon" />
                     Confirm New Password
                   </label>
                   <input
@@ -359,7 +360,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                     </>
                   ) : (
                     <>
-                      <span className="btn-icon">💾</span>
+                      <Save size={16} className="btn-icon" />
                       Save Changes
                     </>
                   )}

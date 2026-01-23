@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
+import { Users, Briefcase, Search, User, Mail, Lock, CheckCircle } from 'lucide-react';
 import './ManageUsers.css';
 
 interface UserForm {
@@ -120,7 +121,7 @@ const ManageUsers: React.FC = () => {
       registeredUsers.push(newManager);
       localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
 
-      alert(`✅ Manager "${newManager.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newManager.email}\nPassword: ${newManager.password}\n\nThey can now login to the system.`);
+      alert(`Manager "${newManager.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newManager.email}\nPassword: ${newManager.password}\n\nThey can now login to the system.`);
 
       // Reset form
       setManagerForm({ name: '', email: '', password: '' });
@@ -165,7 +166,7 @@ const ManageUsers: React.FC = () => {
       registeredUsers.push(newAuditor);
       localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
 
-      alert(`✅ Auditor "${newAuditor.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newAuditor.email}\nPassword: ${newAuditor.password}\n\nThey can now login to the system.`);
+      alert(`Auditor "${newAuditor.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newAuditor.email}\nPassword: ${newAuditor.password}\n\nThey can now login to the system.`);
 
       // Reset form
       setAuditorForm({ name: '', email: '', password: '' });
@@ -192,7 +193,7 @@ const ManageUsers: React.FC = () => {
     <div className="manage-users-container">
       <header className="manage-users-header">
         <div className="header-content">
-          <h1>👥 Manage Users</h1>
+          <h1><Users size={24} /> Manage Users</h1>
           <button onClick={handleBackToDashboard} className="back-btn">
             ← Back to Dashboard
           </button>
@@ -207,10 +208,10 @@ const ManageUsers: React.FC = () => {
 
         <div className="user-type-selection">
           <div className="user-type-card">
-            <div className="user-type-icon">👔</div>
+            <div className="user-type-icon"><Briefcase size={32} /></div>
             <h3>Manager</h3>
             <p>Manages inventory, orders, and returns</p>
-            <button 
+            <button
               onClick={() => setActiveForm('manager')}
               className="select-user-btn manager-btn"
             >
@@ -219,10 +220,10 @@ const ManageUsers: React.FC = () => {
           </div>
 
           <div className="user-type-card">
-            <div className="user-type-icon">🔍</div>
+            <div className="user-type-icon"><Search size={32} /></div>
             <h3>Auditor</h3>
             <p>Reviews logs and monitors activities</p>
-            <button 
+            <button
               onClick={() => setActiveForm('auditor')}
               className="select-user-btn auditor-btn"
             >
@@ -236,12 +237,12 @@ const ManageUsers: React.FC = () => {
           <div className="user-form-section">
             <div className="form-card">
               <div className="form-header">
-                <h3>👔 Create New Manager Account</h3>
+                <h3><Briefcase size={20} /> Create New Manager Account</h3>
               </div>
               <form onSubmit={handleAddManager} className="user-form">
                 <div className="form-group">
                   <label htmlFor="manager-name">
-                    <span className="label-icon">👤</span>
+                    <User size={16} className="label-icon" />
                     Full Name *
                   </label>
                   <input
@@ -261,7 +262,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-group">
                   <label htmlFor="manager-email">
-                    <span className="label-icon">📧</span>
+                    <Mail size={16} className="label-icon" />
                     Email Address *
                   </label>
                   <input
@@ -281,7 +282,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-group">
                   <label htmlFor="manager-password">
-                    <span className="label-icon">🔒</span>
+                    <Lock size={16} className="label-icon" />
                     Password *
                   </label>
                   <input
@@ -302,7 +303,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-actions">
                   <button type="submit" className="submit-btn manager-submit">
-                    ✅ Create Manager Account
+                    <CheckCircle size={16} /> Create Manager Account
                   </button>
                   <button 
                     type="button" 
@@ -322,12 +323,12 @@ const ManageUsers: React.FC = () => {
           <div className="user-form-section">
             <div className="form-card">
               <div className="form-header">
-                <h3>🔍 Create New Auditor Account</h3>
+                <h3><Search size={20} /> Create New Auditor Account</h3>
               </div>
               <form onSubmit={handleAddAuditor} className="user-form">
                 <div className="form-group">
                   <label htmlFor="auditor-name">
-                    <span className="label-icon">👤</span>
+                    <User size={16} className="label-icon" />
                     Full Name *
                   </label>
                   <input
@@ -347,7 +348,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-group">
                   <label htmlFor="auditor-email">
-                    <span className="label-icon">📧</span>
+                    <span className="label-icon"><Mail size={16} /></span>
                     Email Address *
                   </label>
                   <input
@@ -367,7 +368,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-group">
                   <label htmlFor="auditor-password">
-                    <span className="label-icon">🔒</span>
+                    <span className="label-icon"><Lock size={16} /></span>
                     Password *
                   </label>
                   <input
@@ -388,7 +389,7 @@ const ManageUsers: React.FC = () => {
 
                 <div className="form-actions">
                   <button type="submit" className="submit-btn auditor-submit">
-                    ✅ Create Auditor Account
+                    <CheckCircle size={16} /> Create Auditor Account
                   </button>
                   <button 
                     type="button" 

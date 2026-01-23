@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
 import { usersApi, User as ApiUser } from '../services/api';
 import { formatDate } from '../utils/dateUtils';
+import {
+  User, Users, DollarSign, AlertTriangle, BarChart2, Package,
+  Search, Trash2, RefreshCw, Bell, CheckCircle, Clock, Plus,
+  TrendingUp, TrendingDown, ShoppingCart, Briefcase, ClipboardList, Mail
+} from 'lucide-react';
 import './AdminDashboard.css';
 
 interface Product {
@@ -80,11 +85,6 @@ const AdminDashboard: React.FC = () => {
     confirmPassword: ''
   });
   const navigate = useNavigate();
-
-  // Debug effect to track showProfile changes
-  useEffect(() => {
-    console.log('Admin Dashboard - showProfile changed to:', showProfile);
-  }, [showProfile]);
 
   // TODO: Replace with API call when analytics endpoint is available
   // This is placeholder data for the analytics dashboard
@@ -311,29 +311,41 @@ const AdminDashboard: React.FC = () => {
 
   // Fetch users from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUsers = async () => {
       try {
         setIsLoadingUsers(true);
         setUsersError(null);
         const response = await usersApi.getUsers({ page_size: 100 });
-        const transformedUsers: User[] = response.items.map((u: ApiUser) => ({
-          id: u.id,
-          fullName: u.full_name,
-          email: u.email,
-          role: u.role as 'manager' | 'auditor' | 'customer',
-          dateCreated: u.created_at,
-          status: u.is_active ? 'active' : 'inactive'
-        }));
-        setUsers(transformedUsers);
+        if (isMounted) {
+          const transformedUsers: User[] = response.items.map((u: ApiUser) => ({
+            id: u.id,
+            fullName: u.full_name,
+            email: u.email,
+            role: u.role as 'manager' | 'auditor' | 'customer',
+            dateCreated: u.created_at,
+            status: u.is_active ? 'active' : 'inactive'
+          }));
+          setUsers(transformedUsers);
+        }
       } catch (error) {
-        console.error('Error fetching users:', error);
-        setUsersError('Failed to load users.');
+        if (isMounted) {
+          console.error('Error fetching users:', error);
+          setUsersError('Failed to load users.');
+        }
       } finally {
-        setIsLoadingUsers(false);
+        if (isMounted) {
+          setIsLoadingUsers(false);
+        }
       }
     };
 
     fetchUsers();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Filter sales data based on date range
@@ -408,7 +420,7 @@ const AdminDashboard: React.FC = () => {
       price: 4500.00,
       quantityAvailable: 25,
       category: 'Brake System',
-      image: '🔧',
+      image: '',
       description: 'High-quality ceramic brake pads for Toyota Camry 2018-2023'
     },
     {
@@ -419,7 +431,7 @@ const AdminDashboard: React.FC = () => {
       price: 1200.00,
       quantityAvailable: 2, // Low stock
       category: 'Engine Parts',
-      image: '⚙️',
+      image: '',
       description: 'Premium oil filter for Honda Civic 2016-2021'
     },
     {
@@ -430,7 +442,7 @@ const AdminDashboard: React.FC = () => {
       price: 2800.00,
       quantityAvailable: 1, // Low stock
       category: 'Lighting',
-      image: '💡',
+      image: '',
       description: 'LED headlight bulb set for BMW 3 Series 2019-2024'
     },
     {
@@ -441,7 +453,7 @@ const AdminDashboard: React.FC = () => {
       price: 1850.00,
       quantityAvailable: 30,
       category: 'Engine Parts',
-      image: '🌪️',
+      image: '',
       description: 'High-flow air filter for Ford Focus 2015-2020'
     },
     {
@@ -452,7 +464,7 @@ const AdminDashboard: React.FC = () => {
       price: 3200.00,
       quantityAvailable: 15,
       category: 'Engine Parts',
-      image: '⚡',
+      image: '',
       description: 'Iridium spark plugs for Nissan Altima 2017-2022'
     },
     {
@@ -463,7 +475,7 @@ const AdminDashboard: React.FC = () => {
       price: 5500.00,
       quantityAvailable: 8,
       category: 'Engine Parts',
-      image: '⏰',
+      image: '',
       description: 'Timing belt kit for Honda Accord 2013-2017'
     }
   ]);
@@ -636,15 +648,11 @@ const AdminDashboard: React.FC = () => {
           <h1>Japan Lanka Enterprises - Admin Portal</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user?.name || user?.email || 'Admin'}!</span>
-            <button 
+            <button
               className="profile-header-btn"
-              onClick={() => {
-                console.log('Admin Profile button clicked, current showProfile:', showProfile);
-                setShowProfile(!showProfile);
-                console.log('Admin showProfile should now be:', !showProfile);
-              }}
+              onClick={() => setShowProfile(!showProfile)}
             >
-              <span className="profile-btn-icon">👤</span>
+              <User size={16} className="profile-btn-icon" />
               <span className="profile-btn-text">Profile</span>
             </button>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
@@ -659,7 +667,7 @@ const AdminDashboard: React.FC = () => {
         {/* Dashboard Stats Cards */}
         <div className="dashboard-stats-grid">
           <div className="stat-card stat-card-users">
-            <div className="stat-icon">👥</div>
+            <div className="stat-icon"><Users size={24} /></div>
             <div className="stat-content">
               <h3>{userStats.total}</h3>
               <p>Total Users</p>
@@ -668,54 +676,54 @@ const AdminDashboard: React.FC = () => {
                 <span>{userStats.auditors} Auditors</span>
                 <span>{userStats.customers} Customers</span>
               </div>
-              <button className="stat-link" onClick={() => setActiveTab('users')}>View All →</button>
+              <button className="stat-link" onClick={() => setActiveTab('users')}>View All</button>
             </div>
           </div>
 
           <div className="stat-card stat-card-revenue">
-            <div className="stat-icon">💰</div>
+            <div className="stat-icon"><DollarSign size={24} /></div>
             <div className="stat-content">
               <h3>Rs. {monthlyRevenue.toLocaleString()}</h3>
               <p>Monthly Revenue</p>
-              <div className="stat-trend-up">↗ Current Month</div>
+              <div className="stat-trend-up"><TrendingUp size={14} /> Current Month</div>
             </div>
           </div>
 
           <div className="stat-card stat-card-alert">
-            <div className="stat-icon">⚠️</div>
+            <div className="stat-icon"><AlertTriangle size={24} /></div>
             <div className="stat-content">
               <h3>{lowStockItems.length}</h3>
               <p>Low Stock Alerts</p>
-              <button className="stat-link" onClick={() => setActiveTab('inventory')}>View Items →</button>
+              <button className="stat-link" onClick={() => setActiveTab('inventory')}>View Items</button>
             </div>
           </div>
         </div>
 
         <div className="admin-tabs">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
-            📊 Financial Analytics
+            <BarChart2 size={16} /> Financial Analytics
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
             onClick={() => setActiveTab('inventory')}
           >
-            📦 Low Stock Alert ({lowStockItems.length})
+            <Package size={16} /> Low Stock Alert ({lowStockItems.length})
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
           >
-            👥 Manage Users ({userStats.total})
+            <Users size={16} /> Manage Users ({userStats.total})
           </button>
         </div>
 
         {activeTab === 'analytics' && (
           <div className="analytics-section animate-fade-in">
             <div className="section-header-with-controls">
-              <h2><span className="section-icon">📊</span> Financial Analytics</h2>
+              <h2><BarChart2 size={20} className="section-icon" /> Financial Analytics</h2>
               <div className="date-range-selector">
                 <label>Time Period:</label>
                 <select value={dateRange} onChange={(e) => setDateRange(e.target.value as '3months' | '6months' | 'year')}>
@@ -775,7 +783,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="sales-trend">
                       {index > 0 && salesData[index - 1] && salesData[index - 1].sales > 0 && (
                         <span className={`trend ${data.sales > salesData[index - 1].sales ? 'up' : 'down'}`}>
-                          {data.sales > salesData[index - 1].sales ? '📈' : '📉'}
+                          {data.sales > salesData[index - 1].sales ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                           {Math.abs(((data.sales - salesData[index - 1].sales) / salesData[index - 1].sales) * 100).toFixed(1)}%
                         </span>
                       )}
@@ -785,7 +793,7 @@ const AdminDashboard: React.FC = () => {
                     {isExpanded && (
                       <div className="expanded-details" onClick={(e) => e.stopPropagation()}>
                         <div className="detail-section">
-                          <h4>🏆 Top Selling Parts</h4>
+                          <h4>Top Selling Parts</h4>
                           <ul>
                             {data.topSellingParts && data.topSellingParts.length > 0 ? (
                               data.topSellingParts.map((part, idx) => (
@@ -800,7 +808,7 @@ const AdminDashboard: React.FC = () => {
                           </ul>
                         </div>
                         <div className="detail-section">
-                          <h4>📂 Revenue by Category</h4>
+                          <h4>Revenue by Category</h4>
                           <ul>
                             {data.revenueByCategory && data.revenueByCategory.length > 0 ? (
                               data.revenueByCategory.map((cat, idx) => (
@@ -825,29 +833,29 @@ const AdminDashboard: React.FC = () => {
               <h3>Summary</h3>
               <div className="summary-cards">
                 <div className="summary-card summary-card-primary">
-                  <div className="summary-icon">💰</div>
+                  <div className="summary-icon"><DollarSign size={24} /></div>
                   <h4>Monthly Revenue</h4>
                   <p className="summary-amount">Rs. {monthlyRevenue.toLocaleString()}</p>
                   <span className="summary-label">Current Month</span>
                 </div>
                 <div className="summary-card summary-card-success">
-                  <div className="summary-icon">📈</div>
+                  <div className="summary-icon"><TrendingUp size={24} /></div>
                   <h4>Yearly Revenue (Est.)</h4>
                   <p className="summary-amount">Rs. {Math.round(yearlyRevenue).toLocaleString()}</p>
                   <span className="summary-label">Annual Projection</span>
                 </div>
                 <div className="summary-card summary-card-info">
-                  <div className="summary-icon">🛒</div>
+                  <div className="summary-icon"><ShoppingCart size={24} /></div>
                   <h4>Total Sales ({salesData.length} Months)</h4>
                   <p className="summary-amount">Rs. {salesData.reduce((sum: number, data) => sum + data.sales, 0).toLocaleString()}</p>
                 </div>
                 <div className="summary-card summary-card-warning">
-                  <div className="summary-icon">📦</div>
+                  <div className="summary-icon"><Package size={24} /></div>
                   <h4>Total Orders</h4>
                   <p className="summary-amount">{salesData.reduce((sum: number, data) => sum + data.orders, 0)}</p>
                 </div>
                 <div className="summary-card summary-card-accent">
-                  <div className="summary-icon">📊</div>
+                  <div className="summary-icon"><BarChart2 size={24} /></div>
                   <h4>Average Monthly Sales</h4>
                   <p className="summary-amount">Rs. {Math.round(salesData.length > 0 ? salesData.reduce((sum: number, data) => sum + data.sales, 0) / salesData.length : 0).toLocaleString()}</p>
                 </div>
@@ -892,16 +900,16 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'users' && (
           <div className="users-section animate-fade-in">
             <div className="section-header">
-              <h2><span className="section-icon">👥</span> User Management</h2>
+              <h2><Users size={20} className="section-icon" /> User Management</h2>
               <button className="add-user-btn" onClick={() => setShowAddUserModal(true)}>
-                ➕ Add User
+                <Plus size={16} /> Add User
               </button>
             </div>
 
             {/* Search and Filter Controls */}
             <div className="users-controls">
               <div className="search-box">
-                <span className="search-icon">🔍</span>
+                <Search size={16} className="search-icon" />
                 <input
                   type="text"
                   placeholder="Search by name or email..."
@@ -926,7 +934,7 @@ const AdminDashboard: React.FC = () => {
             {/* Users Table */}
             {filteredUsers.length === 0 ? (
               <div className="no-users-found">
-                <div className="no-users-icon">🔍</div>
+                <div className="no-users-icon"><Search size={48} /></div>
                 <h3>No users found</h3>
                 <p>Try adjusting your search or filter criteria</p>
               </div>
@@ -959,9 +967,9 @@ const AdminDashboard: React.FC = () => {
                         <td className="email-cell">{user.email}</td>
                         <td>
                           <span className={`role-badge role-${user.role}`}>
-                            {user.role === 'manager' && '👔'}
-                            {user.role === 'auditor' && '📋'}
-                            {user.role === 'customer' && '👤'}
+                            {user.role === 'manager' && <Briefcase size={14} />}
+                            {user.role === 'auditor' && <ClipboardList size={14} />}
+                            {user.role === 'customer' && <User size={14} />}
                             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                           </span>
                         </td>
@@ -971,16 +979,16 @@ const AdminDashboard: React.FC = () => {
                             className={`status-toggle ${user.status}`}
                             onClick={() => toggleUserStatus(user.id)}
                           >
-                            {user.status === 'active' ? '✓ Active' : '✕ Inactive'}
+                            {user.status === 'active' ? <><CheckCircle size={14} /> Active</> : <><AlertTriangle size={14} /> Inactive</>}
                           </button>
                         </td>
                         <td>
-                          <button 
+                          <button
                             className="delete-user-btn"
                             onClick={() => handleDeleteUser(user)}
                             title="Delete user"
                           >
-                            🗑️
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>
@@ -1004,16 +1012,16 @@ const AdminDashboard: React.FC = () => {
           <div className="inventory-section animate-fade-in">
             <div className="section-header">
               <div>
-                <h2><span className="section-icon">⚠️</span> Low Stock Alert (Quantity &lt; 3)</h2>
+                <h2><AlertTriangle size={20} className="section-icon" /> Low Stock Alert (Quantity &lt; 3)</h2>
                 <p className="last-checked">Last checked: 2 hours ago</p>
               </div>
               <div className="header-actions">
                 <button className="refresh-btn" onClick={refreshStockData} disabled={isLoading}>
-                  {isLoading ? '⏳' : '🔄'} Refresh Data
+                  {isLoading ? <Clock size={16} /> : <RefreshCw size={16} />} Refresh Data
                 </button>
                 {lowStockItems.length > 0 && (
                   <button className="restock-all-btn" onClick={restockAllItems}>
-                    📦 Restock All ({lowStockItems.length})
+                    <Package size={16} /> Restock All ({lowStockItems.length})
                   </button>
                 )}
               </div>
@@ -1021,7 +1029,7 @@ const AdminDashboard: React.FC = () => {
 
             {lowStockItems.length === 0 ? (
               <div className="no-alerts">
-                <div className="no-alerts-icon">✅</div>
+                <div className="no-alerts-icon"><CheckCircle size={48} /></div>
                 <h3>All inventory levels are healthy!</h3>
                 <p>No items require immediate restocking.</p>
               </div>
@@ -1030,10 +1038,10 @@ const AdminDashboard: React.FC = () => {
                 {lowStockItems.map(item => (
                   <div key={item.id} className="low-stock-item">
                     <div className="stock-alert">
-                      <span className="alert-icon">🚨</span>
+                      <AlertTriangle size={16} className="alert-icon" />
                       <span className="stock-level">Only {item.quantityAvailable} left!</span>
                     </div>
-                    <div className="item-icon">{item.image}</div>
+                    <div className="item-icon"><Package size={32} /></div>
                     <div className="item-info">
                       <h3>{item.name}</h3>
                       <p className="item-model">{item.model} ({item.modelYear})</p>
@@ -1042,17 +1050,17 @@ const AdminDashboard: React.FC = () => {
                       {item.lastChecked && <p className="item-timestamp">Updated: {item.lastChecked}</p>}
                     </div>
                     <div className="item-actions">
-                      <button 
+                      <button
                         onClick={() => handleOrderMore(item.id)}
                         className="order-btn"
                       >
-                        📦 Order More
+                        <Package size={16} /> Order More
                       </button>
-                      <button 
+                      <button
                         onClick={() => notifyManager(item.name)}
                         className="notify-btn"
                       >
-                        🔔 Notify Manager
+                        <Bell size={16} /> Notify Manager
                       </button>
                     </div>
                   </div>
@@ -1095,7 +1103,7 @@ const AdminDashboard: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content add-user-modal">
             <div className="modal-header">
-              <h2>➕ Add New User</h2>
+              <h2><Plus size={20} /> Add New User</h2>
               <button onClick={() => setShowAddUserModal(false)} className="close-modal">×</button>
             </div>
             <div className="modal-body">
@@ -1168,7 +1176,7 @@ const AdminDashboard: React.FC = () => {
                 Cancel
               </button>
               <button onClick={handleAddUser} className="confirm-btn">
-                ✓ Create User
+                <CheckCircle size={16} /> Create User
               </button>
             </div>
           </div>
@@ -1180,7 +1188,7 @@ const AdminDashboard: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content delete-modal">
             <div className="modal-header">
-              <div className="delete-modal-icon">⚠️</div>
+              <div className="delete-modal-icon"><AlertTriangle size={24} /></div>
               <h2>Confirm Deletion</h2>
               <button onClick={() => setShowDeleteModal(false)} className="close-modal">×</button>
             </div>
@@ -1207,7 +1215,7 @@ const AdminDashboard: React.FC = () => {
                 Cancel
               </button>
               <button onClick={confirmDeleteUser} className="confirm-delete-btn">
-                🗑️ Delete User
+                <Trash2 size={16} /> Delete User
               </button>
             </div>
           </div>
@@ -1218,9 +1226,9 @@ const AdminDashboard: React.FC = () => {
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           <span className="toast-icon">
-            {toast.type === 'success' && '✓'}
-            {toast.type === 'error' && '✕'}
-            {toast.type === 'info' && 'ℹ'}
+            {toast.type === 'success' && <CheckCircle size={16} />}
+            {toast.type === 'error' && <AlertTriangle size={16} />}
+            {toast.type === 'info' && <Bell size={16} />}
           </span>
           <span className="toast-message">{toast.message}</span>
         </div>
@@ -1304,7 +1312,7 @@ const EditProfileModal: React.FC<{
       <div className="modal-content edit-profile-modal">
         <div className="modal-header">
           <div className="modal-title-section">
-            <div className="profile-icon">👤</div>
+            <div className="profile-icon"><User size={24} /></div>
             <h2>Edit Admin Profile</h2>
           </div>
           <button onClick={onClose} className="close-modal" disabled={isLoading}>×</button>
@@ -1328,7 +1336,7 @@ const EditProfileModal: React.FC<{
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="name">
-                    <span className="label-icon">👤</span>
+                    <span className="label-icon"><User size={16} /></span>
                     Name *
                   </label>
                   <input
@@ -1349,7 +1357,7 @@ const EditProfileModal: React.FC<{
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="email">
-                    <span className="label-icon">📧</span>
+                    <span className="label-icon"><Mail size={16} /></span>
                     Email Address *
                   </label>
                   <input
@@ -1380,7 +1388,7 @@ const EditProfileModal: React.FC<{
                   </>
                 ) : (
                   <>
-                    <span className="save-icon">💾</span>
+                    <span className="save-icon"><CheckCircle size={16} /></span>
                     Save Changes
                   </>
                 )}

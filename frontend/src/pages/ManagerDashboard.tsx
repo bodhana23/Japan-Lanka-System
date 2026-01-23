@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
 import { productsApi, ordersApi, Product as ApiProduct, Order as ApiOrder } from '../services/api';
 import { formatDateTime } from '../utils/dateUtils';
+import {
+  User, Package, Clock, RotateCcw, AlertTriangle, Search, Inbox,
+  Store, Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, X
+} from 'lucide-react';
 import './ManagerDashboard.css';
 
 interface Product {
@@ -69,11 +73,6 @@ const ManagerDashboard: React.FC = () => {
   const [orderSortBy, setOrderSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
 
-  // Debug effect to track showProfile changes
-  useEffect(() => {
-    console.log('Manager Dashboard - showProfile changed to:', showProfile);
-  }, [showProfile]);
-
   // User state
   const [user, setUser] = useState<UserProfile>({
     email: 'manager1@gmail.com',
@@ -97,64 +96,88 @@ const ManagerDashboard: React.FC = () => {
 
   // Fetch products from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
         setProductsError(null);
         const response = await productsApi.getProducts({ page_size: 100, include_inactive: true });
-        const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
-          id: p.id,
-          name: p.name,
-          brand: p.brand,
-          model: p.model,
-          price: p.price,
-          quantity: p.quantity_available,
-          imageLink: p.image_url || ''
-        }));
-        setProducts(transformedProducts);
+        if (isMounted) {
+          const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            model: p.model,
+            price: p.price,
+            quantity: p.quantity_available,
+            imageLink: p.image_url || ''
+          }));
+          setProducts(transformedProducts);
+        }
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setProductsError('Failed to load products.');
+        if (isMounted) {
+          console.error('Error fetching products:', error);
+          setProductsError('Failed to load products.');
+        }
       } finally {
-        setIsLoadingProducts(false);
+        if (isMounted) {
+          setIsLoadingProducts(false);
+        }
       }
     };
 
     fetchProducts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fetch orders from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchOrders = async () => {
       try {
         setIsLoadingOrders(true);
         setOrdersError(null);
         const response = await ordersApi.getOrders({ page_size: 100 });
-        const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => ({
-          id: o.id,
-          customerName: o.customer_name || 'Unknown Customer',
-          customerEmail: o.customer_email || '',
-          items: o.items.map(item => ({
-            name: item.product_name || `Product ${item.product_id}`,
-            quantity: item.quantity,
-            price: item.unit_price
-          })),
-          totalAmount: o.total_amount,
-          status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
-          orderDate: o.created_at,
-          deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
-          contactNumber: o.customer_phone
-        }));
-        setCustomerOrders(transformedOrders);
+        if (isMounted) {
+          const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => ({
+            id: o.id,
+            customerName: o.customer_name || 'Unknown Customer',
+            customerEmail: o.customer_email || '',
+            items: o.items.map(item => ({
+              name: item.product_name || `Product ${item.product_id}`,
+              quantity: item.quantity,
+              price: item.unit_price
+            })),
+            totalAmount: o.total_amount,
+            status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
+            orderDate: o.created_at,
+            deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
+            contactNumber: o.customer_phone
+          }));
+          setCustomerOrders(transformedOrders);
+        }
       } catch (error) {
-        console.error('Error fetching orders:', error);
-        setOrdersError('Failed to load orders.');
+        if (isMounted) {
+          console.error('Error fetching orders:', error);
+          setOrdersError('Failed to load orders.');
+        }
       } finally {
-        setIsLoadingOrders(false);
+        if (isMounted) {
+          setIsLoadingOrders(false);
+        }
       }
     };
 
     fetchOrders();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
@@ -573,15 +596,11 @@ const ManagerDashboard: React.FC = () => {
           <h1>Japan Lanka Enterprises - Manager Portal</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user.name}</span>
-            <button 
+            <button
               className="profile-header-btn"
-              onClick={() => {
-                console.log('Manager Profile button clicked, current showProfile:', showProfile);
-                setShowProfile(!showProfile);
-                console.log('Manager showProfile should now be:', !showProfile);
-              }}
+              onClick={() => setShowProfile(!showProfile)}
             >
-              <span className="profile-btn-icon">👤</span>
+              <User size={16} className="profile-btn-icon" />
               <span className="profile-btn-text">Profile</span>
             </button>
             <button onClick={handleLogout} className="logout-btn">
@@ -599,7 +618,7 @@ const ManagerDashboard: React.FC = () => {
         <div className="manager-stats-grid">
           {/* Orders Today Card */}
           <div className="stat-card orders-today">
-            <div className="stat-icon">📦</div>
+            <div className="stat-icon"><Package size={24} /></div>
             <div className="stat-content">
               <h3 className="stat-number">{statistics.todayOrders}</h3>
               <p className="stat-label">Orders Today</p>
@@ -610,12 +629,12 @@ const ManagerDashboard: React.FC = () => {
           </div>
 
           {/* Pending Orders Card */}
-          <div 
-            className="stat-card pending-orders clickable" 
+          <div
+            className="stat-card pending-orders clickable"
             onClick={() => setActiveTab('orders')}
             title="Click to view pending orders"
           >
-            <div className="stat-icon">⏳</div>
+            <div className="stat-icon"><Clock size={24} /></div>
             <div className="stat-content">
               <h3 className="stat-number">{statistics.pendingOrders}</h3>
               <p className="stat-label">Pending Orders</p>
@@ -624,12 +643,12 @@ const ManagerDashboard: React.FC = () => {
           </div>
 
           {/* Pending Returns Card */}
-          <div 
-            className="stat-card pending-returns clickable" 
+          <div
+            className="stat-card pending-returns clickable"
             onClick={() => setActiveTab('returns')}
             title="Click to view pending returns"
           >
-            <div className="stat-icon">🔄</div>
+            <div className="stat-icon"><RotateCcw size={24} /></div>
             <div className="stat-content">
               <h3 className="stat-number">{statistics.pendingReturns}</h3>
               <p className="stat-label">Pending Returns</p>
@@ -638,12 +657,12 @@ const ManagerDashboard: React.FC = () => {
           </div>
 
           {/* Low Stock Items Card */}
-          <div 
-            className="stat-card low-stock clickable" 
+          <div
+            className="stat-card low-stock clickable"
             onClick={() => setActiveTab('inventory')}
             title="Click to view low stock items"
           >
-            <div className="stat-icon">⚠️</div>
+            <div className="stat-icon"><AlertTriangle size={24} /></div>
             <div className="stat-content">
               <h3 className="stat-number">{statistics.lowStockItems}</h3>
               <p className="stat-label">Low Stock Items</p>
@@ -688,7 +707,7 @@ const ManagerDashboard: React.FC = () => {
             {/* Inventory Search Bar */}
             <div className="inventory-search-container">
               <div className="search-input-wrapper">
-                <span className="search-icon">🔍</span>
+                <Search size={16} className="search-icon" />
                 <input
                   type="text"
                   className="inventory-search-input"
@@ -819,7 +838,7 @@ const ManagerDashboard: React.FC = () => {
             {/* Products Grid or Empty State */}
             {filteredProducts.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">📦</div>
+                <div className="empty-state-icon"><Package size={48} /></div>
                 <h3>No products found matching your filters</h3>
                 <p>Try adjusting your search or filters</p>
                 {hasActiveInventoryFilters && (
@@ -840,7 +859,7 @@ const ManagerDashboard: React.FC = () => {
                           if (nextSibling) nextSibling.style.display = 'flex';
                         }} />
                       ) : null}
-                      <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}>🏪</div>
+                      <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}><Store size={32} /></div>
                     </div>
                     <div className="product-info">
                       <h3>{product.name}</h3>
@@ -873,7 +892,7 @@ const ManagerDashboard: React.FC = () => {
             {/* Search Bar */}
             <div className="order-search-container">
               <div className="search-input-wrapper">
-                <span className="search-icon">🔍</span>
+                <Search size={16} className="search-icon" />
                 <input
                   type="text"
                   className="order-search-input"
@@ -1046,7 +1065,7 @@ const ManagerDashboard: React.FC = () => {
             {/* Results Count */}
             <div className="results-count">
               {isFiltering ? (
-                <span className="filtering-indicator">🔄 Filtering...</span>
+                <span className="filtering-indicator"><RefreshCw size={14} className="spin" /> Filtering...</span>
               ) : (
                 <span>
                   Showing <strong>{filteredOrders.length}</strong> of <strong>{customerOrders.length}</strong> orders
@@ -1057,7 +1076,7 @@ const ManagerDashboard: React.FC = () => {
             {/* Orders Grid or Empty State */}
             {filteredOrders.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">📭</div>
+                <div className="empty-state-icon"><Inbox size={48} /></div>
                 <h3>No orders found matching your filters</h3>
                 <p>Try adjusting your search criteria or filters</p>
                 {hasActiveFilters && (
@@ -1330,7 +1349,7 @@ const EditProductModal: React.FC<{
       <div className="modal-content edit-product-modal">
         <div className="modal-header">
           <div className="modal-title-section">
-            <div className="product-icon-header">📦</div>
+            <div className="product-icon-header"><Package size={24} /></div>
             <h2>Edit Product</h2>
           </div>
           <button onClick={onClose} className="close-modal">×</button>
@@ -1339,10 +1358,10 @@ const EditProductModal: React.FC<{
         <div className="edit-product-form">
           <div className="form-group">
             <label htmlFor="productName">
-              <span className="label-icon">🏷️</span>
+              <Tag size={16} className="label-icon" />
               Product Name *
             </label>
-            <input 
+            <input
               id="productName"
               type="text"
               value={formData.name}
@@ -1356,10 +1375,10 @@ const EditProductModal: React.FC<{
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="brand">
-                <span className="label-icon">🏭</span>
+                <Factory size={16} className="label-icon" />
                 Brand *
               </label>
-              <input 
+              <input
                 id="brand"
                 type="text"
                 value={formData.brand}
@@ -1372,10 +1391,10 @@ const EditProductModal: React.FC<{
 
             <div className="form-group">
               <label htmlFor="model">
-                <span className="label-icon">🚗</span>
+                <Car size={16} className="label-icon" />
                 Model *
               </label>
-              <input 
+              <input
                 id="model"
                 type="text"
                 value={formData.model}
@@ -1390,10 +1409,10 @@ const EditProductModal: React.FC<{
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="price">
-                <span className="label-icon">💰</span>
+                <DollarSign size={16} className="label-icon" />
                 Price (Rs.) *
               </label>
-              <input 
+              <input
                 id="price"
                 type="number"
                 min="0"
@@ -1408,10 +1427,10 @@ const EditProductModal: React.FC<{
 
             <div className="form-group">
               <label htmlFor="quantity">
-                <span className="label-icon">📊</span>
+                <BarChart2 size={16} className="label-icon" />
                 Quantity *
               </label>
-              <input 
+              <input
                 id="quantity"
                 type="number"
                 min="0"
@@ -1426,10 +1445,10 @@ const EditProductModal: React.FC<{
 
           <div className="form-group">
             <label htmlFor="imageLink">
-              <span className="label-icon">🖼️</span>
+              <Image size={16} className="label-icon" />
               Image Link
             </label>
-            <input 
+            <input
               id="imageLink"
               type="url"
               value={formData.imageLink}
@@ -1446,7 +1465,7 @@ const EditProductModal: React.FC<{
               Cancel
             </button>
             <button type="button" onClick={handleDelete} className="delete-btn-modal">
-              🗑️ Delete Product
+              <Trash2 size={16} /> Delete Product
             </button>
           </div>
         </div>

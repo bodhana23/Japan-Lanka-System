@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { returnsApi, EligibleOrder, EligibleOrderItem } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, formatDate } from '../utils/dateUtils';
+import { CheckCircle, RefreshCw, AlertTriangle, Package, Calendar, Inbox } from 'lucide-react';
 import './RequestReturn.css';
 
 // Return reason options
@@ -43,29 +44,41 @@ const RequestReturn: React.FC = () => {
 
   // Fetch eligible orders
   useEffect(() => {
+    let isMounted = true;
+
     const fetchEligibleOrders = async () => {
       try {
         setIsLoading(true);
         setError(null);
         const response = await returnsApi.getEligibleOrders();
-        setEligibleOrders(response.items);
+        if (isMounted) {
+          setEligibleOrders(response.items);
 
-        // If order ID is in URL, pre-select it
-        if (orderIdFromUrl) {
-          const order = response.items.find(o => o.id === orderIdFromUrl);
-          if (order) {
-            setSelectedOrder(order);
+          // If order ID is in URL, pre-select it
+          if (orderIdFromUrl) {
+            const order = response.items.find(o => o.id === orderIdFromUrl);
+            if (order) {
+              setSelectedOrder(order);
+            }
           }
         }
       } catch (err: any) {
-        console.error('Error fetching eligible orders:', err);
-        setError(err.response?.data?.detail || 'Failed to load eligible orders');
+        if (isMounted) {
+          console.error('Error fetching eligible orders:', err);
+          setError(err.response?.data?.detail || 'Failed to load eligible orders');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchEligibleOrders();
+
+    return () => {
+      isMounted = false;
+    };
   }, [orderIdFromUrl]);
 
   // Handle order selection
@@ -204,7 +217,7 @@ const RequestReturn: React.FC = () => {
     return (
       <div className="request-return">
         <div className="rr-success">
-          <span className="rr-success-icon">✅</span>
+          <span className="rr-success-icon"><CheckCircle size={48} color="#16a34a" /></span>
           <h2>{successMessage}</h2>
           <p>Redirecting to dashboard...</p>
         </div>
@@ -221,7 +234,7 @@ const RequestReturn: React.FC = () => {
             <span>←</span> Back
           </button>
           <div className="rr-logo">
-            <span className="rr-logo-icon">🔄</span>
+            <span className="rr-logo-icon"><RefreshCw size={20} /></span>
             <span className="rr-logo-text">Request Return</span>
           </div>
           <div className="rr-user-info">
@@ -235,7 +248,7 @@ const RequestReturn: React.FC = () => {
         {/* Error Message */}
         {error && (
           <div className="rr-error-banner">
-            <span className="rr-error-icon">⚠️</span>
+            <span className="rr-error-icon"><AlertTriangle size={20} color="#dc2626" /></span>
             <p>{error}</p>
             <button onClick={() => setError(null)}>×</button>
           </div>
@@ -246,7 +259,7 @@ const RequestReturn: React.FC = () => {
           <section className="rr-orders-section">
             <div className="rr-section-header">
               <h2>
-                <span className="rr-section-icon">📦</span>
+                <span className="rr-section-icon"><Package size={20} /></span>
                 Select Order for Return
               </h2>
               <p>Only delivered or ready for pickup orders are eligible for return requests</p>
@@ -254,7 +267,7 @@ const RequestReturn: React.FC = () => {
 
             {eligibleOrders.length === 0 ? (
               <div className="rr-empty">
-                <span className="rr-empty-icon">📭</span>
+                <span className="rr-empty-icon"><Inbox size={48} /></span>
                 <h3>No Eligible Orders</h3>
                 <p>You don't have any delivered or ready for pickup orders eligible for return.</p>
                 <button className="rr-shop-btn" onClick={() => navigate('/shop')}>
@@ -283,7 +296,7 @@ const RequestReturn: React.FC = () => {
                       </div>
                       <div className="rr-order-body">
                         <div className="rr-order-date">
-                          <span className="rr-date-icon">📅</span>
+                          <span className="rr-date-icon"><Calendar size={14} /></span>
                           {formatDateTime(order.created_at)}
                         </div>
                         <div className="rr-order-items-count">
@@ -339,7 +352,7 @@ const RequestReturn: React.FC = () => {
             <section className="rr-order-summary">
               <div className="rr-summary-header">
                 <h2>
-                  <span className="rr-section-icon">📦</span>
+                  <span className="rr-section-icon"><Package size={20} /></span>
                   Order #{selectedOrder.id.slice(-8).toUpperCase()}
                 </h2>
                 <span className="rr-summary-date">{formatDate(selectedOrder.created_at)}</span>
@@ -353,7 +366,7 @@ const RequestReturn: React.FC = () => {
             <section className="rr-items-section">
               <div className="rr-section-header">
                 <h3>
-                  <span className="rr-section-icon">✅</span>
+                  <span className="rr-section-icon"><CheckCircle size={20} /></span>
                   Select Items to Return
                 </h3>
                 <p>Check the items you want to return and specify quantity</p>
@@ -432,7 +445,7 @@ const RequestReturn: React.FC = () => {
             <section className="rr-reason-section">
               <div className="rr-section-header">
                 <h3>
-                  <span className="rr-section-icon">❓</span>
+                  <span className="rr-section-icon"><AlertTriangle size={20} /></span>
                   Reason for Return
                 </h3>
               </div>
@@ -491,7 +504,6 @@ const RequestReturn: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <span>📤</span>
                     Submit Return Request
                   </>
                 )}

@@ -31,42 +31,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check for existing token on app load
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('currentUser');
 
       if (storedToken) {
-        setToken(storedToken);
+        if (isMounted) setToken(storedToken);
 
         // Try to get fresh user data from API
         try {
           const userData = await authApi.getMe();
-          setUser(userData);
-          localStorage.setItem('currentUser', JSON.stringify(userData));
+          if (isMounted) {
+            setUser(userData);
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+          }
         } catch (error) {
-          // If token is invalid, use stored user data or clear auth
-          if (storedUser) {
-            try {
-              setUser(JSON.parse(storedUser));
-            } catch {
-              // Invalid stored user, clear everything
+          if (isMounted) {
+            // If token is invalid, use stored user data or clear auth
+            if (storedUser) {
+              try {
+                setUser(JSON.parse(storedUser));
+              } catch {
+                // Invalid stored user, clear everything
+                localStorage.removeItem('token');
+                localStorage.removeItem('currentUser');
+                setToken(null);
+                setUser(null);
+              }
+            } else {
+              // No stored user and API failed, clear token
               localStorage.removeItem('token');
-              localStorage.removeItem('currentUser');
               setToken(null);
-              setUser(null);
             }
-          } else {
-            // No stored user and API failed, clear token
-            localStorage.removeItem('token');
-            setToken(null);
           }
         }
       }
 
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     };
 
     initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleAuthResponse = (response: AuthResponse) => {
