@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
 import { authApi, User, AuthResponse } from '../services/api';
@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [onLoginSuccessCallback, setOnLoginSuccessCallback] = useState<(() => void) | undefined>(undefined);
+  const onLoginSuccessRef = useRef<(() => void) | undefined>(undefined);
 
   // Check for existing token on app load
   useEffect(() => {
@@ -86,17 +86,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('currentUser', JSON.stringify(response.user));
 
     // Call the login success callback (e.g., to sync cart)
-    if (onLoginSuccessCallback) {
+    if (onLoginSuccessRef.current) {
       // Use setTimeout to ensure state is updated first
       setTimeout(() => {
-        onLoginSuccessCallback();
+        onLoginSuccessRef.current?.();
       }, 100);
     }
   };
 
-  const setOnLoginSuccess = (callback: (() => void) | undefined) => {
-    setOnLoginSuccessCallback(() => callback);
-  };
+  const setOnLoginSuccess = useCallback((callback: (() => void) | undefined) => {
+    onLoginSuccessRef.current = callback;
+  }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     const response = await authApi.login(email, password);
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     logout,
     updateUser,
-    onLoginSuccess: onLoginSuccessCallback,
+    onLoginSuccess: onLoginSuccessRef.current,
     setOnLoginSuccess,
   };
 

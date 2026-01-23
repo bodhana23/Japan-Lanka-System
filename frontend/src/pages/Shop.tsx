@@ -506,8 +506,22 @@ const Shop: React.FC = () => {
               <div className="products-grid">
                 {filteredProducts.map((product: Product) => (
                 <div key={product.id} className="product-card">
-                  <div className="product-image">
-                    <span className="product-icon">{product.image}</span>
+                  <div className="product-image-container">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="product-img"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`no-image-placeholder ${product.image ? 'hidden' : ''}`}>
+                      <Package size={48} color="#ccc" />
+                    </div>
                   </div>
                   <div className="product-info">
                     <h3 className="product-name">{product.name}</h3>
@@ -554,7 +568,13 @@ const Shop: React.FC = () => {
                   cart.map(item => (
                     <div key={item.id} className="cart-item">
                       <div className="cart-item-info">
-                        <span className="cart-item-icon">{item.image}</span>
+                        <div className="cart-item-image">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} />
+                          ) : (
+                            <Package size={24} color="#ccc" />
+                          )}
+                        </div>
                         <div>
                           <h4>{item.name}</h4>
                           <p>{item.model}</p>
