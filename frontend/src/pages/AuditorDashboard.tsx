@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
+import {
+  Search, User, Package, BarChart2, DollarSign, CheckCircle,
+  AlertTriangle, Info, XCircle, FileText, Download
+} from 'lucide-react';
 import './AuditorDashboard.css';
 
 interface UserProfile {
@@ -79,11 +83,11 @@ const AuditorDashboard: React.FC = () => {
 
   const getActivityIcon = (type: ActivityLog['type']) => {
     switch (type) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'info': return 'ℹ️';
-      case 'error': return '❌';
-      default: return '📝';
+      case 'success': return <CheckCircle size={16} />;
+      case 'warning': return <AlertTriangle size={16} />;
+      case 'info': return <Info size={16} />;
+      case 'error': return <XCircle size={16} />;
+      default: return <FileText size={16} />;
     }
   };
 
@@ -110,14 +114,14 @@ const AuditorDashboard: React.FC = () => {
 
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>🔍 Auditor Dashboard</h1>
+          <h1><Search size={24} /> Auditor Dashboard</h1>
           <div className="header-actions">
             <span className="welcome-text">Welcome, {user.name}!</span>
             <button
               className="profile-header-btn"
               onClick={() => setShowProfile(true)}
             >
-              <span className="profile-btn-icon">👤</span>
+              <User size={16} className="profile-btn-icon" />
               Show Profile
             </button>
             <button className="logout-btn" onClick={handleLogout}>
@@ -133,19 +137,19 @@ const AuditorDashboard: React.FC = () => {
             className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
             onClick={() => setActiveTab('inventory')}
           >
-            📦 Inventory Logs
+            <Package size={16} /> Inventory Logs
           </button>
           <button
             className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
             onClick={() => setActiveTab('activity')}
           >
-            📊 Activity Logs
+            <BarChart2 size={16} /> Activity Logs
           </button>
           <button
             className={`tab-btn ${activeTab === 'financial' ? 'active' : ''}`}
             onClick={() => setActiveTab('financial')}
           >
-            💰 Financial Stats
+            <DollarSign size={16} /> Financial Stats
           </button>
         </nav>
 
@@ -224,13 +228,13 @@ const AuditorDashboard: React.FC = () => {
             <h2>Financial Statistics</h2>
             <div className="financial-stats-content">
               <div className="financial-info">
-                <div className="info-icon">📊</div>
+                <div className="info-icon"><BarChart2 size={48} /></div>
                 <h3>Download Financial Report</h3>
                 <p>Export comprehensive financial statistics and reports as an Excel spreadsheet.</p>
                 <p className="info-note">The report includes sales data, revenue analytics, order statistics, and inventory valuations.</p>
               </div>
               <button className="download-excel-btn" onClick={handleDownloadFinancialStats}>
-                <span className="download-icon">📥</span>
+                <Download size={16} className="download-icon" />
                 <span className="download-text">Download Financial Stats (Excel)</span>
               </button>
             </div>

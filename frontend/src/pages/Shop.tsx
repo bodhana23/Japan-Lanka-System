@@ -4,6 +4,7 @@ import { useCart, Product } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { productsApi, Product as ApiProduct } from '../services/api';
 import NotificationBell from '../components/NotificationBell';
+import { ShoppingCart, Filter, Clock, XCircle, Search, Package } from 'lucide-react';
 import './Shop.css';
 
 interface FilterState {
@@ -41,36 +42,48 @@ const Shop: React.FC = () => {
 
   // Fetch products from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
         setProductsError(null);
         const response = await productsApi.getProducts({ page_size: 100 });
-        // Transform API products to match the Product interface
-        const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
-          id: p.id,
-          name: p.name || '',
-          model: p.model || '',
-          modelYear: p.year_from && p.year_to ? `${p.year_from}-${p.year_to}` : '',
-          price: Number(p.price) || 0,
-          quantityAvailable: Number(p.quantity_available) || 0,
-          category: p.category || '',
-          image: p.image_url || '📦',
-          description: p.description || '',
-          brand: p.brand || '',
-          yearFrom: p.year_from,
-          yearTo: p.year_to
-        }));
-        setAllProducts(transformedProducts);
+        if (isMounted) {
+          // Transform API products to match the Product interface
+          const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
+            id: p.id,
+            name: p.name || '',
+            model: p.model || '',
+            modelYear: p.year_from && p.year_to ? `${p.year_from}-${p.year_to}` : '',
+            price: Number(p.price) || 0,
+            quantityAvailable: Number(p.quantity_available) || 0,
+            category: p.category || '',
+            image: p.image_url || '',
+            description: p.description || '',
+            brand: p.brand || '',
+            yearFrom: p.year_from,
+            yearTo: p.year_to
+          }));
+          setAllProducts(transformedProducts);
+        }
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setProductsError('Failed to load products. Please try again later.');
+        if (isMounted) {
+          console.error('Error fetching products:', error);
+          setProductsError('Failed to load products. Please try again later.');
+        }
       } finally {
-        setIsLoadingProducts(false);
+        if (isMounted) {
+          setIsLoadingProducts(false);
+        }
       }
     };
 
     fetchProducts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Get unique brands with counts
@@ -237,7 +250,7 @@ const Shop: React.FC = () => {
               onClick={() => setShowCart(!showCart)}
               className="cart-btn"
             >
-              🛒 Cart
+              <ShoppingCart size={18} /> Cart
               {getTotalItems() > 0 && (
                 <span className="cart-badge">{getTotalItems()}</span>
               )}
@@ -399,11 +412,11 @@ const Shop: React.FC = () => {
           </aside>
 
           {/* Mobile Filter Toggle */}
-          <button 
+          <button
             className="filter-toggle-btn"
             onClick={() => setShowFilters(!showFilters)}
           >
-            <span>🔍 Filters</span>
+            <Filter size={16} /> Filters
             {activeFilterCount > 0 && (
               <span className="filter-badge">{activeFilterCount}</span>
             )}
@@ -465,13 +478,13 @@ const Shop: React.FC = () => {
             {/* Products Grid or Empty State */}
             {isLoadingProducts ? (
               <div className="empty-state">
-                <div className="empty-state-icon">⏳</div>
+                <div className="empty-state-icon"><Clock size={48} /></div>
                 <h3>Loading products...</h3>
                 <p>Please wait while we fetch the latest inventory</p>
               </div>
             ) : productsError ? (
               <div className="empty-state">
-                <div className="empty-state-icon">❌</div>
+                <div className="empty-state-icon"><XCircle size={48} /></div>
                 <h3>Error loading products</h3>
                 <p>{productsError}</p>
                 <button onClick={() => window.location.reload()} className="clear-filters-cta">
@@ -480,7 +493,7 @@ const Shop: React.FC = () => {
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">🔍</div>
+                <div className="empty-state-icon"><Search size={48} /></div>
                 <h3>No parts found</h3>
                 <p>Try adjusting your filters or search query</p>
                 {activeFilterCount > 0 && (

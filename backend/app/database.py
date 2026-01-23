@@ -4,12 +4,15 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
 
-# Create SQLAlchemy engine
+# Create SQLAlchemy engine with optimized pool settings
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # Enable connection health checks
-    pool_size=5,
-    max_overflow=10
+    pool_size=5,  # Maximum number of connections in the pool
+    max_overflow=10,  # Maximum overflow connections
+    pool_recycle=1800,  # Recycle connections after 30 minutes to prevent stale connections
+    pool_timeout=30,  # Timeout waiting for a connection from the pool
+    echo=False,  # Set to True only for debugging - causes high CPU if enabled
 )
 
 # Create SessionLocal class for database sessions

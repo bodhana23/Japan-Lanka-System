@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ordersApi, CreateOrderRequest } from '../services/api';
+import { Store, Truck, MapPin, Clock, Info, AlertTriangle, Package, Check, CheckCircle } from 'lucide-react';
 import './Checkout.css';
 
 interface ShippingInfo {
@@ -190,14 +191,14 @@ const Checkout: React.FC = () => {
       <div className="checkout-container">
         <div className="success-modal-overlay">
           <div className="success-modal">
-            <div className="success-icon">✓</div>
+            <div className="success-icon"><CheckCircle size={48} color="#16a34a" /></div>
             <h2>Order Placed Successfully!</h2>
             <p className="order-id">Order ID: <strong>#{orderId}</strong></p>
             <p className="delivery-info">
               {deliveryMethod === 'pickup' ? (
-                <>📍 <strong>Pickup from Store</strong> - We'll contact you when ready</>
+                <><MapPin size={16} /> <strong>Pickup from Store</strong> - We'll contact you when ready</>
               ) : (
-                <>🚚 <strong>Home Delivery</strong> - Your order will be delivered soon</>
+                <><Truck size={16} /> <strong>Home Delivery</strong> - Your order will be delivered soon</>
               )}
             </p>
             <p className="success-message">
@@ -233,7 +234,7 @@ const Checkout: React.FC = () => {
 
               {orderError && (
                 <div className="error-banner">
-                  <span className="error-icon">⚠️</span>
+                  <AlertTriangle size={16} className="error-icon" />
                   <span>{orderError}</span>
                 </div>
               )}
@@ -252,13 +253,13 @@ const Checkout: React.FC = () => {
                         setErrors(prev => ({ ...prev, deliveryMethod: '' }));
                       }}
                     >
-                      <div className="option-icon">🏪</div>
+                      <div className="option-icon"><Store size={24} /></div>
                       <div className="option-content">
                         <h4>Pickup from Store</h4>
                         <p>Collect your order from our location</p>
                       </div>
                       <div className="option-radio">
-                        {deliveryMethod === 'pickup' && <span className="radio-checked">✓</span>}
+                        {deliveryMethod === 'pickup' && <span className="radio-checked"><Check size={16} /></span>}
                       </div>
                     </div>
 
@@ -269,13 +270,13 @@ const Checkout: React.FC = () => {
                         setErrors(prev => ({ ...prev, deliveryMethod: '' }));
                       }}
                     >
-                      <div className="option-icon">🚚</div>
+                      <div className="option-icon"><Truck size={24} /></div>
                       <div className="option-content">
                         <h4>Home Delivery</h4>
                         <p>Get your order delivered to your address</p>
                       </div>
                       <div className="option-radio">
-                        {deliveryMethod === 'shipping' && <span className="radio-checked">✓</span>}
+                        {deliveryMethod === 'shipping' && <span className="radio-checked"><Check size={16} /></span>}
                       </div>
                     </div>
                   </div>
@@ -385,17 +386,17 @@ const Checkout: React.FC = () => {
                 {deliveryMethod === 'pickup' && (
                   <div className="pickup-info">
                     <div className="info-box">
-                      <h4>📍 Pickup Location</h4>
+                      <h4><MapPin size={16} /> Pickup Location</h4>
                       <p><strong>Japan Lanka Enterprises</strong></p>
                       <p>123 Galle Road, Colombo 03</p>
                       <p>Sri Lanka</p>
                       <br />
-                      <h4>🕒 Pickup Hours</h4>
+                      <h4><Clock size={16} /> Pickup Hours</h4>
                       <p>Monday - Saturday: 9:00 AM - 6:00 PM</p>
                       <p>Sunday: Closed</p>
                       <br />
                       <p className="info-note">
-                        ℹ️ Please bring your order confirmation and valid ID when picking up.
+                        <Info size={14} /> Please bring your order confirmation and valid ID when picking up.
                       </p>
                     </div>
                   </div>
@@ -412,7 +413,7 @@ const Checkout: React.FC = () => {
               <div className="order-items">
                 {cart.map(item => (
                   <div key={item.id} className="order-item">
-                    <div className="item-icon">{item.image || '📦'}</div>
+                    <div className="item-icon">{item.image && !item.image.startsWith('http') ? <Package size={24} /> : (item.image || <Package size={24} />)}</div>
                     <div className="item-details">
                       <h4>{item.name}</h4>
                       <p className="item-model">{item.brand} {item.model}</p>

@@ -4,6 +4,11 @@ import ProfileModal from '../components/ProfileModal';
 import { ordersApi, returnsApi, Order as ApiOrder, ReturnRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../utils/dateUtils';
+import {
+  Car, LogOut, Calendar, Package, Clock, Truck, CheckCircle,
+  ShoppingCart, RotateCcw, ArrowRight, AlertTriangle, Inbox,
+  Store, Tag, Cog, Octagon, Wrench, Zap, Wind
+} from 'lucide-react';
 import './CustomerDashboard.css';
 
 interface Order {
@@ -17,12 +22,12 @@ interface Order {
 
 // Product categories for quick navigation
 const categories = [
-  { id: 'engine', name: 'Engine Parts', icon: '⚙️', color: '#3498db' },
-  { id: 'brake', name: 'Brake System', icon: '🛑', color: '#e74c3c' },
-  { id: 'suspension', name: 'Suspension', icon: '🔧', color: '#9b59b6' },
-  { id: 'electrical', name: 'Electrical', icon: '⚡', color: '#f39c12' },
-  { id: 'filters', name: 'Filters', icon: '🌬️', color: '#1abc9c' },
-  { id: 'body', name: 'Body Parts', icon: '🚗', color: '#34495e' },
+  { id: 'engine', name: 'Engine Parts', icon: 'cog', color: '#3498db' },
+  { id: 'brake', name: 'Brake System', icon: 'octagon', color: '#e74c3c' },
+  { id: 'suspension', name: 'Suspension', icon: 'wrench', color: '#9b59b6' },
+  { id: 'electrical', name: 'Electrical', icon: 'zap', color: '#f39c12' },
+  { id: 'filters', name: 'Filters', icon: 'wind', color: '#1abc9c' },
+  { id: 'body', name: 'Body Parts', icon: 'car', color: '#34495e' },
 ];
 
 const CustomerDashboard: React.FC = () => {
@@ -55,46 +60,70 @@ const CustomerDashboard: React.FC = () => {
 
   // Fetch orders from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchOrders = async () => {
       try {
         setIsLoading(true);
         setError(null);
         const response = await ordersApi.getMyOrders();
-        const transformedOrders: Order[] = response.items.map((o: ApiOrder) => ({
-          id: o.id,
-          items: o.items.map(item => item.product_name || `Product ${item.product_id}`),
-          amount: o.total_amount,
-          status: o.status,
-          orderDate: o.created_at,
-          deliveryMethod: o.delivery_method,
-        }));
-        setOrders(transformedOrders);
+        if (isMounted) {
+          const transformedOrders: Order[] = response.items.map((o: ApiOrder) => ({
+            id: o.id,
+            items: o.items.map(item => item.product_name || `Product ${item.product_id}`),
+            amount: o.total_amount,
+            status: o.status,
+            orderDate: o.created_at,
+            deliveryMethod: o.delivery_method,
+          }));
+          setOrders(transformedOrders);
+        }
       } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Failed to load orders');
+        if (isMounted) {
+          console.error('Error fetching orders:', err);
+          setError('Failed to load orders');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchOrders();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fetch return requests from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchReturnRequests = async () => {
       try {
         setIsLoadingReturns(true);
         const response = await returnsApi.getMyReturns();
-        setReturnRequests(response.items);
+        if (isMounted) {
+          setReturnRequests(response.items);
+        }
       } catch (err) {
-        console.error('Error fetching return requests:', err);
+        if (isMounted) {
+          console.error('Error fetching return requests:', err);
+        }
       } finally {
-        setIsLoadingReturns(false);
+        if (isMounted) {
+          setIsLoadingReturns(false);
+        }
       }
     };
 
     fetchReturnRequests();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Calculate stats
@@ -170,7 +199,7 @@ const CustomerDashboard: React.FC = () => {
       <header className="cd-header">
         <div className="cd-header-content">
           <div className="cd-logo">
-            <span className="cd-logo-icon">🚗</span>
+            <Car size={24} className="cd-logo-icon" />
             <span className="cd-logo-text">Japan Lanka</span>
           </div>
           <div className="cd-header-actions">
@@ -184,7 +213,7 @@ const CustomerDashboard: React.FC = () => {
               <span className="cd-profile-name">{firstName}</span>
             </button>
             <button onClick={handleLogout} className="cd-logout-btn">
-              <span>🚪</span> Logout
+              <LogOut size={16} /> Logout
             </button>
           </div>
         </div>
@@ -196,11 +225,11 @@ const CustomerDashboard: React.FC = () => {
           <div className="cd-welcome-content">
             <div className="cd-welcome-text">
               <span className="cd-greeting-label">{greetings.greeting},</span>
-              <h1 className="cd-greeting-name">{user?.full_name || 'Customer'}! 👋</h1>
+              <h1 className="cd-greeting-name">{user?.full_name || 'Customer'}!</h1>
               <p className="cd-greeting-message">{greetings.message}</p>
             </div>
             <div className="cd-welcome-date">
-              <span className="cd-date-icon">📅</span>
+              <Calendar size={16} className="cd-date-icon" />
               <span className="cd-date-text">{currentDate}</span>
             </div>
           </div>
@@ -210,28 +239,28 @@ const CustomerDashboard: React.FC = () => {
         <section className="cd-stats-section">
           <div className="cd-stats-grid">
             <div className="cd-stat-card cd-stat-total">
-              <div className="cd-stat-icon">📦</div>
+              <div className="cd-stat-icon"><Package size={24} /></div>
               <div className="cd-stat-info">
                 <span className="cd-stat-number">{isLoading ? '...' : stats.total}</span>
                 <span className="cd-stat-label">Total Orders</span>
               </div>
             </div>
             <div className="cd-stat-card cd-stat-pending">
-              <div className="cd-stat-icon">⏳</div>
+              <div className="cd-stat-icon"><Clock size={24} /></div>
               <div className="cd-stat-info">
                 <span className="cd-stat-number">{isLoading ? '...' : stats.pending}</span>
                 <span className="cd-stat-label">Pending</span>
               </div>
             </div>
             <div className="cd-stat-card cd-stat-progress">
-              <div className="cd-stat-icon">🚚</div>
+              <div className="cd-stat-icon"><Truck size={24} /></div>
               <div className="cd-stat-info">
                 <span className="cd-stat-number">{isLoading ? '...' : stats.inProgress}</span>
                 <span className="cd-stat-label">In Transit</span>
               </div>
             </div>
             <div className="cd-stat-card cd-stat-completed">
-              <div className="cd-stat-icon">✅</div>
+              <div className="cd-stat-icon"><CheckCircle size={24} /></div>
               <div className="cd-stat-info">
                 <span className="cd-stat-number">{isLoading ? '...' : stats.completed}</span>
                 <span className="cd-stat-label">Completed</span>
@@ -243,20 +272,20 @@ const CustomerDashboard: React.FC = () => {
         {/* Main Action Buttons */}
         <section className="cd-actions-section">
           <button className="cd-action-btn cd-action-primary" onClick={handleBrowseParts}>
-            <span className="cd-action-icon">🛒</span>
+            <span className="cd-action-icon"><ShoppingCart size={24} /></span>
             <span className="cd-action-text">
               <span className="cd-action-title">Browse Parts</span>
               <span className="cd-action-subtitle">Find quality auto parts</span>
             </span>
-            <span className="cd-action-arrow">→</span>
+            <span className="cd-action-arrow"><ArrowRight size={20} /></span>
           </button>
           <button className="cd-action-btn cd-action-secondary" onClick={handleRequestReturn}>
-            <span className="cd-action-icon">🔄</span>
+            <span className="cd-action-icon"><RotateCcw size={24} /></span>
             <span className="cd-action-text">
               <span className="cd-action-title">Request Returns</span>
               <span className="cd-action-subtitle">Return delivered items</span>
             </span>
-            <span className="cd-action-arrow">→</span>
+            <span className="cd-action-arrow"><ArrowRight size={20} /></span>
           </button>
         </section>
 
@@ -264,7 +293,7 @@ const CustomerDashboard: React.FC = () => {
         <section className="cd-recent-orders-section">
           <div className="cd-section-header">
             <h2 className="cd-section-title">
-              <span className="cd-section-icon">📦</span>
+              <Package size={20} className="cd-section-icon" />
               Recent Orders
             </h2>
             {orders.length > 5 && (
@@ -281,12 +310,12 @@ const CustomerDashboard: React.FC = () => {
             </div>
           ) : error ? (
             <div className="cd-error">
-              <span className="cd-error-icon">⚠️</span>
+              <AlertTriangle size={24} className="cd-error-icon" />
               <p>{error}</p>
             </div>
           ) : recentOrders.length === 0 ? (
             <div className="cd-empty-orders">
-              <span className="cd-empty-icon">📭</span>
+              <Inbox size={48} className="cd-empty-icon" />
               <h3>No orders yet</h3>
               <p>Start shopping to see your orders here!</p>
               <button className="cd-shop-now-btn" onClick={handleBrowseParts}>
@@ -313,7 +342,7 @@ const CustomerDashboard: React.FC = () => {
                     </div>
                     <div className="cd-order-body">
                       <div className="cd-order-date">
-                        <span className="cd-order-date-icon">📅</span>
+                        <Calendar size={14} className="cd-order-date-icon" />
                         {formatDateTime(order.orderDate)}
                       </div>
                       <div className="cd-order-items">
@@ -324,7 +353,7 @@ const CustomerDashboard: React.FC = () => {
                     <div className="cd-order-footer">
                       <span className="cd-order-amount">{formatCurrency(order.amount)}</span>
                       <span className="cd-order-delivery">
-                        {order.deliveryMethod === 'pickup' ? '🏪 Pickup' : '🚚 Delivery'}
+                        {order.deliveryMethod === 'pickup' ? <><Store size={14} /> Pickup</> : <><Truck size={14} /> Delivery</>}
                       </span>
                     </div>
                   </div>
@@ -338,7 +367,7 @@ const CustomerDashboard: React.FC = () => {
         <section className="cd-recent-orders-section cd-returns-section">
           <div className="cd-section-header">
             <h2 className="cd-section-title">
-              <span className="cd-section-icon">🔄</span>
+              <RotateCcw size={20} className="cd-section-icon" />
               My Return Requests
             </h2>
             {returnRequests.length > 0 && (
@@ -355,7 +384,7 @@ const CustomerDashboard: React.FC = () => {
             </div>
           ) : returnRequests.length === 0 ? (
             <div className="cd-empty-orders">
-              <span className="cd-empty-icon">✅</span>
+              <CheckCircle size={48} className="cd-empty-icon" />
               <h3>No return requests</h3>
               <p>You haven't submitted any return requests yet.</p>
               <button className="cd-shop-now-btn" onClick={handleRequestReturn}>
@@ -385,7 +414,7 @@ const CustomerDashboard: React.FC = () => {
                     </div>
                     <div className="cd-order-body">
                       <div className="cd-order-date">
-                        <span className="cd-order-date-icon">📅</span>
+                        <Calendar size={14} className="cd-order-date-icon" />
                         {formatDateTime(request.created_at)}
                       </div>
                       <div className="cd-return-reason">
@@ -431,22 +460,32 @@ const CustomerDashboard: React.FC = () => {
         <section className="cd-categories-section">
           <div className="cd-section-header">
             <h2 className="cd-section-title">
-              <span className="cd-section-icon">🏷️</span>
+              <Tag size={20} className="cd-section-icon" />
               Quick Categories
             </h2>
           </div>
           <div className="cd-categories-grid">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className="cd-category-card"
-                onClick={() => handleCategoryClick(category.id)}
-                style={{ '--category-color': category.color } as React.CSSProperties}
-              >
-                <span className="cd-category-icon">{category.icon}</span>
-                <span className="cd-category-name">{category.name}</span>
-              </button>
-            ))}
+            {categories.map((category) => {
+              const IconComponent = {
+                cog: Cog,
+                octagon: Octagon,
+                wrench: Wrench,
+                zap: Zap,
+                wind: Wind,
+                car: Car,
+              }[category.icon] || Package;
+              return (
+                <button
+                  key={category.id}
+                  className="cd-category-card"
+                  onClick={() => handleCategoryClick(category.id)}
+                  style={{ '--category-color': category.color } as React.CSSProperties}
+                >
+                  <span className="cd-category-icon"><IconComponent size={24} /></span>
+                  <span className="cd-category-name">{category.name}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
       </main>

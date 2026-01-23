@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationsApi, Notification } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatRelativeTime } from '../utils/dateUtils';
+import { Bell, Package, RotateCcw, Gift, Megaphone, Inbox } from 'lucide-react';
 import './NotificationBell.css';
 
 const NotificationBell: React.FC = () => {
@@ -30,12 +31,18 @@ const NotificationBell: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    let isMounted = true;
+
     const fetchUnreadCount = async () => {
       try {
         const response = await notificationsApi.getUnreadCount();
-        setUnreadCount(response.unread_count);
+        if (isMounted) {
+          setUnreadCount(response.unread_count);
+        }
       } catch (error) {
-        console.error('Error fetching unread count:', error);
+        if (isMounted) {
+          console.error('Error fetching unread count:', error);
+        }
       }
     };
 
@@ -43,7 +50,10 @@ const NotificationBell: React.FC = () => {
 
     // Poll for updates every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isAuthenticated]);
 
   // Fetch notifications when dropdown opens
@@ -104,11 +114,11 @@ const NotificationBell: React.FC = () => {
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'order_update': return '📦';
-      case 'return_update': return '↩️';
-      case 'promotion': return '🎉';
-      case 'system': return '🔔';
-      default: return '📢';
+      case 'order_update': return <Package size={16} />;
+      case 'return_update': return <RotateCcw size={16} />;
+      case 'promotion': return <Gift size={16} />;
+      case 'system': return <Bell size={16} />;
+      default: return <Megaphone size={16} />;
     }
   };
 
@@ -121,7 +131,7 @@ const NotificationBell: React.FC = () => {
         onClick={handleBellClick}
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
       >
-        <span className="bell-icon">🔔</span>
+        <Bell size={24} className="bell-icon" />
         {unreadCount > 0 && (
           <span className="notification-badge">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -151,7 +161,7 @@ const NotificationBell: React.FC = () => {
               </div>
             ) : notifications.length === 0 ? (
               <div className="notification-empty">
-                <span className="empty-icon">📭</span>
+                <Inbox size={32} className="empty-icon" />
                 <p>No notifications yet</p>
               </div>
             ) : (

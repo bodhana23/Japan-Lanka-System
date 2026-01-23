@@ -22,6 +22,7 @@ import './App.css';
 const CartSyncManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, setOnLoginSuccess } = useAuth();
   const { mergeLocalCartToServer, syncCartFromApi } = useCart();
+  const hasInitialSynced = React.useRef(false);
 
   // Set up the login callback to sync cart
   useEffect(() => {
@@ -34,10 +35,15 @@ const CartSyncManager: React.FC<{ children: React.ReactNode }> = ({ children }) 
     };
   }, [setOnLoginSuccess, mergeLocalCartToServer]);
 
-  // Sync cart when user is already authenticated on app load
+  // Sync cart when user is already authenticated on app load (only once)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasInitialSynced.current) {
+      hasInitialSynced.current = true;
       syncCartFromApi();
+    }
+    // Reset ref when user logs out so it syncs again on next login
+    if (!isAuthenticated) {
+      hasInitialSynced.current = false;
     }
   }, [isAuthenticated, syncCartFromApi]);
 

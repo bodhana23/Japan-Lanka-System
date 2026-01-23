@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ordersApi, returnsApi, Order } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../utils/dateUtils';
+import { Car, AlertTriangle, Inbox, Store, Truck } from 'lucide-react';
 import './MyOrders.css';
 
 const MyOrders: React.FC = () => {
@@ -20,21 +21,33 @@ const MyOrders: React.FC = () => {
 
   // Fetch orders from API
   useEffect(() => {
+    let isMounted = true;
+
     const fetchOrders = async () => {
       try {
         setIsLoading(true);
         setError(null);
         const response = await ordersApi.getMyOrders();
-        setOrders(response.items);
+        if (isMounted) {
+          setOrders(response.items);
+        }
       } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Failed to load orders');
+        if (isMounted) {
+          console.error('Error fetching orders:', err);
+          setError('Failed to load orders');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchOrders();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleLogout = () => {
@@ -117,7 +130,7 @@ const MyOrders: React.FC = () => {
               ← Back
             </button>
             <div className="mo-logo">
-              <span className="mo-logo-icon">🚗</span>
+              <Car size={20} className="mo-logo-icon" />
               <span className="mo-logo-text">Japan Lanka</span>
             </div>
           </div>
@@ -143,7 +156,7 @@ const MyOrders: React.FC = () => {
           </div>
         ) : error ? (
           <div className="mo-error">
-            <span className="mo-error-icon">⚠️</span>
+            <AlertTriangle size={32} className="mo-error-icon" />
             <p>{error}</p>
             <button className="mo-retry-btn" onClick={() => window.location.reload()}>
               Try Again
@@ -151,7 +164,7 @@ const MyOrders: React.FC = () => {
           </div>
         ) : orders.length === 0 ? (
           <div className="mo-empty">
-            <span className="mo-empty-icon">📭</span>
+            <Inbox size={48} className="mo-empty-icon" />
             <h3>No orders yet</h3>
             <p>Start shopping to see your orders here!</p>
             <button className="mo-shop-btn" onClick={() => navigate('/shop')}>
@@ -197,7 +210,7 @@ const MyOrders: React.FC = () => {
                     <div className="mo-detail-row">
                       <span className="mo-detail-label">Delivery Method:</span>
                       <span className="mo-detail-value">
-                        {order.delivery_method === 'pickup' ? '🏪 Store Pickup' : '🚚 Home Delivery'}
+                        {order.delivery_method === 'pickup' ? <><Store size={14} /> Store Pickup</> : <><Truck size={14} /> Home Delivery</>}
                       </span>
                     </div>
                     {order.delivery_method === 'shipping' && order.shipping_address && (
