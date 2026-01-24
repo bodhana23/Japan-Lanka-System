@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Eye, Edit, User, Mail, Phone, Tag, Lock, Key, CheckCircle, Save } from 'lucide-react';
+import { Eye, Edit, User, Mail, Phone, Tag, Lock, Key, CheckCircle, Save, AlertCircle } from 'lucide-react';
+import { authApi } from '../services/api';
 import './ProfileModal.css';
 
 interface UserProfile {
   email: string;
   fullName?: string;
+  full_name?: string;
   name?: string;
   role: string;
   phoneNumber?: string;
-  password?: string;
+  phone_number?: string;
+  is_google_user?: boolean;
 }
 
 interface ProfileModalProps {
@@ -21,17 +24,20 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
   const [activeTab, setActiveTab] = useState<'view' | 'edit'>('view');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const isGoogleUser = user.is_google_user === true;
 
   const [formData, setFormData] = useState({
-    fullName: user.fullName || user.name || '',
+    fullName: user.fullName || user.full_name || user.name || '',
     email: user.email || '',
-    phoneNumber: user.phoneNumber || '',
+    phoneNumber: user.phoneNumber || user.phone_number || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
 
-  const displayName = user.fullName || user.name || 'User';
+  const displayName = user.fullName || user.full_name || user.name || 'User';
   const displayRole = roleLabel || (user.role.charAt(0).toUpperCase() + user.role.slice(1));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,22 +65,30 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
     }
 
     if (formData.phoneNumber) {
-      const phoneRegex = /^[+]?[0-9\s\-()]{10,15}$/;
-      if (!phoneRegex.test(formData.phoneNumber)) {
-        newErrors.phoneNumber = 'Please enter a valid phone number';
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/[\s\-()]/g, ''))) {
+        newErrors.phoneNumber = 'Phone number must be 10 digits starting with 0';
       }
     }
 
-    if (formData.newPassword || formData.currentPassword || formData.confirmPassword) {
+    // Only validate password fields if not a Google user and trying to change password
+    if (!isGoogleUser && (formData.newPassword || formData.currentPassword || formData.confirmPassword)) {
       if (!formData.currentPassword) {
         newErrors.currentPassword = 'Current password is required to change password';
-      } else if (formData.currentPassword !== user.password) {
-        // Verify current password matches stored password
-        newErrors.currentPassword = 'Current password is incorrect';
       }
 
-      if (formData.newPassword && formData.newPassword.length < 6) {
-        newErrors.newPassword = 'New password must be at least 6 characters long';
+      if (formData.newPassword) {
+        if (formData.newPassword.length < 8) {
+          newErrors.newPassword = 'Password must be at least 8 characters long';
+        } else if (!/[a-z]/.test(formData.newPassword)) {
+          newErrors.newPassword = 'Password must contain at least one lowercase letter';
+        } else if (!/[A-Z]/.test(formData.newPassword)) {
+          newErrors.newPassword = 'Password must contain at least one uppercase letter';
+        } else if (!/\d/.test(formData.newPassword)) {
+          newErrors.newPassword = 'Password must contain at least one number';
+        } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(formData.newPassword)) {
+          newErrors.newPassword = 'Password must contain at least one special character';
+        }
       }
 
       if (formData.newPassword !== formData.confirmPassword) {
@@ -92,27 +106,46 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setSuccessMessage('');
+    setErrors({});
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update profile (name, phone)
+      const profileUpdates: { full_name?: string; phone_number?: string } = {};
 
-      const updatedUser: any = {
-        ...user,
-        fullName: formData.fullName.trim(),
-        name: formData.fullName.trim(),
-        email: formData.email.trim()
-      };
-
-      if (formData.phoneNumber) {
-        updatedUser.phoneNumber = formData.phoneNumber.trim();
+      if (formData.fullName.trim() !== (user.fullName || user.full_name || user.name || '')) {
+        profileUpdates.full_name = formData.fullName.trim();
       }
 
-      if (formData.newPassword) {
-        updatedUser.password = formData.newPassword;
+      const currentPhone = user.phoneNumber || user.phone_number || '';
+      if (formData.phoneNumber.trim() !== currentPhone) {
+        profileUpdates.phone_number = formData.phoneNumber.trim() || undefined;
       }
 
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      if (Object.keys(profileUpdates).length > 0) {
+        const updatedUser = await authApi.updateMe(profileUpdates);
+        // Update localStorage with new user data
+        const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const mergedUser = { ...storedUser, ...updatedUser };
+        localStorage.setItem('currentUser', JSON.stringify(mergedUser));
+      }
 
-      alert('Profile updated successfully!');
+      // Change password if provided (only for non-Google users)
+      if (!isGoogleUser && formData.currentPassword && formData.newPassword) {
+        try {
+          await authApi.changePassword(formData.currentPassword, formData.newPassword);
+          setSuccessMessage('Profile and password updated successfully!');
+        } catch (passwordError: any) {
+          const errorDetail = passwordError.response?.data?.detail || 'Failed to change password';
+          setErrors({ currentPassword: errorDetail });
+          setIsLoading(false);
+          return;
+        }
+      } else if (Object.keys(profileUpdates).length > 0) {
+        setSuccessMessage('Profile updated successfully!');
+      } else {
+        setSuccessMessage('No changes to save.');
+      }
 
       // Reset password fields
       setFormData(prev => ({
@@ -126,9 +159,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
       setTimeout(() => {
         onClose();
         window.location.reload();
-      }, 500);
-    } catch (error) {
-      alert('Error updating profile. Please try again.');
+      }, 1500);
+    } catch (error: any) {
+      const errorDetail = error.response?.data?.detail || 'Error updating profile. Please try again.';
+      setErrors({ form: errorDetail });
     } finally {
       setIsLoading(false);
     }
@@ -208,17 +242,39 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                   </div>
                 </div>
 
-                <div className="profile-field">
-                  <Lock size={16} className="field-icon" />
-                  <div className="field-content">
-                    <span className="field-label">Password</span>
-                    <span className="field-value">••••••••</span>
+                {isGoogleUser ? (
+                  <div className="profile-field google-auth-notice">
+                    <AlertCircle size={16} className="field-icon" />
+                    <div className="field-content">
+                      <span className="field-label">Authentication</span>
+                      <span className="field-value">Signed in with Google</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="profile-field">
+                    <Lock size={16} className="field-icon" />
+                    <div className="field-content">
+                      <span className="field-label">Password</span>
+                      <span className="field-value">••••••••</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="profile-edit-form">
+              {successMessage && (
+                <div className="success-message">
+                  <CheckCircle size={16} />
+                  {successMessage}
+                </div>
+              )}
+              {errors.form && (
+                <div className="error-banner">
+                  <AlertCircle size={16} />
+                  {errors.form}
+                </div>
+              )}
               <div className="form-section">
                 <h3 className="section-title">Personal Information</h3>
 
@@ -279,65 +335,78 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
                 </div>
               </div>
 
-              <div className="form-section">
-                <h3 className="section-title">Change Password</h3>
-                <p className="section-description">Leave blank if you don't want to change your password</p>
-
-                <div className="form-group">
-                  <label htmlFor="currentPassword">
-                    <Lock size={16} className="label-icon" />
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={formData.currentPassword}
-                    onChange={handleChange}
-                    placeholder="Enter current password"
-                    className={errors.currentPassword ? 'error' : ''}
-                    disabled={isLoading}
-                  />
-                  {errors.currentPassword && <span className="error-message">{errors.currentPassword}</span>}
+              {isGoogleUser ? (
+                <div className="form-section google-auth-section">
+                  <h3 className="section-title">Password</h3>
+                  <div className="google-auth-info">
+                    <AlertCircle size={20} />
+                    <div>
+                      <p>You signed in with Google.</p>
+                      <p>To change your password, please visit your <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer">Google Account settings</a>.</p>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="form-section">
+                  <h3 className="section-title">Change Password</h3>
+                  <p className="section-description">Leave blank if you don't want to change your password</p>
 
-                <div className="form-group">
-                  <label htmlFor="newPassword">
-                    <Key size={16} className="label-icon" />
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleChange}
-                    placeholder="Enter new password (min 6 characters)"
-                    className={errors.newPassword ? 'error' : ''}
-                    disabled={isLoading}
-                    minLength={6}
-                  />
-                  {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
-                </div>
+                  <div className="form-group">
+                    <label htmlFor="currentPassword">
+                      <Lock size={16} className="label-icon" />
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      id="currentPassword"
+                      name="currentPassword"
+                      value={formData.currentPassword}
+                      onChange={handleChange}
+                      placeholder="Enter current password"
+                      className={errors.currentPassword ? 'error' : ''}
+                      disabled={isLoading}
+                    />
+                    {errors.currentPassword && <span className="error-message">{errors.currentPassword}</span>}
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">
-                    <CheckCircle size={16} className="label-icon" />
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Confirm your new password"
-                    className={errors.confirmPassword ? 'error' : ''}
-                    disabled={isLoading}
-                  />
-                  {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+                  <div className="form-group">
+                    <label htmlFor="newPassword">
+                      <Key size={16} className="label-icon" />
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="newPassword"
+                      name="newPassword"
+                      value={formData.newPassword}
+                      onChange={handleChange}
+                      placeholder="Enter new password (min 8 characters)"
+                      className={errors.newPassword ? 'error' : ''}
+                      disabled={isLoading}
+                      minLength={8}
+                    />
+                    {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">
+                      <CheckCircle size={16} className="label-icon" />
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your new password"
+                      className={errors.confirmPassword ? 'error' : ''}
+                      disabled={isLoading}
+                    />
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="profile-modal-actions">
                 <button

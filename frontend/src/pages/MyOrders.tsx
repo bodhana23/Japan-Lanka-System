@@ -76,7 +76,16 @@ const MyOrders: React.FC = () => {
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      await returnsApi.createReturn(selectedOrder.id, returnReason.trim());
+      // Create return request for all items in the order
+      const returnItems = selectedOrder.items.map(item => ({
+        order_item_id: item.id,
+        quantity: item.quantity
+      }));
+      await returnsApi.createReturn({
+        order_id: selectedOrder.id,
+        reason: returnReason.trim(),
+        items: returnItems
+      });
       setSubmitSuccess('Return request submitted successfully!');
       setTimeout(() => {
         setShowReturnModal(false);

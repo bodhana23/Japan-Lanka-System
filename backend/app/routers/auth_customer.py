@@ -16,6 +16,7 @@ from app.schemas.customer import (
     CustomerResponse,
     CustomerTokenResponse,
     MessageResponse,
+    PasswordChangeRequest,
 )
 from app.utils.security import hash_password, verify_password, create_access_token
 from app.utils.deps import get_current_customer
@@ -323,3 +324,63 @@ async def update_profile(
     )
 
     return CustomerResponse.model_validate(current_customer)
+
+
+@router.put("/password", response_model=MessageResponse)
+async def change_password(
+    password_data: PasswordChangeRequest,
+    request: Request,
+    current_customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Change the current customer's password.
+
+    Only available for customers who registered with email/password.
+    Google OAuth users cannot change their password.
+    """
+    # Check if user is a Google OAuth user
+    if current_customer.firebase_uid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google users cannot change their password. Please manage your password through Google."
+        )
+
+    # Check if user has a password (not an OAuth-only user)
+    if not current_customer.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No password set for this account"
+        )
+
+    # Verify current password
+    if not verify_password(password_data.current_password, current_customer.password_hash):
+        # Log failed attempt
+        log_action(
+            db=db,
+            customer_id=current_customer.id,
+            action="customer_password_change_failed",
+            entity_type="customer",
+            entity_id=str(current_customer.id),
+            details={"reason": "invalid_current_password"},
+            ip_address=get_client_ip(request)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+
+    # Update password
+    current_customer.password_hash = hash_password(password_data.new_password)
+    db.commit()
+
+    # Log the password change
+    log_action(
+        db=db,
+        customer_id=current_customer.id,
+        action="customer_password_changed",
+        entity_type="customer",
+        entity_id=str(current_customer.id),
+        ip_address=get_client_ip(request)
+    )
+
+    return MessageResponse(message="Password changed successfully")
