@@ -109,7 +109,7 @@ const ManagerDashboard: React.FC = () => {
             name: p.name,
             brand: p.brand,
             model: p.model,
-            price: p.price,
+            price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
             quantity: p.quantity_available,
             imageLink: p.image_url || ''
           }));

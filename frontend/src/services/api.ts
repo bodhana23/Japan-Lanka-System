@@ -8,6 +8,7 @@ export interface User {
   phone_number?: string;
   role: 'customer' | 'manager' | 'admin' | 'auditor';
   is_active: boolean;
+  is_google_user?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -335,6 +336,14 @@ export const authApi = {
 
   updateMe: async (data: { full_name?: string; phone_number?: string }): Promise<User> => {
     const response = await api.put<User>('/auth/customer/profile', data);
+    return response.data;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/auth/customer/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
     return response.data;
   },
 };

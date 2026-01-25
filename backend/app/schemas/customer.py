@@ -105,6 +105,28 @@ class CustomerUpdate(BaseModel):
         return cleaned
 
 
+class PasswordChangeRequest(BaseModel):
+    """Schema for changing password."""
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        """Validate password strength requirements."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
+
 # Response schemas
 class CustomerResponse(BaseModel):
     """Schema for customer response."""
@@ -114,11 +136,32 @@ class CustomerResponse(BaseModel):
     phone_number: Optional[str] = None
     address: Optional[str] = None
     is_active: bool
+    is_google_user: bool = False
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        """Custom validation to set is_google_user based on firebase_uid."""
+        # Check if firebase_uid exists and is not empty
+        is_google = bool(getattr(obj, 'firebase_uid', None))
+
+        # Create the response with the computed is_google_user field
+        data = {
+            'id': obj.id,
+            'email': obj.email,
+            'full_name': obj.full_name,
+            'phone_number': obj.phone_number,
+            'address': obj.address,
+            'is_active': obj.is_active,
+            'is_google_user': is_google,
+            'created_at': obj.created_at,
+            'updated_at': obj.updated_at,
+        }
+        return cls(**data)
 
 
 class CustomerTokenResponse(BaseModel):

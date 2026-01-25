@@ -1,8 +1,5 @@
 """Customer authentication router."""
 
-import base64
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
@@ -16,10 +13,12 @@ from app.schemas.customer import (
     CustomerResponse,
     CustomerTokenResponse,
     MessageResponse,
+    PasswordChangeRequest,
 )
 from app.utils.security import hash_password, verify_password, create_access_token
 from app.utils.deps import get_current_customer
 from app.utils.rate_limiter import auth_rate_limiter
+from app.utils.firebase import verify_firebase_token, is_firebase_initialized
 
 router = APIRouter(prefix="/auth/customer", tags=["Customer Authentication"])
 
@@ -47,32 +46,6 @@ def log_action(db: Session, customer_id, action: str, entity_type: str = None,
     db.commit()
 
 
-def decode_firebase_token(token: str) -> dict:
-    """Decode Firebase ID token without verification.
-
-    Note: This is a simplified implementation that decodes the JWT payload
-    without cryptographic verification. For production, use firebase-admin SDK
-    with proper token verification.
-    """
-    try:
-        # Firebase tokens are JWTs with 3 parts: header.payload.signature
-        parts = token.split('.')
-        if len(parts) != 3:
-            raise ValueError("Invalid token format")
-
-        # Decode the payload (second part)
-        payload = parts[1]
-        # Add padding if needed for base64 decoding
-        padding = 4 - len(payload) % 4
-        if padding != 4:
-            payload += '=' * padding
-
-        decoded_bytes = base64.urlsafe_b64decode(payload)
-        payload_data = json.loads(decoded_bytes.decode('utf-8'))
-
-        return payload_data
-    except Exception as e:
-        raise ValueError(f"Failed to decode token: {str(e)}")
 
 
 @router.post("/register", response_model=CustomerTokenResponse, status_code=status.HTTP_201_CREATED)
@@ -196,27 +169,43 @@ async def google_auth(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Login or register with Google via Firebase token."""
-    try:
-        # Decode the Firebase token to extract user info
-        token_data = decode_firebase_token(auth_data.firebase_token)
-        firebase_uid = token_data.get('user_id') or token_data.get('sub')
+    """Login or register with Google via Firebase token.
 
-        # Prefer name and email from request body (from Firebase user object)
-        # Fall back to token data if not provided
-        name = auth_data.name or token_data.get('name', '')
-        email = auth_data.email or token_data.get('email')
+    SECURITY: This endpoint verifies Firebase ID tokens cryptographically
+    using the Firebase Admin SDK. Tokens are validated for:
+    - Valid signature against Firebase's public keys
+    - Token expiration
+    - Correct audience (project ID)
+    - Correct issuer
+    """
+    # Check if Firebase is properly configured
+    if not is_firebase_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google authentication is not configured. Please contact support."
+        )
 
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email not found in request or Firebase token"
-            )
-
-    except ValueError as e:
+    # SECURITY: Verify the Firebase token cryptographically
+    token_data = verify_firebase_token(auth_data.firebase_token)
+    if token_data is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid Firebase token: {str(e)}"
+            detail="Invalid or expired Firebase token"
+        )
+
+    # Extract user info from verified token
+    # 'sub' is the Firebase UID (always present in verified tokens)
+    firebase_uid = token_data.get('uid') or token_data.get('sub')
+
+    # Prefer name and email from request body (from Firebase user object)
+    # Fall back to verified token data if not provided
+    name = auth_data.name or token_data.get('name', '')
+    email = auth_data.email or token_data.get('email')
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not found in request or Firebase token"
         )
 
     # Check if customer already exists
@@ -323,3 +312,63 @@ async def update_profile(
     )
 
     return CustomerResponse.model_validate(current_customer)
+
+
+@router.put("/password", response_model=MessageResponse)
+async def change_password(
+    password_data: PasswordChangeRequest,
+    request: Request,
+    current_customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Change the current customer's password.
+
+    Only available for customers who registered with email/password.
+    Google OAuth users cannot change their password.
+    """
+    # Check if user is a Google OAuth user
+    if current_customer.firebase_uid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google users cannot change their password. Please manage your password through Google."
+        )
+
+    # Check if user has a password (not an OAuth-only user)
+    if not current_customer.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No password set for this account"
+        )
+
+    # Verify current password
+    if not verify_password(password_data.current_password, current_customer.password_hash):
+        # Log failed attempt
+        log_action(
+            db=db,
+            customer_id=current_customer.id,
+            action="customer_password_change_failed",
+            entity_type="customer",
+            entity_id=str(current_customer.id),
+            details={"reason": "invalid_current_password"},
+            ip_address=get_client_ip(request)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+
+    # Update password
+    current_customer.password_hash = hash_password(password_data.new_password)
+    db.commit()
+
+    # Log the password change
+    log_action(
+        db=db,
+        customer_id=current_customer.id,
+        action="customer_password_changed",
+        entity_type="customer",
+        entity_id=str(current_customer.id),
+        ip_address=get_client_ip(request)
+    )
+
+    return MessageResponse(message="Password changed successfully")

@@ -13,6 +13,4 @@ pytz
 # Authentication
 python-jose[cryptography]
 bcrypt
-
-# Optional: Firebase (install separately if needed)
-# firebase-admin
+firebase-admin

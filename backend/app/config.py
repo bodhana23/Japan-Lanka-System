@@ -1,18 +1,20 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class Settings(BaseSettings):
+    """Application settings loaded from environment variables.
+
+    SECURITY: JWT_SECRET_KEY has no default value - the application
+    will fail to start if it's not set, preventing insecure defaults.
+    """
+
     # Database settings
-    DATABASE_HOST: str = os.getenv("DATABASE_HOST", "localhost")
-    DATABASE_PORT: int = int(os.getenv("DATABASE_PORT", "5432"))
-    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "japanlanka")
-    DATABASE_USER: str = os.getenv("DATABASE_USER", "bodhanajayawickrama")
-    DATABASE_PASSWORD: str = os.getenv("DATABASE_PASSWORD", "")
+    DATABASE_HOST: str = "localhost"
+    DATABASE_PORT: int = 5432
+    DATABASE_NAME: str = "japanlanka"
+    DATABASE_USER: str = "bodhanajayawickrama"
+    DATABASE_PASSWORD: str = ""
 
     # Construct database URL (using psycopg driver)
     @property
@@ -33,16 +35,20 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # JWT settings
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-super-secret-key-change-in-production")
+    # SECURITY: No default value - app fails fast if not configured.
+    # This prevents running with an insecure or guessable secret.
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
-    # Firebase settings (for future use)
-    FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
+    # Firebase settings
+    FIREBASE_CREDENTIALS_PATH: str = ""
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="forbid",
+    )
 
 
 settings = Settings()

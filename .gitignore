@@ -96,3 +96,11 @@ ENV/
 *.egg
 .pytest_cache/
 .mypy_cache/
+
+# Firebase/Secret Keys
+# SECURITY: Never commit service account credentials or secret keys
+backend/keys/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
