@@ -1,26 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
-import { usersApi, User as ApiUser } from '../services/api';
+import { usersApi, productsApi, User as ApiUser, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
 import { formatDate } from '../utils/dateUtils';
 import {
   User, Users, DollarSign, AlertTriangle, BarChart2, Package,
   Search, Trash2, RefreshCw, Bell, CheckCircle, Clock, Plus,
-  TrendingUp, TrendingDown, ShoppingCart, Briefcase, ClipboardList, Mail
+  TrendingUp, TrendingDown, ShoppingCart, Briefcase, ClipboardList, Mail, ImageOff
 } from 'lucide-react';
 import './AdminDashboard.css';
 
-interface Product {
+interface LowStockProduct {
   id: string;
   name: string;
+  brand: string;
   model: string;
-  modelYear: string;
+  yearFrom?: number;
+  yearTo?: number;
   price: number;
   quantityAvailable: number;
   category: string;
-  image: string;
-  description: string;
-  lastChecked?: string;
+  imageUrl?: string;
+  description?: string;
 }
 
 interface SalesData {
@@ -46,11 +47,12 @@ interface UserProfile {
   password?: string;
 }
 
-interface User {
+interface UserDisplay {
   id: string;
   fullName: string;
   email: string;
-  role: 'manager' | 'auditor' | 'customer';
+  role: 'manager' | 'auditor' | 'customer' | 'admin';
+  userType: 'customer' | 'employee';
   dateCreated: string;
   status: 'active' | 'inactive';
 }
@@ -69,12 +71,12 @@ const AdminDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserDisplay | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<'3months' | '6months' | 'year'>('3months');
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'auditor' | 'customer'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'auditor' | 'customer' | 'admin'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'role'>('date');
   const [isLoading, setIsLoading] = useState(false);
   const [newUserForm, setNewUserForm] = useState<NewUserForm>({
@@ -304,49 +306,60 @@ const AdminDashboard: React.FC = () => {
     { brand: 'Nissan', sales: 480000, units: 112 }
   ]);
 
-  // Users data - fetched from API
-  const [users, setUsers] = useState<User[]>([]);
+  // Users data - fetched from API (combined customers + employees)
+  const [users, setUsers] = useState<UserDisplay[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
-  // Fetch users from API
-  useEffect(() => {
-    let isMounted = true;
+  // Fetch all users (customers + employees) from API
+  const fetchAllUsers = useCallback(async () => {
+    try {
+      setIsLoadingUsers(true);
+      setUsersError(null);
 
-    const fetchUsers = async () => {
-      try {
-        setIsLoadingUsers(true);
-        setUsersError(null);
-        const response = await usersApi.getUsers({ page_size: 100 });
-        if (isMounted) {
-          const transformedUsers: User[] = response.items.map((u: ApiUser) => ({
-            id: u.id,
-            fullName: u.full_name,
-            email: u.email,
-            role: u.role as 'manager' | 'auditor' | 'customer',
-            dateCreated: u.created_at,
-            status: u.is_active ? 'active' : 'inactive'
-          }));
-          setUsers(transformedUsers);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Error fetching users:', error);
-          setUsersError('Failed to load users.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingUsers(false);
-        }
-      }
-    };
+      // Fetch customers and employees in parallel
+      const [customersResponse, employeesResponse] = await Promise.all([
+        usersApi.getUsers({ page_size: 100 }),
+        usersApi.getEmployees({ page_size: 100 })
+      ]);
 
-    fetchUsers();
+      // Transform customers
+      const customers: UserDisplay[] = customersResponse.items.map((u: ApiUser) => ({
+        id: u.id,
+        fullName: u.full_name,
+        email: u.email,
+        role: 'customer' as const,
+        userType: 'customer' as const,
+        dateCreated: u.created_at,
+        status: u.is_active ? 'active' as const : 'inactive' as const
+      }));
 
-    return () => {
-      isMounted = false;
-    };
+      // Transform employees
+      const employees: UserDisplay[] = employeesResponse.items.map((e: ApiEmployee) => ({
+        id: e.id,
+        fullName: e.full_name,
+        email: e.email,
+        role: e.role.toLowerCase() as 'manager' | 'auditor' | 'admin',
+        userType: 'employee' as const,
+        dateCreated: e.created_at,
+        status: e.is_active ? 'active' as const : 'inactive' as const
+      }));
+
+      setUsers([...customers, ...employees]);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsersError('Failed to load users.');
+    } finally {
+      setIsLoadingUsers(false);
+    }
   }, []);
+
+  // Fetch users on component mount
+  useEffect(() => {
+    fetchAllUsers();
+  }, [fetchAllUsers]);
 
   // Filter sales data based on date range
   const salesData = useMemo(() => {
@@ -372,7 +385,8 @@ const AdminDashboard: React.FC = () => {
     const managers = users.filter(u => u.role === 'manager').length;
     const auditors = users.filter(u => u.role === 'auditor').length;
     const customers = users.filter(u => u.role === 'customer').length;
-    return { total: users.length, managers, auditors, customers };
+    const admins = users.filter(u => u.role === 'admin').length;
+    return { total: users.length, managers, auditors, customers, admins };
   }, [users]);
 
   // Filtered and sorted users
@@ -410,80 +424,69 @@ const AdminDashboard: React.FC = () => {
     return filtered;
   }, [users, roleFilter, searchQuery, sortBy]);
 
-  // Sample inventory data (synchronized with manager's database)
-  const [inventoryData] = useState<Product[]>([
-    {
-      id: 'P001',
-      name: 'Brake Pads Set',
-      model: 'Toyota Camry',
-      modelYear: '2018-2023',
-      price: 4500.00,
-      quantityAvailable: 25,
-      category: 'Brake System',
-      image: '',
-      description: 'High-quality ceramic brake pads for Toyota Camry 2018-2023'
-    },
-    {
-      id: 'P002',
-      name: 'Engine Oil Filter',
-      model: 'Honda Civic',
-      modelYear: '2016-2021',
-      price: 1200.00,
-      quantityAvailable: 2, // Low stock
-      category: 'Engine Parts',
-      image: '',
-      description: 'Premium oil filter for Honda Civic 2016-2021'
-    },
-    {
-      id: 'P003',
-      name: 'LED Headlight Bulbs',
-      model: 'BMW 3 Series',
-      modelYear: '2019-2024',
-      price: 2800.00,
-      quantityAvailable: 1, // Low stock
-      category: 'Lighting',
-      image: '',
-      description: 'LED headlight bulb set for BMW 3 Series 2019-2024'
-    },
-    {
-      id: 'P004',
-      name: 'Air Filter',
-      model: 'Ford Focus',
-      modelYear: '2015-2020',
-      price: 1850.00,
-      quantityAvailable: 30,
-      category: 'Engine Parts',
-      image: '',
-      description: 'High-flow air filter for Ford Focus 2015-2020'
-    },
-    {
-      id: 'P005',
-      name: 'Spark Plugs Set',
-      model: 'Nissan Altima',
-      modelYear: '2017-2022',
-      price: 3200.00,
-      quantityAvailable: 15,
-      category: 'Engine Parts',
-      image: '',
-      description: 'Iridium spark plugs for Nissan Altima 2017-2022'
-    },
-    {
-      id: 'P006',
-      name: 'Timing Belt',
-      model: 'Honda Accord',
-      modelYear: '2013-2017',
-      price: 5500.00,
-      quantityAvailable: 8,
-      category: 'Engine Parts',
-      image: '',
-      description: 'Timing belt kit for Honda Accord 2013-2017'
-    }
-  ]);
+  // Low stock products from API
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [totalProducts, setTotalProducts] = useState(0);
 
-  // Filter low stock items (quantity < 3)
-  const lowStockItems = inventoryData.filter(item => 
-    item && typeof item.quantityAvailable === 'number' && item.quantityAvailable < 3
-  );
+  // Fetch low stock products from API
+  const fetchLowStockProducts = useCallback(async () => {
+    try {
+      setIsLoadingProducts(true);
+      setProductsError(null);
+
+      // Fetch products with max allowed page size (100)
+      const allProducts: ApiProduct[] = [];
+      let currentPage = 1;
+      let totalPages = 1;
+
+      // Fetch first page to get total count
+      const firstResponse = await productsApi.getProducts({ page: 1, page_size: 100 });
+      allProducts.push(...firstResponse.items);
+      totalPages = firstResponse.total_pages;
+      setTotalProducts(firstResponse.total);
+
+      // Fetch remaining pages if any
+      while (currentPage < totalPages) {
+        currentPage++;
+        const response = await productsApi.getProducts({ page: currentPage, page_size: 100 });
+        allProducts.push(...response.items);
+      }
+
+      // Filter for low stock items (quantity < 3)
+      const lowStock: LowStockProduct[] = allProducts
+        .filter((p: ApiProduct) => p.quantity_available < 3 && p.is_active)
+        .map((p: ApiProduct) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          model: p.model,
+          yearFrom: p.year_from,
+          yearTo: p.year_to,
+          price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
+          quantityAvailable: p.quantity_available,
+          category: p.category,
+          imageUrl: p.image_url,
+          description: p.description
+        }));
+
+      setLowStockProducts(lowStock);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProductsError('Failed to load products.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, []);
+
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchLowStockProducts();
+  }, [fetchLowStockProducts]);
+
+  // Low stock items count
+  const lowStockItems = lowStockProducts;
 
   // Toast notification with cleanup
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -493,30 +496,75 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Delete user handler
-  const handleDeleteUser = (userToDelete: User) => {
-    setUserToDelete(userToDelete);
+  const handleDeleteUser = (userToDeleteItem: UserDisplay) => {
+    // Get current logged-in user
+    const currentUserStr = localStorage.getItem('currentUser');
+    const currentLoggedInUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+
+    // Prevent deleting self
+    if (currentLoggedInUser && currentLoggedInUser.id === userToDeleteItem.id) {
+      showToast('Cannot delete your own account', 'error');
+      return;
+    }
+
+    setUserToDelete(userToDeleteItem);
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteUser = () => {
-    if (userToDelete) {
-      setUsers(users.filter(u => u.id !== userToDelete.id));
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setIsDeletingUser(true);
+
+      if (userToDelete.userType === 'customer') {
+        await usersApi.deleteCustomer(userToDelete.id);
+      } else {
+        await usersApi.deleteEmployee(userToDelete.id);
+      }
+
       showToast(`User "${userToDelete.fullName}" has been deleted successfully`, 'success');
       setShowDeleteModal(false);
       setUserToDelete(null);
+
+      // Refresh users list
+      await fetchAllUsers();
+    } catch (error: unknown) {
+      console.error('Error deleting user:', error);
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      const errorMessage = axiosError.response?.data?.detail || 'Failed to delete user';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsDeletingUser(false);
     }
   };
 
   // Toggle user status
-  const toggleUserStatus = (userId: string) => {
-    setUsers(users.map(u => 
-      u.id === userId ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' } : u
-    ));
-    showToast('User status updated successfully', 'success');
+  const toggleUserStatus = async (targetUser: UserDisplay) => {
+    try {
+      const newStatus = targetUser.status === 'active' ? false : true;
+
+      if (targetUser.userType === 'customer') {
+        await usersApi.updateUserStatus(targetUser.id, newStatus);
+      } else {
+        await usersApi.updateEmployeeStatus(targetUser.id, newStatus);
+      }
+
+      // Update local state
+      setUsers(users.map(u =>
+        u.id === targetUser.id ? { ...u, status: newStatus ? 'active' : 'inactive' } : u
+      ));
+      showToast('User status updated successfully', 'success');
+    } catch (error: unknown) {
+      console.error('Error updating user status:', error);
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      const errorMessage = axiosError.response?.data?.detail || 'Failed to update user status';
+      showToast(errorMessage, 'error');
+    }
   };
 
-  // Add new user handler
-  const handleAddUser = () => {
+  // Add new staff member handler
+  const handleAddUser = async () => {
     // Validation
     if (!newUserForm.fullName.trim()) {
       showToast('Please enter full name', 'error');
@@ -524,12 +572,6 @@ const AdminDashboard: React.FC = () => {
     }
     if (!newUserForm.email.trim() || !newUserForm.email.includes('@')) {
       showToast('Please enter a valid email address', 'error');
-      return;
-    }
-    // Case-insensitive email comparison
-    const emailLower = newUserForm.email.trim().toLowerCase();
-    if (users.some(u => u.email.toLowerCase() === emailLower)) {
-      showToast('Email already exists', 'error');
       return;
     }
     if (!newUserForm.password || newUserForm.password.length < 6) {
@@ -541,40 +583,39 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
-    // Generate new user ID - handle empty array and invalid IDs safely
-    const userIds = users
-      .map(u => {
-        const idNum = parseInt(u.id.substring(1));
-        return isNaN(idNum) ? 0 : idNum;
-      })
-      .filter(id => id > 0);
-    
-    const maxId = userIds.length > 0 ? Math.max(...userIds) : 0;
-    const newId = `U${String(maxId + 1).padStart(3, '0')}`;
+    try {
+      setIsAddingStaff(true);
 
-    // Create new user
-    const newUser: User = {
-      id: newId,
-      fullName: newUserForm.fullName.trim(),
-      email: newUserForm.email.trim().toLowerCase(),
-      role: newUserForm.role,
-      dateCreated: new Date().toISOString(),
-      status: 'active'
-    };
+      // Call API to create staff member
+      const response = await usersApi.createStaff({
+        email: newUserForm.email.trim().toLowerCase(),
+        full_name: newUserForm.fullName.trim(),
+        password: newUserForm.password,
+        role: newUserForm.role.toUpperCase() as 'MANAGER' | 'AUDITOR'
+      });
 
-    // Add to users list
-    setUsers([...users, newUser]);
+      showToast(`${newUserForm.role === 'manager' ? 'Manager' : 'Auditor'} "${response.full_name}" has been created successfully`, 'success');
 
-    // Reset form and close modal
-    setNewUserForm({
-      fullName: '',
-      email: '',
-      role: 'manager',
-      password: '',
-      confirmPassword: ''
-    });
-    setShowAddUserModal(false);
-    showToast(`${newUserForm.role === 'manager' ? 'Manager' : 'Auditor'} "${newUser.fullName}" has been created successfully`, 'success');
+      // Reset form and close modal
+      setNewUserForm({
+        fullName: '',
+        email: '',
+        role: 'manager',
+        password: '',
+        confirmPassword: ''
+      });
+      setShowAddUserModal(false);
+
+      // Refresh users list
+      await fetchAllUsers();
+    } catch (error: unknown) {
+      console.error('Error creating staff:', error);
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      const errorMessage = axiosError.response?.data?.detail || 'Failed to create staff member';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsAddingStaff(false);
+    }
   };
 
   // Notify manager
@@ -583,12 +624,16 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Refresh stock data
-  const refreshStockData = () => {
+  const refreshStockData = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await fetchLowStockProducts();
       showToast('Stock data refreshed successfully', 'success');
-    }, 1000);
+    } catch (error) {
+      showToast('Failed to refresh stock data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Restock all items
@@ -647,7 +692,7 @@ const AdminDashboard: React.FC = () => {
         <div className="header-content">
           <h1>Japan Lanka Enterprises - Admin Portal</h1>
           <div className="header-actions">
-            <span className="welcome-text">Welcome, {user?.name || user?.email || 'Admin'}!</span>
+            <span className="welcome-text">Welcome, {user?.name || user?.fullName || 'Admin'}!</span>
             <button
               className="profile-header-btn"
               onClick={() => setShowProfile(!showProfile)}
@@ -918,10 +963,11 @@ const AdminDashboard: React.FC = () => {
                   className="search-input"
                 />
               </div>
-              <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className="role-filter">
+              <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as 'all' | 'manager' | 'auditor' | 'customer' | 'admin')} className="role-filter">
                 <option value="all">All Roles</option>
                 <option value="manager">Managers</option>
                 <option value="auditor">Auditors</option>
+                <option value="admin">Admins</option>
                 <option value="customer">Customers</option>
               </select>
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="sort-select">
@@ -932,7 +978,18 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Users Table */}
-            {filteredUsers.length === 0 ? (
+            {isLoadingUsers ? (
+              <div className="loading-state">
+                <Clock size={32} className="loading-icon" />
+                <p>Loading users...</p>
+              </div>
+            ) : usersError ? (
+              <div className="error-state">
+                <AlertTriangle size={32} />
+                <p>{usersError}</p>
+                <button onClick={fetchAllUsers} className="retry-btn">Try Again</button>
+              </div>
+            ) : filteredUsers.length === 0 ? (
               <div className="no-users-found">
                 <div className="no-users-icon"><Search size={48} /></div>
                 <h3>No users found</h3>
@@ -943,7 +1000,7 @@ const AdminDashboard: React.FC = () => {
                 <table className="users-table">
                   <thead>
                     <tr>
-                      <th>User ID</th>
+                      <th>Type</th>
                       <th>Full Name</th>
                       <th>Email</th>
                       <th>Role</th>
@@ -953,40 +1010,47 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map(user => (
-                      <tr key={user.id} className={user.status === 'inactive' ? 'inactive-user' : ''}>
-                        <td><span className="user-id-badge">{user.id}</span></td>
+                    {filteredUsers.map(userItem => (
+                      <tr key={userItem.id} className={userItem.status === 'inactive' ? 'inactive-user' : ''}>
+                        <td>
+                          <span className={`user-type-badge ${userItem.userType}`}>
+                            {userItem.userType === 'employee' ? 'Staff' : 'Customer'}
+                          </span>
+                        </td>
                         <td>
                           <div className="user-name-cell">
                             <div className="user-avatar-small">
-                              {user.fullName.charAt(0)}
+                              {userItem.fullName.charAt(0)}
                             </div>
-                            <span>{user.fullName}</span>
+                            <span>{userItem.fullName}</span>
                           </div>
                         </td>
-                        <td className="email-cell">{user.email}</td>
+                        <td className="email-cell">{userItem.email}</td>
                         <td>
-                          <span className={`role-badge role-${user.role}`}>
-                            {user.role === 'manager' && <Briefcase size={14} />}
-                            {user.role === 'auditor' && <ClipboardList size={14} />}
-                            {user.role === 'customer' && <User size={14} />}
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          <span className={`role-badge role-${userItem.role}`}>
+                            {userItem.role === 'manager' && <Briefcase size={14} />}
+                            {userItem.role === 'auditor' && <ClipboardList size={14} />}
+                            {userItem.role === 'customer' && <User size={14} />}
+                            {userItem.role === 'admin' && <Users size={14} />}
+                            {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
                           </span>
                         </td>
-                        <td>{formatDate(user.dateCreated)}</td>
+                        <td>{formatDate(userItem.dateCreated)}</td>
                         <td>
-                          <button 
-                            className={`status-toggle ${user.status}`}
-                            onClick={() => toggleUserStatus(user.id)}
+                          <button
+                            className={`status-toggle ${userItem.status}`}
+                            onClick={() => toggleUserStatus(userItem)}
+                            disabled={userItem.role === 'admin'}
                           >
-                            {user.status === 'active' ? <><CheckCircle size={14} /> Active</> : <><AlertTriangle size={14} /> Inactive</>}
+                            {userItem.status === 'active' ? <><CheckCircle size={14} /> Active</> : <><AlertTriangle size={14} /> Inactive</>}
                           </button>
                         </td>
                         <td>
                           <button
                             className="delete-user-btn"
-                            onClick={() => handleDeleteUser(user)}
+                            onClick={() => handleDeleteUser(userItem)}
                             title="Delete user"
+                            disabled={userItem.role === 'admin'}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1013,11 +1077,11 @@ const AdminDashboard: React.FC = () => {
             <div className="section-header">
               <div>
                 <h2><AlertTriangle size={20} className="section-icon" /> Low Stock Alert (Quantity &lt; 3)</h2>
-                <p className="last-checked">Last checked: 2 hours ago</p>
+                <p className="last-checked">Real-time data from database</p>
               </div>
               <div className="header-actions">
-                <button className="refresh-btn" onClick={refreshStockData} disabled={isLoading}>
-                  {isLoading ? <Clock size={16} /> : <RefreshCw size={16} />} Refresh Data
+                <button className="refresh-btn" onClick={refreshStockData} disabled={isLoading || isLoadingProducts}>
+                  {isLoading || isLoadingProducts ? <Clock size={16} /> : <RefreshCw size={16} />} Refresh Data
                 </button>
                 {lowStockItems.length > 0 && (
                   <button className="restock-all-btn" onClick={restockAllItems}>
@@ -1027,7 +1091,18 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {lowStockItems.length === 0 ? (
+            {isLoadingProducts ? (
+              <div className="loading-state">
+                <Clock size={32} className="loading-icon" />
+                <p>Loading products...</p>
+              </div>
+            ) : productsError ? (
+              <div className="error-state">
+                <AlertTriangle size={32} />
+                <p>{productsError}</p>
+                <button onClick={fetchLowStockProducts} className="retry-btn">Try Again</button>
+              </div>
+            ) : lowStockItems.length === 0 ? (
               <div className="no-alerts">
                 <div className="no-alerts-icon"><CheckCircle size={48} /></div>
                 <h3>All inventory levels are healthy!</h3>
@@ -1041,13 +1116,39 @@ const AdminDashboard: React.FC = () => {
                       <AlertTriangle size={16} className="alert-icon" />
                       <span className="stock-level">Only {item.quantityAvailable} left!</span>
                     </div>
-                    <div className="item-icon"><Package size={32} /></div>
+                    <div className="item-image-container">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="item-image"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const parent = (e.target as HTMLImageElement).parentElement;
+                            if (parent) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'item-image-placeholder';
+                              placeholder.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+                              parent.appendChild(placeholder);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="item-image-placeholder">
+                          <ImageOff size={48} />
+                        </div>
+                      )}
+                    </div>
                     <div className="item-info">
                       <h3>{item.name}</h3>
-                      <p className="item-model">{item.model} ({item.modelYear})</p>
-                      <p className="item-price">Rs. {item.price.toFixed(2)}</p>
+                      <p className="item-brand">{item.brand}</p>
+                      <p className="item-model">
+                        {item.model}
+                        {item.yearFrom && item.yearTo && ` (${item.yearFrom}-${item.yearTo})`}
+                        {item.yearFrom && !item.yearTo && ` (${item.yearFrom}+)`}
+                      </p>
+                      <p className="item-price">Rs. {item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       <p className="item-category">{item.category}</p>
-                      {item.lastChecked && <p className="item-timestamp">Updated: {item.lastChecked}</p>}
                     </div>
                     <div className="item-actions">
                       <button
@@ -1073,7 +1174,7 @@ const AdminDashboard: React.FC = () => {
               <div className="inventory-stats">
                 <div className="stat-item">
                   <span className="stat-label">Total Products:</span>
-                  <span className="stat-value">{inventoryData.length}</span>
+                  <span className="stat-value">{totalProducts}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Low Stock Items:</span>
@@ -1081,7 +1182,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Healthy Stock:</span>
-                  <span className="stat-value healthy">{inventoryData.length - lowStockItems.length}</span>
+                  <span className="stat-value healthy">{totalProducts - lowStockItems.length}</span>
                 </div>
               </div>
             </div>
@@ -1172,11 +1273,19 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button onClick={() => setShowAddUserModal(false)} className="cancel-btn">
+              <button onClick={() => setShowAddUserModal(false)} className="cancel-btn" disabled={isAddingStaff}>
                 Cancel
               </button>
-              <button onClick={handleAddUser} className="confirm-btn">
-                <CheckCircle size={16} /> Create User
+              <button onClick={handleAddUser} className="confirm-btn" disabled={isAddingStaff}>
+                {isAddingStaff ? (
+                  <>
+                    <Clock size={16} /> Creating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} /> Create User
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1202,20 +1311,28 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="info-row">
                   <span>Role:</span>
-                  <strong>{userToDelete.role}</strong>
+                  <strong>{userToDelete.role.charAt(0).toUpperCase() + userToDelete.role.slice(1)}</strong>
                 </div>
                 <div className="info-row">
-                  <span>User ID:</span>
-                  <strong>{userToDelete.id}</strong>
+                  <span>Type:</span>
+                  <strong>{userToDelete.userType === 'employee' ? 'Staff' : 'Customer'}</strong>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button onClick={() => setShowDeleteModal(false)} className="cancel-delete-btn">
+              <button onClick={() => setShowDeleteModal(false)} className="cancel-delete-btn" disabled={isDeletingUser}>
                 Cancel
               </button>
-              <button onClick={confirmDeleteUser} className="confirm-delete-btn">
-                <Trash2 size={16} /> Delete User
+              <button onClick={confirmDeleteUser} className="confirm-delete-btn" disabled={isDeletingUser}>
+                {isDeletingUser ? (
+                  <>
+                    <Clock size={16} /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} /> Delete User
+                  </>
+                )}
               </button>
             </div>
           </div>

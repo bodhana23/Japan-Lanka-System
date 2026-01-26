@@ -39,6 +39,27 @@ class EmployeeStatusUpdate(BaseModel):
     is_active: bool
 
 
+class EmployeeGoogleAuthRequest(BaseModel):
+    """Schema for employee Google authentication request.
+
+    BUSINESS RULE: Google Sign-In for employees is LOGIN ONLY.
+    The employee must already exist in the database (created by an Admin).
+    This endpoint will NEVER create new employee accounts.
+    """
+    firebase_token: str = Field(..., description="Firebase ID token from Google Sign-In")
+    email: Optional[EmailStr] = Field(None, description="Email from Firebase user object (fallback)")
+    name: Optional[str] = Field(None, description="Display name from Firebase user object (fallback)")
+
+
+class EmployeeForgotPasswordRequest(BaseModel):
+    """Schema for employee forgot password request.
+
+    SECURITY: Never reveals whether an email exists in the system.
+    Rate limited to prevent enumeration attacks.
+    """
+    email: EmailStr
+
+
 # Response schemas
 class EmployeeResponse(BaseModel):
     """Schema for employee response."""

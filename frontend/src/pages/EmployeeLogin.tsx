@@ -74,6 +74,7 @@ const EmployeeLogin: React.FC = () => {
         email: response.user.email,
         full_name: response.user.full_name,
         fullName: response.user.full_name, // For backwards compatibility
+        name: response.user.full_name, // For dashboard welcome message
         role: response.role.toLowerCase(), // Convert MANAGER -> manager
         is_active: response.user.is_active,
         created_at: response.user.created_at,

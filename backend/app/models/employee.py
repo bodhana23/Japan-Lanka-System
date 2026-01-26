@@ -18,19 +18,28 @@ class EmployeeRole(str, PyEnum):
 
 
 class Employee(Base):
-    """Employee model for storing employee information."""
+    """Employee model for storing employee information.
+
+    BUSINESS RULE: Employee accounts are provisioned exclusively by administrators.
+    Google Sign-In is used strictly for authentication, not onboarding.
+    Employees CANNOT self-register - they must be created by an Admin first.
+    """
 
     __tablename__ = "employees"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    # password_hash can be empty for Google-only auth employees
+    password_hash = Column(String(255), nullable=True)
     role = Column(
         Enum(EmployeeRole, name="employee_role", create_type=True),
         nullable=False
     )
     is_active = Column(Boolean, default=True, nullable=False)
+    # Firebase UID for employees using Google Sign-In
+    # This is populated when an employee first logs in via Google
+    firebase_uid = Column(String(255), unique=True, nullable=True, index=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 

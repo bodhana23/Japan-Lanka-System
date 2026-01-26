@@ -2875,3 +2875,131 @@
     flex: 1;
   }
 }
+
+/* Product Image Styles for Low Stock Section */
+.item-image-container {
+  width: 100%;
+  height: 180px;
+  border-radius: 15px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.item-image:hover {
+  transform: scale(1.05);
+}
+
+.item-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #adb5bd;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.item-image-placeholder svg {
+  opacity: 0.5;
+}
+
+.item-brand {
+  color: #00b894;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0 0 0.3rem 0;
+}
+
+/* User Type Badge */
+.user-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-type-badge.customer {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.user-type-badge.employee {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+/* Admin role badge */
+.role-badge.role-admin {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 15px;
+  color: #6c757d;
+  gap: 1rem;
+}
+
+.loading-state .loading-icon {
+  animation: spin 1s linear infinite;
+  color: #00b894;
+}
+
+.error-state {
+  background: rgba(255, 107, 107, 0.1);
+  border: 2px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.retry-btn {
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+}
+
+/* Disabled button styles */
+.delete-user-btn:disabled,
+.status-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

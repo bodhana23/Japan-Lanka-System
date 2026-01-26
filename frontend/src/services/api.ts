@@ -520,6 +520,58 @@ export const usersApi = {
     const response = await api.put<User>(`/users/${id}/status`, { is_active: isActive });
     return response.data;
   },
+
+  deleteCustomer: async (id: string): Promise<{ message: string; deleted_id: string }> => {
+    const response = await api.delete<{ message: string; deleted_id: string }>(`/users/customer/${id}`);
+    return response.data;
+  },
+
+  deleteEmployee: async (id: string): Promise<{ message: string; deleted_id: string }> => {
+    const response = await api.delete<{ message: string; deleted_id: string }>(`/users/employee/${id}`);
+    return response.data;
+  },
+
+  createStaff: async (data: {
+    email: string;
+    full_name: string;
+    password: string;
+    role: 'MANAGER' | 'AUDITOR';
+  }): Promise<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+    message: string;
+  }> => {
+    const response = await api.post('/users/staff', data);
+    return response.data;
+  },
+
+  getEmployees: async (params?: {
+    role?: string;
+    is_active?: boolean;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<{ items: Employee[]; total: number; page: number; page_size: number; total_pages: number }> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get(`/users/employees?${searchParams.toString()}`);
+    return response.data;
+  },
+
+  updateEmployeeStatus: async (id: string, isActive: boolean): Promise<Employee> => {
+    const response = await api.put<Employee>(`/users/employee/${id}/status`, { is_active: isActive });
+    return response.data;
+  },
 };
 
 // ============ RETURNS API ============

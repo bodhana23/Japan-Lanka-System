@@ -440,3 +440,207 @@ async def update_employee_status(
         "created_at": employee.created_at.isoformat() if employee.created_at else None,
         "updated_at": employee.updated_at.isoformat() if employee.updated_at else None
     }
+
+
+# ========== DELETE ENDPOINTS ==========
+
+@router.delete("/customer/{customer_id}")
+async def delete_customer(
+    customer_id: UUID,
+    request: Request,
+    current_user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a customer. Admin only.
+
+    Note: This is a hard delete. For soft delete, use the status endpoint.
+    """
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found"
+        )
+
+    customer_email = customer.email
+    customer_name = customer.full_name
+
+    # Create audit log before deletion
+    audit_log = AuditLog(
+        employee_id=current_user.id,
+        action="customer_deleted",
+        entity_type="customer",
+        entity_id=str(customer_id),
+        details={
+            "deleted_email": customer_email,
+            "deleted_name": customer_name
+        },
+        ip_address=get_client_ip(request)
+    )
+    db.add(audit_log)
+
+    # Delete the customer
+    db.delete(customer)
+    db.commit()
+
+    return {
+        "message": f"Customer '{customer_name}' deleted successfully",
+        "deleted_id": str(customer_id)
+    }
+
+
+@router.delete("/employee/{employee_id}")
+async def delete_employee(
+    employee_id: UUID,
+    request: Request,
+    current_user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete an employee. Admin only.
+
+    Note: Cannot delete yourself.
+    """
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found"
+        )
+
+    # Prevent admin from deleting themselves
+    if employee.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account"
+        )
+
+    employee_email = employee.email
+    employee_name = employee.full_name
+    employee_role = employee.role.value
+
+    # Create audit log before deletion
+    audit_log = AuditLog(
+        employee_id=current_user.id,
+        action="employee_deleted",
+        entity_type="employee",
+        entity_id=str(employee_id),
+        details={
+            "deleted_email": employee_email,
+            "deleted_name": employee_name,
+            "deleted_role": employee_role
+        },
+        ip_address=get_client_ip(request)
+    )
+    db.add(audit_log)
+
+    # Delete the employee
+    db.delete(employee)
+    db.commit()
+
+    return {
+        "message": f"Employee '{employee_name}' deleted successfully",
+        "deleted_id": str(employee_id)
+    }
+
+
+# ========== CREATE STAFF ENDPOINT ==========
+
+class CreateStaffRequest(BaseModel):
+    """Request schema for creating a new staff member (employee)."""
+    email: str
+    full_name: str
+    password: str
+    role: EmployeeRole
+
+
+@router.post("/staff", status_code=status.HTTP_201_CREATED)
+async def create_staff(
+    staff_data: CreateStaffRequest,
+    request: Request,
+    current_user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new staff member (Manager or Auditor). Admin only.
+
+    Business rules:
+    - Email must be unique across all employees
+    - Password is hashed before storage
+    - Only MANAGER and AUDITOR roles can be created (not ADMIN)
+    """
+    from app.utils.security import get_password_hash
+
+    # Validate role - only allow MANAGER and AUDITOR creation
+    if staff_data.role == EmployeeRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot create admin accounts through this endpoint"
+        )
+
+    # Check if email already exists in employees
+    existing_employee = db.query(Employee).filter(
+        Employee.email == staff_data.email.lower()
+    ).first()
+
+    if existing_employee:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An employee with this email already exists"
+        )
+
+    # Check if email exists in customers (optional, for uniqueness across system)
+    existing_customer = db.query(Customer).filter(
+        Customer.email == staff_data.email.lower()
+    ).first()
+
+    if existing_customer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This email is already registered as a customer"
+        )
+
+    # Validate password length
+    if len(staff_data.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters long"
+        )
+
+    # Create the new employee
+    new_employee = Employee(
+        email=staff_data.email.lower().strip(),
+        full_name=staff_data.full_name.strip(),
+        password_hash=get_password_hash(staff_data.password),
+        role=staff_data.role,
+        is_active=True
+    )
+
+    db.add(new_employee)
+
+    # Create audit log
+    audit_log = AuditLog(
+        employee_id=current_user.id,
+        action="staff_created",
+        entity_type="employee",
+        details={
+            "created_email": new_employee.email,
+            "created_name": new_employee.full_name,
+            "created_role": staff_data.role.value
+        },
+        ip_address=get_client_ip(request)
+    )
+    db.add(audit_log)
+
+    db.commit()
+    db.refresh(new_employee)
+
+    return {
+        "id": str(new_employee.id),
+        "email": new_employee.email,
+        "full_name": new_employee.full_name,
+        "role": new_employee.role.value,
+        "is_active": new_employee.is_active,
+        "created_at": new_employee.created_at.isoformat() if new_employee.created_at else None,
+        "message": f"{staff_data.role.value} '{new_employee.full_name}' created successfully"
+    }
