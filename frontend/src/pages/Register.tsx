@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { validateStrongPassword, sanitizeInput, getEmailValidationError, getOptionalPhoneValidationError } from '../utils/validation';
-import { AxiosError } from 'axios';
+import { validateStrongPassword, sanitizeInput, getEmailValidationError } from '../utils/validation';
+import { registerWithFirebase, resendVerificationEmail } from '../config/firebase';
 import './Register.css';
 
-interface ApiError {
-  detail: string;
+interface FirebaseError {
+  code?: string;
+  message?: string;
 }
 
 const Register: React.FC = () => {
@@ -22,8 +23,13 @@ const Register: React.FC = () => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [registeredPassword, setRegisteredPassword] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const navigate = useNavigate();
-  const { register, signInWithGoogle } = useAuth();
+  const { signInWithGoogle } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -116,48 +122,38 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Call the real backend API through AuthContext
-      await register(
-        formData.email.trim().toLowerCase(),
-        formData.fullName.trim(),
-        formData.password,
-        formData.phoneNumber.trim() || undefined
-      );
+      const email = formData.email.trim().toLowerCase();
+      const password = formData.password;
 
-      // Check if there's a redirect URL (for window shoppers who register)
-      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-      if (redirectUrl) {
-        sessionStorage.removeItem('redirectAfterLogin');
-        navigate(redirectUrl);
-        return;
-      }
+      // Create user in Firebase only (not in database yet)
+      // User will be added to database on first login after email verification
+      await registerWithFirebase(email, password);
 
-      // Navigate to customer dashboard
-      navigate('/dashboard');
+      // Store pending registration data for backend to use on first login
+      // This data will be sent when the user logs in after verifying email
+      const pendingRegistration = {
+        email,
+        full_name: formData.fullName.trim(),
+        phone_number: formData.phoneNumber.trim() || null,
+      };
+      localStorage.setItem('pendingRegistration', JSON.stringify(pendingRegistration));
+
+      // Show email verification success screen
+      setRegisteredEmail(email);
+      setRegisteredPassword(password);
+      setRegistrationSuccess(true);
     } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      if (axiosError.response?.data?.detail) {
-        // Parse validation errors from Pydantic
-        const detail = axiosError.response.data.detail;
-        if (typeof detail === 'string') {
-          if (detail.toLowerCase().includes('email')) {
-            setErrors({ email: detail });
-          } else if (detail.toLowerCase().includes('password')) {
-            setErrors({ password: detail });
-          } else if (detail.toLowerCase().includes('name')) {
-            setErrors({ fullName: detail });
-          } else if (detail.toLowerCase().includes('phone')) {
-            setErrors({ phoneNumber: detail });
-          } else {
-            setErrors({ form: detail });
-          }
-        } else {
-          setErrors({ form: 'Validation error. Please check your inputs.' });
-        }
-      } else if (axiosError.message === 'Network Error') {
-        setErrors({ form: 'Cannot connect to server. Please make sure the backend is running.' });
+      const firebaseError = error as FirebaseError;
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        setErrors({ email: 'This email is already registered. Please log in instead.' });
+      } else if (firebaseError.code === 'auth/weak-password') {
+        setErrors({ password: 'Password is too weak. Please use a stronger password.' });
+      } else if (firebaseError.code === 'auth/invalid-email') {
+        setErrors({ email: 'Please enter a valid email address.' });
+      } else if (firebaseError.code === 'auth/network-request-failed') {
+        setErrors({ form: 'Network error. Please check your connection and try again.' });
       } else {
-        setErrors({ form: 'An error occurred during registration. Please try again.' });
+        setErrors({ form: firebaseError.message || 'An error occurred during registration. Please try again.' });
       }
     } finally {
       setIsLoading(false);
@@ -193,6 +189,89 @@ const Register: React.FC = () => {
       setIsGoogleLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setResendMessage('');
+
+    try {
+      await resendVerificationEmail(registeredEmail, registeredPassword);
+      setResendMessage('Verification email sent. Please check your inbox.');
+    } catch (error) {
+      const firebaseError = error as { code?: string; message?: string };
+      if (firebaseError.code === 'auth/too-many-requests') {
+        setResendMessage('Too many requests. Please wait a few minutes before trying again.');
+      } else {
+        setResendMessage('Failed to resend verification email. Please try again.');
+      }
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Show verification success screen after registration
+  if (registrationSuccess) {
+    return (
+      <div className="register-container">
+        <div className="register-card verification-success-card">
+          <div className="company-header">
+            <h1>Japan Lanka Enterprises</h1>
+            <p>Verify Your Email</p>
+          </div>
+
+          <div className="verification-content">
+            <div className="verification-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#00b894" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+
+            <h2>Check Your Email</h2>
+
+            <p className="verification-message">
+              We've sent a verification link to:
+            </p>
+            <p className="verification-email">{registeredEmail}</p>
+
+            <p className="verification-instructions">
+              Click the link in the email to verify your account.
+              Once verified, you can log in and start shopping.
+            </p>
+
+            {resendMessage && (
+              <div className={`resend-message ${resendMessage.includes('Failed') ? 'error' : 'success'}`}>
+                {resendMessage}
+              </div>
+            )}
+
+            <div className="verification-actions">
+              <button
+                type="button"
+                className="resend-btn"
+                onClick={handleResendVerification}
+                disabled={isResending}
+              >
+                {isResending ? 'Sending...' : 'Resend Verification Email'}
+              </button>
+
+              <button
+                type="button"
+                className="back-login-btn"
+                onClick={handleBackToLogin}
+              >
+                Go to Login
+              </button>
+            </div>
+
+            <p className="verification-note">
+              Didn't receive the email? Check your spam folder or click resend above.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="register-container">

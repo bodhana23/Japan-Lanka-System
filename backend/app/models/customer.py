@@ -22,6 +22,9 @@ class Customer(Base):
     password_hash = Column(String(255), nullable=False)
     firebase_uid = Column(String(128), unique=True, nullable=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    # Email verification status - Google OAuth users are auto-verified,
+    # email/password users must verify via Firebase email verification
+    email_verified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=get_current_time, nullable=False)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 

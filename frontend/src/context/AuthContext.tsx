@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, fullName: string, password: string, phoneNumber?: string) => Promise<void>;
+  completeRegistrationAndLogin: (email: string, password: string, fullName: string, phoneNumber?: string | null) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => void;
   updateUser: (data: { full_name?: string; phone_number?: string }) => Promise<void>;
@@ -113,6 +114,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     handleAuthResponse(response);
   };
 
+  const completeRegistrationAndLogin = async (
+    email: string,
+    password: string,
+    fullName: string,
+    phoneNumber?: string | null
+  ): Promise<void> => {
+    const response = await authApi.completeRegistration(email, password, fullName, phoneNumber);
+    handleAuthResponse(response);
+  };
+
   const signInWithGoogle = async (): Promise<void> => {
     try {
       // Open Google Sign-In popup
@@ -164,6 +175,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!token && !!user,
     login,
     register,
+    completeRegistrationAndLogin,
     signInWithGoogle,
     logout,
     updateUser,

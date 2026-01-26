@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
 import { AxiosError } from 'axios';
@@ -7,6 +7,12 @@ import './Login.css';
 
 interface ApiError {
   detail: string;
+}
+
+interface PendingRegistration {
+  email: string;
+  full_name: string;
+  phone_number: string | null;
 }
 
 const Login: React.FC = () => {
@@ -17,7 +23,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, signInWithGoogle } = useAuth();
+  const { login, signInWithGoogle, completeRegistrationAndLogin } = useAuth();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedEmail = sanitizeInput(e.target.value);
@@ -68,11 +74,53 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Call the real backend API through AuthContext
+      // First, try normal login
       await login(email, password);
+      // Clear any pending registration data on successful login
+      localStorage.removeItem('pendingRegistration');
       navigateAfterLogin();
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
+
+      // Check if this is a "user not found" error (401) and we have pending registration data
+      if (axiosError.response?.status === 401) {
+        const pendingDataStr = localStorage.getItem('pendingRegistration');
+        if (pendingDataStr) {
+          try {
+            const pendingData: PendingRegistration = JSON.parse(pendingDataStr);
+
+            // Check if email matches the pending registration
+            if (pendingData.email === email.trim().toLowerCase()) {
+              // Try to complete registration (user verified email and is logging in for first time)
+              try {
+                await completeRegistrationAndLogin(
+                  email,
+                  password,
+                  pendingData.full_name,
+                  pendingData.phone_number
+                );
+                // Clear pending registration data on success
+                localStorage.removeItem('pendingRegistration');
+                navigateAfterLogin();
+                return;
+              } catch (completeError) {
+                const completeAxiosError = completeError as AxiosError<ApiError>;
+                if (completeAxiosError.response?.data?.detail) {
+                  setErrors({ form: completeAxiosError.response.data.detail });
+                } else {
+                  setErrors({ form: 'Failed to complete registration. Please try again.' });
+                }
+                setIsLoading(false);
+                return;
+              }
+            }
+          } catch {
+            // Invalid JSON in localStorage, ignore
+          }
+        }
+      }
+
+      // Normal error handling
       if (axiosError.response?.data?.detail) {
         setErrors({ form: axiosError.response.data.detail });
       } else if (axiosError.message === 'Network Error') {
@@ -217,6 +265,19 @@ const Login: React.FC = () => {
               </button>
             </div>
             {errors.password && <span className="error-message">{errors.password}</span>}
+            <Link
+              to="/forgot-password"
+              style={{
+                display: 'block',
+                textAlign: 'right',
+                marginTop: '0.5rem',
+                color: '#00b894',
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+              }}
+            >
+              Forgot password?
+            </Link>
           </div>
 
           <button type="submit" className="login-btn" disabled={isLoading || isGoogleLoading}>

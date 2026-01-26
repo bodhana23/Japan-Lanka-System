@@ -25,8 +25,8 @@ class CustomerCreate(BaseModel):
             raise ValueError('Full name must be at least 2 characters long')
         if re.search(r'\d', v):
             raise ValueError('Full name cannot contain numbers')
-        # Only allow letters, spaces, hyphens, and apostrophes
-        if not re.match(r"^[a-zA-Z\s\-'\.]+$", v):
+        # Only allow letters, spaces, hyphens, apostrophes, and periods
+        if not re.match(r"^[a-zA-Z .'\-]+$", v):
             raise ValueError('Full name can only contain letters, spaces, hyphens, and apostrophes')
         return v
 
@@ -72,6 +72,52 @@ class GoogleAuthRequest(BaseModel):
     email: Optional[str] = None
 
 
+class ResendVerificationRequest(BaseModel):
+    """Schema for resending email verification."""
+    email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password / password reset request."""
+    email: EmailStr
+
+
+class CompleteRegistrationRequest(BaseModel):
+    """Schema for completing registration after email verification.
+
+    This is sent on first login to provide profile data for the database entry.
+    The user already exists in Firebase with verified email.
+    """
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str = Field(..., min_length=2, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=20)
+
+    @field_validator('full_name')
+    @classmethod
+    def validate_full_name(cls, v: str) -> str:
+        """Validate full name contains no numbers and has at least 2 characters."""
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError('Full name must be at least 2 characters long')
+        if re.search(r'\d', v):
+            raise ValueError('Full name cannot contain numbers')
+        if not re.match(r"^[a-zA-Z .'\-]+$", v):
+            raise ValueError('Full name can only contain letters, spaces, hyphens, and apostrophes')
+        return v
+
+    @field_validator('phone_number')
+    @classmethod
+    def validate_phone_number(cls, v: Optional[str]) -> Optional[str]:
+        """Validate Sri Lankan phone number format (10 digits starting with 0)."""
+        if v is None or v.strip() == '':
+            return None
+        cleaned = re.sub(r'[\s\-()]', '', v)
+        if not re.match(r'^0\d{9}$', cleaned):
+            raise ValueError('Phone number must be 10 digits starting with 0 (e.g., 0771234567)')
+        return cleaned
+
+
 class CustomerUpdate(BaseModel):
     """Schema for updating customer profile."""
     full_name: Optional[str] = Field(None, min_length=2, max_length=255)
@@ -89,7 +135,7 @@ class CustomerUpdate(BaseModel):
             raise ValueError('Full name must be at least 2 characters long')
         if re.search(r'\d', v):
             raise ValueError('Full name cannot contain numbers')
-        if not re.match(r"^[a-zA-Z\s\-'\.]+$", v):
+        if not re.match(r"^[a-zA-Z .'\-]+$", v):
             raise ValueError('Full name can only contain letters, spaces, hyphens, and apostrophes')
         return v
 
@@ -137,6 +183,7 @@ class CustomerResponse(BaseModel):
     address: Optional[str] = None
     is_active: bool
     is_google_user: bool = False
+    email_verified: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -145,9 +192,13 @@ class CustomerResponse(BaseModel):
 
     @classmethod
     def model_validate(cls, obj, **kwargs):
-        """Custom validation to set is_google_user based on firebase_uid."""
-        # Check if firebase_uid exists and is not empty
-        is_google = bool(getattr(obj, 'firebase_uid', None))
+        """Custom validation to set is_google_user based on password_hash.
+
+        Google OAuth users have no password (empty password_hash).
+        Email/password users have a password_hash even if they also have firebase_uid.
+        """
+        # Google users have no password - that's the distinguishing feature
+        is_google = not bool(getattr(obj, 'password_hash', None))
 
         # Create the response with the computed is_google_user field
         data = {
@@ -158,6 +209,7 @@ class CustomerResponse(BaseModel):
             'address': obj.address,
             'is_active': obj.is_active,
             'is_google_user': is_google,
+            'email_verified': obj.email_verified,
             'created_at': obj.created_at,
             'updated_at': obj.updated_at,
         }

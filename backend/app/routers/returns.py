@@ -337,7 +337,13 @@ async def update_return_request_status(
     current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
-    """Update return request status. Manager or Admin only."""
+    """Update return request status. Manager or Admin only.
+
+    Business rules:
+    - A return request can only be approved or rejected once (from PENDING status)
+    - Approved requests cannot be modified again
+    - Rejected requests must include a reason message (admin_notes)
+    """
     return_request = db.query(ReturnRequest).filter(ReturnRequest.id == return_id).first()
 
     if not return_request:
@@ -347,6 +353,22 @@ async def update_return_request_status(
         )
 
     old_status = return_request.status
+
+    # Business rule: Only PENDING requests can be approved or rejected
+    if old_status != ReturnStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot modify return request. Current status is '{old_status.value}'. Only pending requests can be approved or rejected."
+        )
+
+    # Business rule: Rejected requests must include a reason message
+    if status_update.status == ReturnStatus.REJECTED:
+        if not status_update.admin_notes or not status_update.admin_notes.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A reason message is required when rejecting a return request."
+            )
+
     return_request.status = status_update.status
 
     if status_update.admin_notes:

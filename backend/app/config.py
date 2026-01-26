@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     # Firebase settings
     FIREBASE_CREDENTIALS_PATH: str = ""
+    FIREBASE_CLOCK_SKEW_SECONDS: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",

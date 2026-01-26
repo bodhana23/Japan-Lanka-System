@@ -73,10 +73,11 @@ export const validateStrongPassword = (password: string): { isValid: boolean; er
 
 export const sanitizeInput = (input: string): string => {
   if (!input || typeof input !== 'string') return '';
-  
+
   // Remove potentially dangerous characters
+  // Note: Don't trim here - trimming should only happen on form submission
+  // so users can type spaces between words
   return input
-    .trim()
     .replace(/[<>]/g, '') // Remove angle brackets to prevent XSS
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/data:/gi, '') // Remove data: protocol

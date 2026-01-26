@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import EmployeeLogin from './pages/EmployeeLogin';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import CustomerDashboard from './pages/CustomerDashboard';
 import MyOrders from './pages/MyOrders';
 import RequestReturn from './pages/RequestReturn';
@@ -98,6 +99,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/employee-login" element={<EmployeeLogin />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/dashboard" element={<CustomerDashboard />} />
                   <Route path="/customer" element={<CustomerDashboard />} />
                   <Route path="/my-orders" element={<MyOrders />} />

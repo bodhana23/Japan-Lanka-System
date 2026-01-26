@@ -434,12 +434,10 @@ const CustomerDashboard: React.FC = () => {
                       )}
                     </div>
                     {request.admin_notes && (
-                      <div className="cd-order-footer">
+                      <div className="cd-manager-response-container">
                         <span className="cd-admin-note">
-                          <span className="cd-admin-label">Admin Note:</span>
-                          {request.admin_notes.length > 50
-                            ? `${request.admin_notes.substring(0, 50)}...`
-                            : request.admin_notes}
+                          <span className="cd-admin-label">Manager Response:</span>
+                          {request.admin_notes}
                         </span>
                       </div>
                     )}
@@ -498,7 +496,8 @@ const CustomerDashboard: React.FC = () => {
             email: user.email,
             fullName: user.full_name,
             role: user.role,
-            phoneNumber: user.phone_number || ''
+            phoneNumber: user.phone_number || '',
+            is_google_user: user.is_google_user
           }}
           roleLabel="Customer"
         />

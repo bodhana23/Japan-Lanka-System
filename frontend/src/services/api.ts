@@ -346,6 +346,35 @@ export const authApi = {
     });
     return response.data;
   },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/customer/forgot-password', {
+      email,
+    });
+    return response.data;
+  },
+
+  resendVerificationEmail: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/customer/resend-verification', {
+      email,
+    });
+    return response.data;
+  },
+
+  completeRegistration: async (
+    email: string,
+    password: string,
+    fullName: string,
+    phoneNumber?: string | null
+  ): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/customer/complete-registration', {
+      email,
+      password,
+      full_name: fullName,
+      phone_number: phoneNumber,
+    });
+    return response.data;
+  },
 };
 
 // ============ EMPLOYEE AUTH API ============

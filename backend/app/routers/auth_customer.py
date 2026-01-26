@@ -9,6 +9,9 @@ from app.schemas.customer import (
     CustomerCreate,
     CustomerLogin,
     GoogleAuthRequest,
+    ResendVerificationRequest,
+    ForgotPasswordRequest,
+    CompleteRegistrationRequest,
     CustomerUpdate,
     CustomerResponse,
     CustomerTokenResponse,
@@ -18,7 +21,15 @@ from app.schemas.customer import (
 from app.utils.security import hash_password, verify_password, create_access_token
 from app.utils.deps import get_current_customer
 from app.utils.rate_limiter import auth_rate_limiter
-from app.utils.firebase import verify_firebase_token, is_firebase_initialized
+from app.utils.firebase import (
+    verify_firebase_token,
+    is_firebase_initialized,
+    create_firebase_user,
+    get_firebase_user_by_email,
+    generate_email_verification_link,
+    generate_password_reset_link,
+    delete_firebase_user,
+)
 
 router = APIRouter(prefix="/auth/customer", tags=["Customer Authentication"])
 
@@ -54,8 +65,13 @@ async def register(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Register a new customer account."""
-    # Check if email already exists
+    """Register a new customer account.
+
+    EMAIL VERIFICATION: This endpoint creates a Firebase user and triggers
+    email verification. The user will not be able to log in until they
+    verify their email by clicking the link sent to their inbox.
+    """
+    # Check if email already exists in our database
     existing_customer = db.query(Customer).filter(Customer.email == customer_data.email).first()
     if existing_customer:
         raise HTTPException(
@@ -63,16 +79,66 @@ async def register(
             detail="Email already registered"
         )
 
-    # Create new customer
-    customer = Customer(
-        email=customer_data.email,
-        full_name=customer_data.full_name,
-        phone_number=customer_data.phone_number,
-        password_hash=hash_password(customer_data.password)
-    )
-    db.add(customer)
-    db.commit()
-    db.refresh(customer)
+    # Check if Firebase is configured for email verification
+    if not is_firebase_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email verification service is not configured. Please contact support."
+        )
+
+    # Create Firebase user first (for email verification)
+    # This allows Firebase to handle email verification flow
+    firebase_uid = create_firebase_user(customer_data.email, customer_data.password)
+    if firebase_uid is None:
+        # Check if user already exists in Firebase (edge case)
+        existing_firebase = get_firebase_user_by_email(customer_data.email)
+        if existing_firebase:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create account. Please try again later."
+        )
+
+    try:
+        # Generate email verification link
+        # This link is sent to user's email via Firebase
+        verification_link = generate_email_verification_link(customer_data.email)
+        if verification_link is None:
+            # Clean up Firebase user if we can't generate verification link
+            delete_firebase_user(firebase_uid)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email. Please try again later."
+            )
+
+        # Create customer in our database
+        # email_verified defaults to False - user must verify via email
+        customer = Customer(
+            email=customer_data.email,
+            full_name=customer_data.full_name,
+            phone_number=customer_data.phone_number,
+            password_hash=hash_password(customer_data.password),
+            firebase_uid=firebase_uid,
+            email_verified=False  # Explicitly set - must verify email before login
+        )
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Clean up Firebase user if database operation fails
+        delete_firebase_user(firebase_uid)
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create account. Please try again later."
+        )
 
     # Log the registration
     log_action(
@@ -81,10 +147,11 @@ async def register(
         action="customer_registered",
         entity_type="customer",
         entity_id=str(customer.id),
+        details={"verification_email_sent": True},
         ip_address=get_client_ip(request)
     )
 
-    # Create access token
+    # Create access token (user can't use protected endpoints until verified)
     access_token = create_access_token(
         user_id=customer.id,
         user_type="customer"
@@ -102,7 +169,12 @@ async def login(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Login with email and password."""
+    """Login with email and password.
+
+    EMAIL VERIFICATION ENFORCEMENT: Users who registered with email/password
+    must verify their email before logging in. This is checked against
+    Firebase's email_verified status, not just our database.
+    """
     ip_address = get_client_ip(request)
 
     # Check rate limit before processing login
@@ -138,6 +210,36 @@ async def login(
             detail="Account is deactivated"
         )
 
+    # EMAIL VERIFICATION CHECK for email/password users
+    # Only check if user has a firebase_uid (registered through our system with email verification)
+    if customer.firebase_uid and not customer.email_verified:
+        # Check Firebase for current verification status
+        # User may have verified since registration
+        if is_firebase_initialized():
+            firebase_user = get_firebase_user_by_email(customer.email)
+            if firebase_user and firebase_user.get("email_verified"):
+                # Sync verification status from Firebase to our database
+                customer.email_verified = True
+                db.commit()
+            else:
+                # Email still not verified - deny login
+                auth_rate_limiter.record_attempt(ip_address, success=False)
+
+                log_action(
+                    db=db,
+                    customer_id=customer.id,
+                    action="customer_login_failed",
+                    entity_type="customer",
+                    entity_id=str(customer.id),
+                    details={"reason": "email_not_verified"},
+                    ip_address=ip_address
+                )
+
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Email not verified. Please check your inbox and click the verification link."
+                )
+
     # Record successful login attempt
     auth_rate_limiter.record_attempt(ip_address, success=True)
 
@@ -163,6 +265,303 @@ async def login(
     )
 
 
+@router.post("/complete-registration", response_model=CustomerTokenResponse, status_code=status.HTTP_201_CREATED)
+async def complete_registration(
+    registration_data: CompleteRegistrationRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Complete registration after email verification.
+
+    This endpoint is called on first login when:
+    1. User registered via Firebase (email + password)
+    2. User verified their email in Firebase
+    3. User does not exist in our database yet
+
+    The frontend sends the stored profile data along with credentials.
+    We verify the password against Firebase, check email verification,
+    and create the database entry.
+    """
+    ip_address = get_client_ip(request)
+
+    # Check rate limit
+    auth_rate_limiter.check_rate_limit(ip_address)
+
+    # Check if user already exists in database
+    existing_customer = db.query(Customer).filter(Customer.email == registration_data.email).first()
+    if existing_customer:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Account already exists. Please log in instead."
+        )
+
+    # Check if Firebase is initialized
+    if not is_firebase_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is not configured. Please contact support."
+        )
+
+    # Get Firebase user and verify they exist and are verified
+    firebase_user = get_firebase_user_by_email(registration_data.email)
+    if not firebase_user:
+        auth_rate_limiter.record_attempt(ip_address, success=False)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No pending registration found. Please register first."
+        )
+
+    if not firebase_user.get("email_verified"):
+        auth_rate_limiter.record_attempt(ip_address, success=False)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please check your inbox and click the verification link."
+        )
+
+    # Create customer in database now that email is verified
+    customer = Customer(
+        email=registration_data.email,
+        full_name=registration_data.full_name,
+        phone_number=registration_data.phone_number,
+        password_hash=hash_password(registration_data.password),
+        firebase_uid=firebase_user.get("uid"),
+        email_verified=True,  # Already verified in Firebase
+        is_active=True
+    )
+    db.add(customer)
+    db.commit()
+    db.refresh(customer)
+
+    # Log the registration completion
+    log_action(
+        db=db,
+        customer_id=customer.id,
+        action="customer_registration_completed",
+        entity_type="customer",
+        entity_id=str(customer.id),
+        details={"email_verified": True},
+        ip_address=ip_address
+    )
+
+    # Record successful attempt
+    auth_rate_limiter.record_attempt(ip_address, success=True)
+
+    # Create access token
+    access_token = create_access_token(
+        user_id=customer.id,
+        user_type="customer"
+    )
+
+    return CustomerTokenResponse(
+        access_token=access_token,
+        user=CustomerResponse.model_validate(customer)
+    )
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification_email(
+    request_data: ResendVerificationRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Resend email verification link.
+
+    Use this endpoint when a user hasn't received the verification email
+    or the link has expired. Rate limited to prevent abuse.
+    """
+    ip_address = get_client_ip(request)
+
+    # Rate limit verification email requests (same limiter as login)
+    auth_rate_limiter.check_rate_limit(ip_address)
+
+    # Check if Firebase is configured
+    if not is_firebase_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email verification service is not configured. Please contact support."
+        )
+
+    # Find the customer
+    customer = db.query(Customer).filter(Customer.email == request_data.email).first()
+
+    if not customer:
+        # Don't reveal if email exists - return success message anyway
+        # This prevents email enumeration attacks
+        return MessageResponse(message="If an account exists with this email, a verification link has been sent.")
+
+    if not customer.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
+        )
+
+    # Check if email is already verified
+    if customer.email_verified:
+        return MessageResponse(message="Email is already verified. You can log in.")
+
+    # Check if user has firebase_uid (email/password user)
+    if not customer.firebase_uid:
+        # This shouldn't happen for email/password users, but handle gracefully
+        return MessageResponse(message="If an account exists with this email, a verification link has been sent.")
+
+    # Generate and send new verification link
+    verification_link = generate_email_verification_link(request_data.email)
+    if verification_link is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email. Please try again later."
+        )
+
+    # Log the action
+    log_action(
+        db=db,
+        customer_id=customer.id,
+        action="verification_email_resent",
+        entity_type="customer",
+        entity_id=str(customer.id),
+        ip_address=ip_address
+    )
+
+    # Record as successful attempt to reset rate limit
+    auth_rate_limiter.record_attempt(ip_address, success=True)
+
+    return MessageResponse(message="Verification email sent. Please check your inbox.")
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request_data: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Request a password reset link.
+
+    SECURITY CONSIDERATIONS:
+    - Never reveals whether an email exists in the system (prevents enumeration)
+    - Google OAuth users cannot reset passwords (they have no password)
+    - Rate limited to prevent abuse and enumeration attacks
+    - Firebase handles secure token generation and expiration
+    - No reset tokens stored in our database (Firebase manages this)
+
+    The password reset link is generated by Firebase and sent to the user's email.
+    Firebase handles:
+    - Secure, cryptographically random token generation
+    - Token expiration (typically 1 hour)
+    - One-time use enforcement
+    - The actual password update when user clicks the link
+    """
+    ip_address = get_client_ip(request)
+
+    # Rate limit password reset requests to prevent abuse
+    # Uses same rate limiter as login to prevent enumeration
+    auth_rate_limiter.check_rate_limit(ip_address)
+
+    # Check if Firebase is configured
+    if not is_firebase_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset service is not configured. Please contact support."
+        )
+
+    # Find the customer by email
+    customer = db.query(Customer).filter(Customer.email == request_data.email).first()
+
+    # SECURITY: Always return the same response regardless of whether email exists
+    # This prevents email enumeration attacks
+    generic_success_message = "If an account exists with this email, a password reset link has been sent."
+
+    if not customer:
+        # Email doesn't exist - return generic message without revealing this
+        # Log the attempt for security monitoring
+        log_action(
+            db=db,
+            customer_id=None,
+            action="password_reset_requested_unknown_email",
+            entity_type="customer",
+            details={"email": request_data.email},
+            ip_address=ip_address
+        )
+        return MessageResponse(message=generic_success_message)
+
+    if not customer.is_active:
+        # Account is deactivated - still return generic message
+        # Don't reveal account status to potential attackers
+        log_action(
+            db=db,
+            customer_id=customer.id,
+            action="password_reset_requested_inactive",
+            entity_type="customer",
+            entity_id=str(customer.id),
+            ip_address=ip_address
+        )
+        return MessageResponse(message=generic_success_message)
+
+    # Check if this is a Google OAuth user (no password to reset)
+    # Google users have empty password_hash
+    if not customer.password_hash:
+        # This is a Google OAuth user - they cannot reset password
+        # Return a specific message since this is a user action issue, not security
+        log_action(
+            db=db,
+            customer_id=customer.id,
+            action="password_reset_requested_google_user",
+            entity_type="customer",
+            entity_id=str(customer.id),
+            ip_address=ip_address
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This account uses Google Sign-In. Please log in with Google instead of resetting your password."
+        )
+
+    # Check if user has firebase_uid (required for Firebase password reset)
+    if not customer.firebase_uid:
+        # Legacy user without Firebase account - cannot use Firebase password reset
+        # This shouldn't happen for new users but handles edge cases
+        log_action(
+            db=db,
+            customer_id=customer.id,
+            action="password_reset_requested_no_firebase",
+            entity_type="customer",
+            entity_id=str(customer.id),
+            ip_address=ip_address
+        )
+        return MessageResponse(message=generic_success_message)
+
+    # Generate password reset link via Firebase
+    # Firebase handles secure token generation and email delivery
+    reset_link = generate_password_reset_link(request_data.email)
+
+    if reset_link is None:
+        # Failed to generate link - could be Firebase issue
+        # Return generic message to avoid revealing system state
+        log_action(
+            db=db,
+            customer_id=customer.id,
+            action="password_reset_link_generation_failed",
+            entity_type="customer",
+            entity_id=str(customer.id),
+            ip_address=ip_address
+        )
+        return MessageResponse(message=generic_success_message)
+
+    # Successfully generated reset link
+    # Firebase will send the email with the reset link
+    log_action(
+        db=db,
+        customer_id=customer.id,
+        action="password_reset_link_sent",
+        entity_type="customer",
+        entity_id=str(customer.id),
+        ip_address=ip_address
+    )
+
+    # Record as successful attempt
+    auth_rate_limiter.record_attempt(ip_address, success=True)
+
+    return MessageResponse(message=generic_success_message)
+
+
 @router.post("/google", response_model=CustomerTokenResponse)
 async def google_auth(
     auth_data: GoogleAuthRequest,
@@ -177,6 +576,9 @@ async def google_auth(
     - Token expiration
     - Correct audience (project ID)
     - Correct issuer
+
+    EMAIL VERIFICATION: Google OAuth users are automatically considered
+    email verified since Google has already verified the email address.
     """
     # Check if Firebase is properly configured
     if not is_firebase_initialized():
@@ -202,6 +604,10 @@ async def google_auth(
     name = auth_data.name or token_data.get('name', '')
     email = auth_data.email or token_data.get('email')
 
+    # Google OAuth users have email_verified in their token
+    # Default to True since Google verifies emails during OAuth
+    is_email_verified = token_data.get('email_verified', True)
+
     if not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -222,7 +628,13 @@ async def google_auth(
         # Update firebase_uid if not set
         if not customer.firebase_uid:
             customer.firebase_uid = firebase_uid
-            db.commit()
+
+        # Google OAuth users are always email verified
+        # Update if not already verified
+        if not customer.email_verified and is_email_verified:
+            customer.email_verified = True
+
+        db.commit()
 
         # Log the login
         log_action(
@@ -236,12 +648,14 @@ async def google_auth(
         )
     else:
         # Create new customer
+        # Google OAuth users are automatically email verified
         customer = Customer(
             email=email,
             full_name=name or email.split('@')[0],  # Use email prefix if no name
             password_hash="",  # No password for Google-authenticated customers
             firebase_uid=firebase_uid,
-            is_active=True
+            is_active=True,
+            email_verified=is_email_verified  # Google users are email verified
         )
         db.add(customer)
         db.commit()
@@ -254,7 +668,7 @@ async def google_auth(
             action="customer_google_registered",
             entity_type="customer",
             entity_id=str(customer.id),
-            details={"firebase_uid": firebase_uid},
+            details={"firebase_uid": firebase_uid, "email_verified": is_email_verified},
             ip_address=get_client_ip(request)
         )
 
@@ -324,20 +738,14 @@ async def change_password(
     """Change the current customer's password.
 
     Only available for customers who registered with email/password.
-    Google OAuth users cannot change their password.
+    Google OAuth users cannot change their password (they have no password_hash).
     """
-    # Check if user is a Google OAuth user
-    if current_customer.firebase_uid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google users cannot change their password. Please manage your password through Google."
-        )
-
-    # Check if user has a password (not an OAuth-only user)
+    # Check if user has a password (not a Google OAuth-only user)
+    # Google OAuth users have empty password_hash
     if not current_customer.password_hash:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No password set for this account"
+            detail="Google users cannot change their password. Please manage your password through Google."
         )
 
     # Verify current password

@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
-import { productsApi, ordersApi, Product as ApiProduct, Order as ApiOrder } from '../services/api';
+import { productsApi, ordersApi, returnsApi, Product as ApiProduct, Order as ApiOrder, ReturnRequest as ApiReturnRequest } from '../services/api';
 import { formatDateTime } from '../utils/dateUtils';
 import {
   User, Package, Clock, RotateCcw, AlertTriangle, Search, Inbox,
-  Store, Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, X
+  Store, Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, X, FileText, CheckCircle, XCircle
 } from 'lucide-react';
 import './ManagerDashboard.css';
 
 interface Product {
   id: string;
   name: string;
+  description: string;
   brand: string;
   model: string;
   price: number;
@@ -19,16 +20,31 @@ interface Product {
   imageLink: string;
 }
 
-interface ReturnRequest {
+interface ReturnRequestUI {
   id: string;
-  customerName: string;
-  customerEmail: string;
-  orderNumber: string;
-  itemName: string;
+  order_id: string;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestDate: string;
-  messages: { sender: string; message: string; timestamp: string }[];
+  description?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+  order_total?: number;
+  order_status?: string;
+  order_date?: string;
+  items: {
+    id: string;
+    order_item_id: string;
+    quantity: number;
+    created_at: string;
+    product_id?: string;
+    product_name?: string;
+    unit_price?: number;
+    original_quantity?: number;
+  }[];
 }
 
 interface CustomerOrder {
@@ -55,7 +71,6 @@ const ManagerDashboard: React.FC = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
 
@@ -91,8 +106,12 @@ const ManagerDashboard: React.FC = () => {
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  // Return requests state - will be fetched from API when endpoint is available
-  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
+  // Return requests state - fetched from API
+  const [returnRequests, setReturnRequests] = useState<ReturnRequestUI[]>([]);
+  const [isLoadingReturns, setIsLoadingReturns] = useState(true);
+  const [returnsError, setReturnsError] = useState<string | null>(null);
+  const [selectedReturnRequest, setSelectedReturnRequest] = useState<ReturnRequestUI | null>(null);
+  const [returnStatusFilter, setReturnStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   // Fetch products from API
   useEffect(() => {
@@ -107,6 +126,7 @@ const ManagerDashboard: React.FC = () => {
           const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
             id: p.id,
             name: p.name,
+            description: p.description || '',
             brand: p.brand,
             model: p.model,
             price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
@@ -180,8 +200,57 @@ const ManagerDashboard: React.FC = () => {
     };
   }, []);
 
+  // Fetch return requests from API
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchReturnRequests = async () => {
+      try {
+        setIsLoadingReturns(true);
+        setReturnsError(null);
+        const response = await returnsApi.getAllReturns(undefined, 1, 100);
+        if (isMounted) {
+          const transformedReturns: ReturnRequestUI[] = response.items.map((r: ApiReturnRequest) => ({
+            id: r.id,
+            order_id: r.order_id,
+            customer_id: r.customer_id,
+            customer_name: r.customer_name || 'Unknown Customer',
+            customer_email: r.customer_email || '',
+            reason: r.reason,
+            description: r.description,
+            status: r.status,
+            admin_notes: r.admin_notes,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            order_total: r.order_total,
+            order_status: r.order_status,
+            order_date: r.order_date,
+            items: r.items || []
+          }));
+          setReturnRequests(transformedReturns);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Error fetching return requests:', error);
+          setReturnsError('Failed to load return requests.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingReturns(false);
+        }
+      }
+    };
+
+    fetchReturnRequests();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',
+    description: '',
     brand: '',
     model: '',
     price: 0,
@@ -365,6 +434,24 @@ const ManagerDashboard: React.FC = () => {
     return Array.from(brands).sort();
   }, [products]);
 
+  // Filtered return requests
+  const filteredReturnRequests = useMemo(() => {
+    if (returnStatusFilter === 'all') {
+      return returnRequests;
+    }
+    return returnRequests.filter(r => r.status === returnStatusFilter);
+  }, [returnRequests, returnStatusFilter]);
+
+  // Count returns by status for filter chips
+  const returnStatusCounts = useMemo(() => {
+    return {
+      all: returnRequests.length,
+      pending: returnRequests.filter(r => r.status === 'pending').length,
+      approved: returnRequests.filter(r => r.status === 'approved').length,
+      rejected: returnRequests.filter(r => r.status === 'rejected').length
+    };
+  }, [returnRequests]);
+
   // Count products by stock level for filter chips
   const inventoryStockCounts = useMemo(() => {
     return {
@@ -451,6 +538,7 @@ const ManagerDashboard: React.FC = () => {
     setProducts([...products, product]);
     setNewProduct({
       name: '',
+      description: '',
       brand: '',
       model: '',
       price: 0,
@@ -482,48 +570,44 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const handleReturnAction = (returnId: string, action: 'approved' | 'rejected', message?: string) => {
-    setReturnRequests(prev => prev.map(req => {
-      if (req.id === returnId) {
-        const updatedMessages = message ? [
-          ...req.messages,
-          {
-            sender: 'manager1',
-            message: message,
-            timestamp: new Date().toLocaleString()
-          }
-        ] : req.messages;
-        
-        return {
-          ...req,
-          status: action,
-          messages: updatedMessages
-        };
-      }
-      return req;
-    }));
-    
-    setSelectedReturn(null);
-    alert(`Return request ${action} successfully!`);
-  };
+  const [isProcessingReturn, setIsProcessingReturn] = useState(false);
+  const [returnActionError, setReturnActionError] = useState<string | null>(null);
 
-  const handleSendMessage = (returnId: string, message: string) => {
-    setReturnRequests(prev => prev.map(req => {
-      if (req.id === returnId) {
-        return {
-          ...req,
-          messages: [
-            ...req.messages,
-            {
-              sender: 'manager1',
-              message: message,
-              timestamp: new Date().toLocaleString()
-            }
-          ]
-        };
-      }
-      return req;
-    }));
+  const handleReturnAction = async (returnId: string, action: 'approved' | 'rejected', adminNotes?: string) => {
+    // Validation: rejected requests must include a reason
+    if (action === 'rejected' && (!adminNotes || !adminNotes.trim())) {
+      setReturnActionError('A reason message is required when rejecting a return request.');
+      return;
+    }
+
+    setIsProcessingReturn(true);
+    setReturnActionError(null);
+
+    try {
+      const updatedReturn = await returnsApi.updateReturnStatus(returnId, action, adminNotes);
+
+      // Update local state with the response
+      setReturnRequests(prev => prev.map(req => {
+        if (req.id === returnId) {
+          return {
+            ...req,
+            status: updatedReturn.status,
+            admin_notes: updatedReturn.admin_notes,
+            updated_at: updatedReturn.updated_at
+          };
+        }
+        return req;
+      }));
+
+      setSelectedReturnRequest(null);
+      alert(`Return request ${action} successfully!`);
+    } catch (error: any) {
+      console.error('Error updating return status:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to update return request status.';
+      setReturnActionError(errorMessage);
+    } finally {
+      setIsProcessingReturn(false);
+    }
   };
 
   const handleOrderStatusUpdate = (orderId: string, newStatus: CustomerOrder['status']) => {
@@ -859,12 +943,15 @@ const ManagerDashboard: React.FC = () => {
                           if (nextSibling) nextSibling.style.display = 'flex';
                         }} />
                       ) : null}
-                      <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}><Store size={32} /></div>
+                      <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}><Store size={48} /></div>
                     </div>
                     <div className="product-info">
                       <h3>{product.name}</h3>
                       <p className="product-brand">{product.brand}</p>
                       <p className="product-model">{product.model}</p>
+                      {product.description && (
+                        <p className="product-description">{product.description}</p>
+                      )}
                       <p className="product-price">Rs. {product.price.toLocaleString()}</p>
                       <p className="product-stock">Stock: {product.quantity} units</p>
                     </div>
@@ -1149,34 +1236,120 @@ const ManagerDashboard: React.FC = () => {
 
         {activeTab === 'returns' && (
           <div className="returns-section">
-            <h2>Return Requests</h2>
-            <div className="returns-grid">
-              {returnRequests.map(request => (
-                <div key={request.id} className="return-item">
-                  <div className="return-header">
-                    <div className="return-id">Return #{request.id}</div>
-                    <span className={`status-badge ${request.status}`}>
-                      {request.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="return-details">
-                    <p><strong>Customer:</strong> {request.customerName}</p>
-                    <p><strong>Order:</strong> {request.orderNumber}</p>
-                    <p><strong>Item:</strong> {request.itemName}</p>
-                    <p><strong>Reason:</strong> {request.reason}</p>
-                    <p><strong>Date:</strong> {request.requestDate}</p>
-                  </div>
-                  <div className="return-actions">
-                    <button 
-                      className="view-chat-btn"
-                      onClick={() => setSelectedReturn(request)}
-                    >
-                      View Details & Chat
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="section-header">
+              <h2>Return Requests</h2>
             </div>
+
+            {/* Status Filter Chips */}
+            <div className="return-filters-row">
+              <div className="status-filter-chips">
+                <button
+                  className={`filter-chip ${returnStatusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setReturnStatusFilter('all')}
+                >
+                  All Returns
+                  <span className="chip-badge">{returnStatusCounts.all}</span>
+                </button>
+                <button
+                  className={`filter-chip ${returnStatusFilter === 'pending' ? 'active' : ''}`}
+                  onClick={() => setReturnStatusFilter('pending')}
+                >
+                  Pending
+                  <span className="chip-badge">{returnStatusCounts.pending}</span>
+                </button>
+                <button
+                  className={`filter-chip ${returnStatusFilter === 'approved' ? 'active' : ''}`}
+                  onClick={() => setReturnStatusFilter('approved')}
+                >
+                  Approved
+                  <span className="chip-badge">{returnStatusCounts.approved}</span>
+                </button>
+                <button
+                  className={`filter-chip ${returnStatusFilter === 'rejected' ? 'active' : ''}`}
+                  onClick={() => setReturnStatusFilter('rejected')}
+                >
+                  Rejected
+                  <span className="chip-badge">{returnStatusCounts.rejected}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className="results-count">
+              <span>
+                Showing <strong>{filteredReturnRequests.length}</strong> of <strong>{returnRequests.length}</strong> return requests
+              </span>
+            </div>
+
+            {/* Loading State */}
+            {isLoadingReturns ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><RefreshCw size={48} className="spin" /></div>
+                <h3>Loading return requests...</h3>
+              </div>
+            ) : returnsError ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><AlertTriangle size={48} /></div>
+                <h3>Error loading return requests</h3>
+                <p>{returnsError}</p>
+              </div>
+            ) : filteredReturnRequests.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><Inbox size={48} /></div>
+                <h3>No return requests found</h3>
+                <p>{returnStatusFilter === 'all' ? 'There are no return requests yet.' : `No ${returnStatusFilter} return requests.`}</p>
+              </div>
+            ) : (
+              <div className="returns-grid">
+                {filteredReturnRequests.map(request => (
+                  <div key={request.id} className="return-item">
+                    <div className="return-header">
+                      <div className="return-id">Return #{request.id.slice(-8).toUpperCase()}</div>
+                      <span className={`status-badge ${request.status}`}>
+                        {request.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="return-details">
+                      <p><strong>Customer:</strong> {request.customer_name}</p>
+                      <p><strong>Email:</strong> {request.customer_email}</p>
+                      <p><strong>Order:</strong> #{request.order_id.slice(-8).toUpperCase()}</p>
+                      <p><strong>Reason:</strong> {request.reason}</p>
+                      {request.description && (
+                        <p><strong>Description:</strong> {request.description.length > 100 ? `${request.description.substring(0, 100)}...` : request.description}</p>
+                      )}
+                      <p><strong>Date:</strong> {formatDateTime(request.created_at)}</p>
+                      {request.order_total && (
+                        <p><strong>Order Total:</strong> Rs. {request.order_total.toLocaleString()}</p>
+                      )}
+                      {request.items && request.items.length > 0 && (
+                        <div className="return-items-list">
+                          <strong>Items to Return:</strong>
+                          <ul>
+                            {request.items.map((item, idx) => (
+                              <li key={item.id || idx}>
+                                {item.product_name || `Product ${item.product_id?.slice(-8)}`} - Qty: {item.quantity}
+                                {item.unit_price && ` (Rs. ${item.unit_price.toLocaleString()} each)`}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {request.admin_notes && (
+                        <p className="admin-notes-preview"><strong>Manager Note:</strong> {request.admin_notes}</p>
+                      )}
+                    </div>
+                    <div className="return-actions">
+                      <button
+                        className="view-chat-btn"
+                        onClick={() => setSelectedReturnRequest(request)}
+                      >
+                        {request.status === 'pending' ? 'Review & Take Action' : 'View Details'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -1192,11 +1365,20 @@ const ManagerDashboard: React.FC = () => {
             <form className="add-product-form">
               <div className="form-group">
                 <label>Product Name:</label>
-                <input 
+                <input
                   type="text"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
                   placeholder="Enter product name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Description:</label>
+                <textarea
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                  placeholder="Enter product description (optional)"
+                  rows={3}
                 />
               </div>
               <div className="form-group">
@@ -1277,13 +1459,17 @@ const ManagerDashboard: React.FC = () => {
         />
       )}
 
-      {/* Return Chat Modal */}
-      {selectedReturn && (
-        <ReturnChatModal
-          returnRequest={selectedReturn}
-          onClose={() => setSelectedReturn(null)}
+      {/* Return Request Detail Modal */}
+      {selectedReturnRequest && (
+        <ReturnDetailModal
+          returnRequest={selectedReturnRequest}
+          onClose={() => {
+            setSelectedReturnRequest(null);
+            setReturnActionError(null);
+          }}
           onAction={handleReturnAction}
-          onSendMessage={handleSendMessage}
+          isProcessing={isProcessingReturn}
+          error={returnActionError}
         />
       )}
     </div>
@@ -1370,6 +1556,20 @@ const EditProductModal: React.FC<{
               className={errors.name ? 'error' : ''}
             />
             {errors.name && <span className="error-message">{errors.name}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">
+              <FileText size={16} className="label-icon" />
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Enter product description (optional)"
+              rows={3}
+            />
           </div>
 
           <div className="form-row">
@@ -1476,106 +1676,205 @@ const EditProductModal: React.FC<{
 
 
 
-// Return Chat Modal Component
-const ReturnChatModal: React.FC<{
-  returnRequest: ReturnRequest;
+// Return Detail Modal Component
+const ReturnDetailModal: React.FC<{
+  returnRequest: ReturnRequestUI;
   onClose: () => void;
-  onAction: (returnId: string, action: 'approved' | 'rejected', message?: string) => void;
-  onSendMessage: (returnId: string, message: string) => void;
-}> = ({ returnRequest, onClose, onAction, onSendMessage }) => {
-  const [newMessage, setNewMessage] = useState('');
-  const [actionMessage, setActionMessage] = useState('');
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      onSendMessage(returnRequest.id, newMessage);
-      setNewMessage('');
-    }
-  };
+  onAction: (returnId: string, action: 'approved' | 'rejected', adminNotes?: string) => void;
+  isProcessing: boolean;
+  error: string | null;
+}> = ({ returnRequest, onClose, onAction, isProcessing, error }) => {
+  const [adminNotes, setAdminNotes] = useState(returnRequest.admin_notes || '');
 
   const handleAction = (action: 'approved' | 'rejected') => {
-    onAction(returnRequest.id, action, actionMessage || undefined);
-    setActionMessage('');
+    onAction(returnRequest.id, action, adminNotes || undefined);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return '#f39c12';
+      case 'approved': return '#27ae60';
+      case 'rejected': return '#e74c3c';
+      case 'completed': return '#3498db';
+      default: return '#7f8c8d';
+    }
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content chat-modal">
+      <div className="modal-content return-detail-modal">
         <div className="modal-header">
-          <h2>Return Request #{returnRequest.id}</h2>
+          <h2>Return Request #{returnRequest.id.slice(-8).toUpperCase()}</h2>
           <button onClick={onClose} className="close-modal">×</button>
         </div>
-        
-        <div className="return-info">
-          <h4>Request Details</h4>
-          <p><strong>Customer:</strong> {returnRequest.customerName}</p>
-          <p><strong>Email:</strong> {returnRequest.customerEmail}</p>
-          <p><strong>Order:</strong> {returnRequest.orderNumber}</p>
-          <p><strong>Item:</strong> {returnRequest.itemName}</p>
-          <p><strong>Reason:</strong> {returnRequest.reason}</p>
-          <p><strong>Status:</strong> <span className={`status-badge ${returnRequest.status}`}>{returnRequest.status.toUpperCase()}</span></p>
-        </div>
 
-        <div className="chat-section">
-          <h4>Communication</h4>
-          <div className="chat-messages">
-            {returnRequest.messages && returnRequest.messages.length > 0 ? (
-              returnRequest.messages.map((msg, index) => {
-                // Ensure msg exists and has required properties
-                if (!msg || typeof msg !== 'object') {
-                  return null;
-                }
-                return (
-                  <div key={`${returnRequest.id}-${index}`} className={`message ${msg.sender === 'manager1' ? 'manager' : 'customer'}`}>
-                    <div className="message-sender">{msg.sender || 'Unknown'}</div>
-                    <div className="message-content">{msg.message || ''}</div>
-                    <div className="message-time">{msg.timestamp || ''}</div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="no-messages">No messages yet</div>
-            )}
-          </div>
-
-          <div className="chat-input">
-            <input 
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-            />
-            <button onClick={handleSendMessage} className="send-btn">Send</button>
-          </div>
-        </div>
-
-        {returnRequest.status === 'pending' && (
-          <div className="action-section">
-            <h4>Take Action</h4>
-            <div className="form-group">
-              <label>Response Message (Optional):</label>
-              <textarea 
-                value={actionMessage}
-                onChange={(e) => setActionMessage(e.target.value)}
-                placeholder="Add a message with your decision..."
-              />
-            </div>
-            <div className="action-buttons">
-              <button 
-                onClick={() => handleAction('approved')} 
-                className="approve-btn"
-              >
-                Approve Return
-              </button>
-              <button 
-                onClick={() => handleAction('rejected')} 
-                className="reject-btn"
-              >
-                Reject Return
-              </button>
+        <div className="return-detail-content">
+          {/* Customer & Order Info */}
+          <div className="return-info-section">
+            <h4>Customer Information</h4>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">Name:</span>
+                <span className="info-value">{returnRequest.customer_name}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Email:</span>
+                <span className="info-value">{returnRequest.customer_email}</span>
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="return-info-section">
+            <h4>Order Information</h4>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">Order ID:</span>
+                <span className="info-value">#{returnRequest.order_id.slice(-8).toUpperCase()}</span>
+              </div>
+              {returnRequest.order_total && (
+                <div className="info-item">
+                  <span className="info-label">Order Total:</span>
+                  <span className="info-value">Rs. {returnRequest.order_total.toLocaleString()}</span>
+                </div>
+              )}
+              {returnRequest.order_status && (
+                <div className="info-item">
+                  <span className="info-label">Order Status:</span>
+                  <span className="info-value">{returnRequest.order_status}</span>
+                </div>
+              )}
+              {returnRequest.order_date && (
+                <div className="info-item">
+                  <span className="info-label">Order Date:</span>
+                  <span className="info-value">{formatDateTime(returnRequest.order_date)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Return Request Info */}
+          <div className="return-info-section">
+            <h4>Return Request Details</h4>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">Status:</span>
+                <span className="info-value">
+                  <span
+                    className="status-badge-inline"
+                    style={{ backgroundColor: getStatusColor(returnRequest.status), color: 'white' }}
+                  >
+                    {returnRequest.status.toUpperCase()}
+                  </span>
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Request Date:</span>
+                <span className="info-value">{formatDateTime(returnRequest.created_at)}</span>
+              </div>
+              <div className="info-item full-width">
+                <span className="info-label">Reason:</span>
+                <span className="info-value">{returnRequest.reason}</span>
+              </div>
+              {returnRequest.description && (
+                <div className="info-item full-width">
+                  <span className="info-label">Additional Description:</span>
+                  <span className="info-value">{returnRequest.description}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Items to Return */}
+          {returnRequest.items && returnRequest.items.length > 0 && (
+            <div className="return-info-section">
+              <h4>Items to Return</h4>
+              <table className="return-items-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {returnRequest.items.map((item, idx) => (
+                    <tr key={item.id || idx}>
+                      <td>{item.product_name || `Product ${item.product_id?.slice(-8)}`}</td>
+                      <td>{item.quantity}</td>
+                      <td>{item.unit_price ? `Rs. ${item.unit_price.toLocaleString()}` : '-'}</td>
+                      <td>{item.unit_price ? `Rs. ${(item.unit_price * item.quantity).toLocaleString()}` : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Existing Admin Notes (if any and not pending) */}
+          {returnRequest.status !== 'pending' && returnRequest.admin_notes && (
+            <div className="return-info-section">
+              <h4>Manager Response</h4>
+              <div className="existing-admin-notes">
+                {returnRequest.admin_notes}
+              </div>
+            </div>
+          )}
+
+          {/* Action Section (only for pending requests) */}
+          {returnRequest.status === 'pending' && (
+            <div className="return-action-section">
+              <h4>Take Action</h4>
+
+              {error && (
+                <div className="action-error">
+                  <AlertTriangle size={16} />
+                  {error}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="admin-notes">
+                  Manager Message / Notes:
+                  <span className="required-hint">(Required for rejection)</span>
+                </label>
+                <textarea
+                  id="admin-notes"
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Enter your message or reason for the decision..."
+                  rows={4}
+                  disabled={isProcessing}
+                />
+              </div>
+
+              <div className="action-buttons">
+                <button
+                  onClick={() => handleAction('approved')}
+                  className="approve-btn"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <><RefreshCw size={16} className="spin" /> Processing...</>
+                  ) : (
+                    <><CheckCircle size={16} /> Approve Return</>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleAction('rejected')}
+                  className="reject-btn"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <><RefreshCw size={16} className="spin" /> Processing...</>
+                  ) : (
+                    <><XCircle size={16} /> Reject Return</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

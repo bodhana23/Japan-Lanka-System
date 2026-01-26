@@ -23,7 +23,11 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> CurrentUser:
-    """Get the current authenticated user (customer or employee) from JWT token."""
+    """Get the current authenticated user (customer or employee) from JWT token.
+
+    EMAIL VERIFICATION ENFORCEMENT: For customers, this dependency enforces
+    that email/password users must have verified their email.
+    """
     token = credentials.credentials
     payload = decode_access_token(token)
 
@@ -69,6 +73,16 @@ async def get_current_user(
             detail="User account is deactivated"
         )
 
+    # EMAIL VERIFICATION ENFORCEMENT for customers
+    # Deny access to unverified email/password customers
+    if user_type == "customer":
+        customer = user  # Type hint for clarity
+        if customer.firebase_uid and not customer.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email not verified. Please verify your email before accessing this resource."
+            )
+
     return user
 
 
@@ -110,7 +124,12 @@ async def get_current_customer(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> Customer:
-    """Get the current authenticated customer only."""
+    """Get the current authenticated customer only.
+
+    EMAIL VERIFICATION ENFORCEMENT: This dependency enforces that
+    email/password users must have verified their email before
+    accessing protected endpoints.
+    """
     token = credentials.credentials
     payload = decode_access_token(token)
 
@@ -150,6 +169,15 @@ async def get_current_customer(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated"
+        )
+
+    # EMAIL VERIFICATION ENFORCEMENT
+    # Deny access to unverified email/password users
+    # Users with firebase_uid are email/password users who must verify
+    if customer.firebase_uid and not customer.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email before accessing this resource."
         )
 
     return customer
