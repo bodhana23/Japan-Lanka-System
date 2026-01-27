@@ -11,6 +11,8 @@ from app.models.cart import Cart, CartItem
 from app.models.order_status_history import OrderStatusHistory
 from app.models.notification import Notification, NotificationType
 from app.models.inventory_transaction import InventoryTransaction, TransactionType
+from app.models.inventory_log import InventoryLog, InventoryActionType, RelatedEntityType
+from app.models.activity_log import ActivityLog, ActivityType
 
 __all__ = [
     # Customer
@@ -40,6 +42,13 @@ __all__ = [
     # Inventory
     "InventoryTransaction",
     "TransactionType",
-    # Audit
+    # Audit (legacy)
     "AuditLog",
+    # Inventory Logs
+    "InventoryLog",
+    "InventoryActionType",
+    "RelatedEntityType",
+    # Activity Logs
+    "ActivityLog",
+    "ActivityType",
 ]

@@ -1,6 +1,6 @@
 """Returns router for return request management."""
 
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 import math
 
@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import Customer, Employee, Order, ReturnRequest, AuditLog, OrderItem, ReturnItem
+from app.models import Customer, Employee, Order, ReturnRequest, OrderItem, ReturnItem
 from app.models.return_request import ReturnStatus
 from app.models.order import OrderStatus
+from app.services.audit_service import log_inventory_event
+from app.models.inventory_log import InventoryActionType, RelatedEntityType
 from app.schemas.return_request import (
     ReturnRequestCreate,
     ReturnRequestStatusUpdate,
@@ -25,14 +27,6 @@ from app.schemas.return_request import (
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
 
 router = APIRouter(prefix="/returns", tags=["Return Requests"])
-
-
-def get_client_ip(request: Request) -> str:
-    """Get client IP address from request."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 def return_item_to_response(return_item: ReturnItem) -> ReturnItemResponse:
@@ -247,20 +241,15 @@ async def create_return_request(
         )
         db.add(return_item)
 
-    # Create audit log
-    audit_log = AuditLog(
-        customer_id=current_customer.id,
-        action="return_request_created",
-        entity_type="return_request",
-        entity_id=str(return_request.id),
-        details={
-            "order_id": str(return_data.order_id),
-            "reason": return_data.reason,
-            "items_count": len(return_data.items)
-        },
-        ip_address=get_client_ip(request)
+    # Log inventory event for return request creation
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.RETURN_CREATED,
+        description=f"Return request created by {current_customer.email} for Order #{str(order.id)[:8]} ({len(return_data.items)} items)",
+        actor_customer_id=current_customer.id,
+        related_entity_type=RelatedEntityType.RETURN_REQUEST,
+        related_entity_id=return_request.id
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(return_request)
@@ -374,20 +363,29 @@ async def update_return_request_status(
     if status_update.admin_notes:
         return_request.admin_notes = status_update.admin_notes
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_employee.id,
-        action="return_request_status_updated",
-        entity_type="return_request",
-        entity_id=str(return_request.id),
-        details={
-            "old_status": old_status.value,
-            "new_status": status_update.status.value,
-            "admin_notes": status_update.admin_notes or ""
-        },
-        ip_address=get_client_ip(request)
+    # Determine action type based on new status
+    if status_update.status == ReturnStatus.APPROVED:
+        action_type = InventoryActionType.RETURN_APPROVED
+        description = f"Return request approved by {current_employee.email}"
+    elif status_update.status == ReturnStatus.REJECTED:
+        action_type = InventoryActionType.RETURN_REJECTED
+        description = f"Return request rejected by {current_employee.email}: {status_update.admin_notes}"
+    elif status_update.status == ReturnStatus.COMPLETED:
+        action_type = InventoryActionType.RETURN_COMPLETED
+        description = f"Return request completed by {current_employee.email}"
+    else:
+        action_type = InventoryActionType.RETURN_CREATED  # Fallback
+        description = f"Return request status changed to {status_update.status.value} by {current_employee.email}"
+
+    # Log inventory event for return status change
+    log_inventory_event(
+        db=db,
+        action_type=action_type,
+        description=description,
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.RETURN_REQUEST,
+        related_entity_id=return_request.id
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(return_request)

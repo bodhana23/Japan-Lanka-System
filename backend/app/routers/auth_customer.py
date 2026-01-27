@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Customer, AuditLog
+from app.models import Customer
+from app.services.audit_service import log_activity_event
+from app.models.activity_log import ActivityType
 from app.schemas.customer import (
     CustomerCreate,
     CustomerLogin,
@@ -42,21 +44,9 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def log_action(db: Session, customer_id, action: str, entity_type: str = None,
-               entity_id: str = None, details: dict = None, ip_address: str = None):
-    """Create an audit log entry for a customer action."""
-    audit_log = AuditLog(
-        customer_id=customer_id,
-        action=action,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        details=details,
-        ip_address=ip_address
-    )
-    db.add(audit_log)
-    db.commit()
-
-
+def get_user_agent(request: Request) -> str:
+    """Get user agent from request."""
+    return request.headers.get("User-Agent", "unknown")
 
 
 @router.post("/register", response_model=CustomerTokenResponse, status_code=status.HTTP_201_CREATED)
@@ -141,15 +131,15 @@ async def register(
         )
 
     # Log the registration
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_REGISTERED,
+        description=f"Customer {customer.email} registered (verification email sent)",
         customer_id=customer.id,
-        action="customer_registered",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        details={"verification_email_sent": True},
-        ip_address=get_client_ip(request)
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
+    db.commit()
 
     # Create access token (user can't use protected endpoints until verified)
     access_token = create_access_token(
@@ -176,6 +166,7 @@ async def login(
     Firebase's email_verified status, not just our database.
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Check rate limit before processing login
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -187,14 +178,15 @@ async def login(
         auth_rate_limiter.record_attempt(ip_address, success=False)
 
         # Log failed login attempt
-        log_action(
+        log_activity_event(
             db=db,
-            customer_id=None,
-            action="customer_login_failed",
-            entity_type="customer",
-            details={"email": credentials.email, "reason": "invalid_credentials"},
-            ip_address=ip_address
+            activity_type=ActivityType.CUSTOMER_LOGIN_FAILED,
+            description=f"Failed login attempt for {credentials.email} (invalid credentials)",
+            customer_id=customer.id if customer else None,
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -225,15 +217,15 @@ async def login(
                 # Email still not verified - deny login
                 auth_rate_limiter.record_attempt(ip_address, success=False)
 
-                log_action(
+                log_activity_event(
                     db=db,
+                    activity_type=ActivityType.CUSTOMER_LOGIN_FAILED,
+                    description=f"Failed login attempt for {customer.email} (email not verified)",
                     customer_id=customer.id,
-                    action="customer_login_failed",
-                    entity_type="customer",
-                    entity_id=str(customer.id),
-                    details={"reason": "email_not_verified"},
-                    ip_address=ip_address
+                    ip_address=ip_address,
+                    user_agent=user_agent
                 )
+                db.commit()
 
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -244,14 +236,15 @@ async def login(
     auth_rate_limiter.record_attempt(ip_address, success=True)
 
     # Log the login
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_LOGIN,
+        description=f"Customer {customer.email} logged in",
         customer_id=customer.id,
-        action="customer_login",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Create access token
     access_token = create_access_token(
@@ -283,6 +276,7 @@ async def complete_registration(
     and create the database entry.
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Check rate limit
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -333,15 +327,15 @@ async def complete_registration(
     db.refresh(customer)
 
     # Log the registration completion
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_REGISTERED,
+        description=f"Customer {customer.email} completed registration (email verified)",
         customer_id=customer.id,
-        action="customer_registration_completed",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        details={"email_verified": True},
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Record successful attempt
     auth_rate_limiter.record_attempt(ip_address, success=True)
@@ -370,6 +364,7 @@ async def resend_verification_email(
     or the link has expired. Rate limited to prevent abuse.
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Rate limit verification email requests (same limiter as login)
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -413,14 +408,15 @@ async def resend_verification_email(
         )
 
     # Log the action
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_VERIFICATION_EMAIL_RESENT,
+        description=f"Verification email resent to {customer.email}",
         customer_id=customer.id,
-        action="verification_email_resent",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Record as successful attempt to reset rate limit
     auth_rate_limiter.record_attempt(ip_address, success=True)
@@ -451,6 +447,7 @@ async def forgot_password(
     - The actual password update when user clicks the link
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Rate limit password reset requests to prevent abuse
     # Uses same rate limiter as login to prevent enumeration
@@ -473,27 +470,28 @@ async def forgot_password(
     if not customer:
         # Email doesn't exist - return generic message without revealing this
         # Log the attempt for security monitoring
-        log_action(
+        log_activity_event(
             db=db,
-            customer_id=None,
-            action="password_reset_requested_unknown_email",
-            entity_type="customer",
-            details={"email": request_data.email},
-            ip_address=ip_address
+            activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested for unknown email: {request_data.email}",
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     if not customer.is_active:
         # Account is deactivated - still return generic message
         # Don't reveal account status to potential attackers
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested for inactive account: {customer.email}",
             customer_id=customer.id,
-            action="password_reset_requested_inactive",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     # Check if this is a Google OAuth user (no password to reset)
@@ -501,14 +499,15 @@ async def forgot_password(
     if not customer.password_hash:
         # This is a Google OAuth user - they cannot reset password
         # Return a specific message since this is a user action issue, not security
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested by Google user: {customer.email}",
             customer_id=customer.id,
-            action="password_reset_requested_google_user",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This account uses Google Sign-In. Please log in with Google instead of resetting your password."
@@ -518,14 +517,15 @@ async def forgot_password(
     if not customer.firebase_uid:
         # Legacy user without Firebase account - cannot use Firebase password reset
         # This shouldn't happen for new users but handles edge cases
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested for legacy account (no Firebase): {customer.email}",
             customer_id=customer.id,
-            action="password_reset_requested_no_firebase",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     # Generate password reset link via Firebase
@@ -535,26 +535,28 @@ async def forgot_password(
     if reset_link is None:
         # Failed to generate link - could be Firebase issue
         # Return generic message to avoid revealing system state
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset link generation failed for {customer.email}",
             customer_id=customer.id,
-            action="password_reset_link_generation_failed",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     # Successfully generated reset link
     # Firebase will send the email with the reset link
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+        description=f"Password reset link sent to {customer.email}",
         customer_id=customer.id,
-        action="password_reset_link_sent",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Record as successful attempt
     auth_rate_limiter.record_attempt(ip_address, success=True)
@@ -580,6 +582,9 @@ async def google_auth(
     EMAIL VERIFICATION: Google OAuth users are automatically considered
     email verified since Google has already verified the email address.
     """
+    ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
     # Check if Firebase is properly configured
     if not is_firebase_initialized():
         raise HTTPException(
@@ -637,15 +642,15 @@ async def google_auth(
         db.commit()
 
         # Log the login
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_GOOGLE_LOGIN,
+            description=f"Customer {customer.email} logged in via Google",
             customer_id=customer.id,
-            action="customer_google_login",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            details={"firebase_uid": firebase_uid},
-            ip_address=get_client_ip(request)
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
     else:
         # Create new customer
         # Google OAuth users are automatically email verified
@@ -662,15 +667,15 @@ async def google_auth(
         db.refresh(customer)
 
         # Log the registration
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_GOOGLE_REGISTERED,
+            description=f"Customer {customer.email} registered via Google",
             customer_id=customer.id,
-            action="customer_google_registered",
-            entity_type="customer",
-            entity_id=str(customer.id),
-            details={"firebase_uid": firebase_uid, "email_verified": is_email_verified},
-            ip_address=get_client_ip(request)
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
 
     # Create access token
     access_token = create_access_token(
@@ -715,15 +720,15 @@ async def update_profile(
     db.refresh(current_customer)
 
     # Log the update
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_PROFILE_UPDATED,
+        description=f"Customer {current_customer.email} updated profile: {', '.join(update_dict.keys())}",
         customer_id=current_customer.id,
-        action="customer_profile_updated",
-        entity_type="customer",
-        entity_id=str(current_customer.id),
-        details={"updated_fields": list(update_dict.keys())},
-        ip_address=get_client_ip(request)
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
+    db.commit()
 
     return CustomerResponse.model_validate(current_customer)
 
@@ -740,6 +745,9 @@ async def change_password(
     Only available for customers who registered with email/password.
     Google OAuth users cannot change their password (they have no password_hash).
     """
+    ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
     # Check if user has a password (not a Google OAuth-only user)
     # Google OAuth users have empty password_hash
     if not current_customer.password_hash:
@@ -751,15 +759,15 @@ async def change_password(
     # Verify current password
     if not verify_password(password_data.current_password, current_customer.password_hash):
         # Log failed attempt
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.CUSTOMER_PASSWORD_CHANGE_FAILED,
+            description=f"Customer {current_customer.email} failed to change password (invalid current password)",
             customer_id=current_customer.id,
-            action="customer_password_change_failed",
-            entity_type="customer",
-            entity_id=str(current_customer.id),
-            details={"reason": "invalid_current_password"},
-            ip_address=get_client_ip(request)
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect"
@@ -770,13 +778,14 @@ async def change_password(
     db.commit()
 
     # Log the password change
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.CUSTOMER_PASSWORD_CHANGED,
+        description=f"Customer {current_customer.email} changed password",
         customer_id=current_customer.id,
-        action="customer_password_changed",
-        entity_type="customer",
-        entity_id=str(current_customer.id),
-        ip_address=get_client_ip(request)
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     return MessageResponse(message="Password changed successfully")

@@ -413,7 +413,13 @@ const Checkout: React.FC = () => {
               <div className="order-items">
                 {cart.map(item => (
                   <div key={item.id} className="order-item">
-                    <div className="item-icon">{item.image && !item.image.startsWith('http') ? <Package size={24} /> : (item.image || <Package size={24} />)}</div>
+                    <div className="item-icon">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="item-image" />
+                      ) : (
+                        <Package size={24} />
+                      )}
+                    </div>
                     <div className="item-details">
                       <h4>{item.name}</h4>
                       <p className="item-model">{item.brand} {item.model}</p>

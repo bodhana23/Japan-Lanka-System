@@ -1,4 +1,5 @@
 # Claude.md - Japan Lanka System Reference
+*Last updated: January 27, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -8,6 +9,8 @@
 - PostgreSQL database with SQLAlchemy ORM (3NF normalized)
 - JWT authentication with bcrypt password hashing
 - Google OAuth integration via Firebase
+- Return request system for order management
+- Real-time notifications and audit logging
 
 ## Tech Stack
 
@@ -81,7 +84,8 @@ Japan-Lanka-System/
 │   │   ├── init_db.py                  # Database seeding
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   ├── user.py
+│   │   │   ├── customer.py             # Customer model
+│   │   │   ├── employee.py             # Employee model
 │   │   │   ├── product.py
 │   │   │   ├── order.py
 │   │   │   ├── order_item.py
@@ -93,16 +97,20 @@ Japan-Lanka-System/
 │   │   │   └── audit_log.py
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
-│   │   │   ├── user.py
 │   │   │   ├── product.py
 │   │   │   ├── order.py
 │   │   │   ├── cart.py
+│   │   │   ├── customer.py             # Customer model
+│   │   │   ├── employee.py             # Employee model  
+│   │   │   ├── return_request.py       # Return requests
 │   │   │   ├── notification.py
 │   │   │   ├── order_status_history.py
+│   │   │   ├── audit_log.py            # System audit trails
 │   │   │   └── inventory_transaction.py
 │   │   ├── routers/
 │   │   │   ├── __init__.py
-│   │   │   ├── auth.py                 # Authentication endpoints
+│   │   │   ├── auth_customer.py        # Customer authentication
+│   │   │   ├── auth_employee.py        # Employee authentication
 │   │   │   ├── products.py             # Product CRUD
 │   │   │   ├── orders.py               # Order management
 │   │   │   ├── users.py                # User management
@@ -110,12 +118,21 @@ Japan-Lanka-System/
 │   │   │   ├── notifications.py        # Notifications API
 │   │   │   ├── inventory.py            # Inventory transactions
 │   │   │   └── returns.py              # Return requests
+│   │   ├── schemas/
+│   │   │   ├── customer.py             # Customer validation schemas
+│   │   │   ├── employee.py             # Employee validation schemas
+│   │   │   ├── product.py              # Product schemas
+│   │   │   ├── order.py                # Order schemas
+│   │   │   ├── return_request.py       # Return request schemas
+│   │   │   └── notification.py         # Notification schemas
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   └── notification_service.py # Notification helpers
 │   │   └── utils/
 │   │       ├── __init__.py
-│   │       └── security.py             # JWT & password utils
+│   │       ├── deps.py                 # FastAPI dependencies
+│   │       ├── security.py             # JWT & password utils
+│   │       └── firebase.py             # Firebase token verification
 │   ├── alembic/                        # Database migrations
 │   ├── requirements.txt
 │   └── alembic.ini
@@ -125,14 +142,22 @@ Japan-Lanka-System/
 
 ## API Endpoints
 
-### Authentication (`/api/v1/auth`)
+### Customer Authentication (`/api/v1/auth/customer`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/register` | Register new customer |
-| POST | `/login` | Login and get JWT token |
+| POST | `/login` | Customer login with JWT |
 | POST | `/google` | Google OAuth login |
-| GET | `/me` | Get current user profile |
-| PUT | `/me` | Update current user profile |
+| POST | `/complete-registration` | Complete Google signup |
+| GET | `/me` | Get current customer profile |
+| PUT | `/me` | Update customer profile |
+
+### Employee Authentication (`/api/v1/auth/employee`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/login` | Employee login with JWT |
+| GET | `/me` | Get current employee profile |
+| PUT | `/me` | Update employee profile |
 
 ### Products (`/api/v1/products`)
 | Method | Endpoint | Description |
@@ -144,6 +169,34 @@ Japan-Lanka-System/
 | DELETE | `/{id}` | Soft delete product (manager+) |
 
 ### Orders (`/api/v1/orders`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/my-orders` | Get customer's orders |
+| GET | `/` | List all orders (employees) |
+| POST | `/` | Create new order |
+| GET | `/{id}` | Get order details |
+| PUT | `/{id}/status` | Update order status (employees) |
+
+### Returns (`/api/v1/returns`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/my-requests` | Get customer's return requests |
+| GET | `/eligible-orders` | Get orders eligible for return |
+| POST | `/` | Create return request |
+| GET | `/` | List return requests (employees see all) |
+| GET | `/{id}` | Get return request details |
+| PUT | `/{id}/status` | Update return status (manager+) |
+
+### Cart (`/api/v1/cart`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Get current cart items |
+| POST | `/items` | Add item to cart |
+| PUT | `/items/{id}` | Update cart item quantity |
+| DELETE | `/items/{id}` | Remove item from cart |
+| DELETE | `/clear` | Clear entire cart |
+
+### Notifications (`/api/v1/notifications`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | List all orders (manager+) |
@@ -195,23 +248,40 @@ Japan-Lanka-System/
 
 ## Database Models (3NF Normalized)
 
-### User
+### Customer
 ```python
-class User(Base):
+class Customer(Base):
     id: UUID
     email: str (unique)
-    hashed_password: str
     full_name: str
     phone_number: str (optional)
-    role: Enum['customer', 'manager', 'admin', 'auditor']
+    address: str (optional)
+    password_hash: str (optional)  # None for Google OAuth users
+    firebase_uid: str (optional)   # For Google OAuth users
+    email_verified: bool
     is_active: bool
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
     # Relationships
     orders: List[Order]
-    cart: Cart
+    cart_items: List[CartItem]
     notifications: List[Notification]
     return_requests: List[ReturnRequest]
+```
+
+### Employee
+```python
+class Employee(Base):
+    id: UUID
+    email: str (unique)
+    full_name: str
+    password_hash: str
+    role: Enum['manager', 'admin', 'auditor']
+    is_active: bool
+    created_at: datetime (UTC)
+    updated_at: datetime (UTC)
+    # Relationships
+    audit_logs: List[AuditLog]
 ```
 
 ### Product
@@ -239,20 +309,21 @@ class Product(Base):
 ```python
 class Order(Base):
     id: UUID
-    user_id: UUID (FK)
+    customer_id: UUID (FK)
     status: Enum['pending', 'confirmed', 'shipped', 'ready_to_pickup', 'delivered', 'cancelled']
     delivery_method: Enum['pickup', 'shipping']
     total_amount: Decimal
     shipping_address: str (optional)
     shipping_city: str (optional)
-    shipping_postal_code: str (optional)
+    payment_status: Enum['pending', 'paid', 'failed']
     notes: str (optional)
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
     # Relationships
+    customer: Customer
     items: List[OrderItem]
     status_history: List[OrderStatusHistory]
-    user: User  # Customer phone fetched from user.phone_number
+    return_requests: List[ReturnRequest]
 ```
 
 ### OrderItem
@@ -264,17 +335,26 @@ class OrderItem(Base):
     quantity: int
     unit_price: Decimal
     created_at: datetime (UTC)
+    # Relationships
+    order: Order
+    product: Product
+    return_items: List[ReturnItem]
 ```
 
-### Cart
+### Cart & CartItem
 ```python
 class Cart(Base):
     id: UUID
-    user_id: UUID (FK, unique)
+    customer_id: UUID (FK)
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
-    # Relationships
-    items: List[CartItem]
+
+class CartItem(Base):
+    id: UUID
+    cart_id: UUID (FK)
+    product_id: UUID (FK)
+    quantity: int
+    created_at: datetime (UTC)
 ```
 
 ### CartItem
@@ -291,7 +371,8 @@ class CartItem(Base):
 ```python
 class Notification(Base):
     id: UUID
-    user_id: UUID (FK)
+    customer_id: UUID (FK, optional)
+    employee_id: UUID (FK, optional)
     title: str
     message: str
     type: Enum['order_update', 'return_update', 'system', 'promotion']
@@ -308,7 +389,7 @@ class OrderStatusHistory(Base):
     order_id: UUID (FK)
     old_status: str (optional)
     new_status: str
-    changed_by_id: UUID (FK to User)
+    changed_by_employee_id: UUID (FK to Employee)
     notes: str (optional)
     created_at: datetime (UTC)
 ```
@@ -324,33 +405,83 @@ class InventoryTransaction(Base):
     quantity_after: int
     reference_id: UUID (optional)  # order_id or return_id
     notes: str (optional)
-    created_by_id: UUID (FK to User)
+    employee_id: UUID (FK to Employee)
     created_at: datetime (UTC)
 ```
 
-### ReturnRequest
+### ReturnRequest & ReturnItem
 ```python
 class ReturnRequest(Base):
     id: UUID
     order_id: UUID (FK)
-    user_id: UUID (FK)
+    customer_id: UUID (FK)
     reason: str
+    description: str (optional)
     status: Enum['pending', 'approved', 'rejected', 'completed']
     admin_notes: str (optional)
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
+    # Relationships
+    order: Order
+    customer: Customer
+    return_items: List[ReturnItem]
+
+class ReturnItem(Base):
+    id: UUID
+    return_request_id: UUID (FK)
+    order_item_id: UUID (FK)
+    quantity: int
+    created_at: datetime (UTC)
 ```
 
 ### AuditLog
 ```python
 class AuditLog(Base):
     id: UUID
-    user_id: UUID (FK, optional)
+    customer_id: UUID (FK, optional)
+    employee_id: UUID (FK, optional)
     action: str
     entity_type: str
-    entity_id: UUID (optional)
-    old_values: JSON (optional)
-    new_values: JSON (optional)
+    entity_id: str (optional)
+    details: JSON (optional)
+    ip_address: str (optional)
+    created_at: datetime (UTC)
+```
+
+### Notification
+```python
+class Notification(Base):
+    id: UUID
+    customer_id: UUID (FK, optional)
+    employee_id: UUID (FK, optional)
+    title: str
+    message: str
+    type: Enum['order_update', 'return_update', 'system', 'promotion']
+    is_read: bool (default: False)
+    related_order_id: UUID (optional)
+    related_return_id: UUID (optional)
+    created_at: datetime (UTC)
+```
+
+## Business Rules & Validation
+
+### Authentication
+- **Customer Registration**: Email + password OR Google OAuth
+- **Email Verification**: Required for email/password users via Firebase
+- **Password Rules**: 8+ chars, uppercase, lowercase, number, special char
+- **Full Name**: Letters, spaces, hyphens, apostrophes only (no numbers)
+- **Phone**: Sri Lankan format (10 digits starting with 0)
+
+### Orders
+- **Eligible Status**: Only `delivered` or `ready_to_pickup` orders can be returned
+- **Return Window**: No time limit enforced (business decision)
+- **Partial Returns**: Supported - customers can return specific items/quantities
+- **Return Reasons**: Damaged/Defective, Wrong Item, Not As Described, Changed Mind, Other
+
+### Inventory
+- **Stock Tracking**: Real-time quantity updates via `InventoryTransaction`
+- **Return Processing**: Approved returns add stock back via `return_in` transaction
+- **Audit Trail**: All inventory changes logged with reference to order/return
     ip_address: str (optional)
     user_agent: str (optional)
     created_at: datetime (UTC)
@@ -396,16 +527,36 @@ notificationsApi.markAllAsRead()
 notificationsApi.deleteNotification(id)
 
 // Returns
-returnsApi.getReturns(params?)
-returnsApi.getMyReturns()
-returnsApi.createReturn(orderId, reason)
+returnsApi.getEligibleOrders()               // Orders that can be returned
+returnsApi.getMyReturns(status?, page?, pageSize?)
+returnsApi.createReturn(data)                // Create return request
+returnsApi.getAllReturns(status?, page?, pageSize?)  // Admin/Manager view
+returnsApi.getReturn(id)                     // Get specific return
 returnsApi.updateReturnStatus(id, status, adminNotes?)
 
-// Users
+// Users/Employees
 usersApi.getUsers(params?)
 usersApi.getUser(id)
 usersApi.updateUserRole(id, role)
 usersApi.updateUserStatus(id, isActive)
+```
+
+## Recent Fixes & Updates
+
+### Performance Optimization (Jan 26-27, 2026)
+- **Backend Performance**: Added `watchfiles` to prevent high CPU usage during development
+- **Database Optimization**: Configured connection pooling with proper timeouts
+- **Firebase Clock Skew**: Added `FIREBASE_CLOCK_SKEW_SECONDS=10` to handle token timing issues
+
+### UI Improvements
+- **Icon Consistency**: Replaced all emojis with `lucide-react` icons across dashboards
+- **Return Request UI**: Enhanced with proper status indicators and item selection
+- **Error Handling**: Improved error messages and user feedback
+
+### Validation Fixes
+- **Regex Patterns**: Fixed Python 3.14 compatibility issues in name validation
+- **Full Name Validation**: Now properly allows spaces between names
+- **Phone Validation**: Sri Lankan format (10 digits starting with 0)
 ```
 
 ## Date/Time Handling
@@ -556,15 +707,47 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Created `dateUtils.ts` for Sri Lanka timezone formatting
 - Updated all dashboard components to use date utilities
 
-### Files Created
-- `backend/app/models/cart.py`
-- `backend/app/models/notification.py`
-- `backend/app/models/order_status_history.py`
-- `backend/app/models/inventory_transaction.py`
-- `backend/app/routers/cart.py`
-- `backend/app/routers/notifications.py`
-- `backend/app/routers/inventory.py`
-- `backend/app/schemas/cart.py`
+### Environment Setup
+```bash
+# Backend setup
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+
+# Environment variables (.env)
+DATABASE_URL=postgresql://user:pass@localhost/japanlanka
+JWT_SECRET_KEY=your-secret-key-here
+FIREBASE_CREDENTIALS_PATH=/path/to/firebase-service-account.json
+FIREBASE_CLOCK_SKEW_SECONDS=10
+
+# Frontend setup
+cd frontend
+npm install
+npm run dev
+```
+
+### Known Issues & Solutions
+- **Firebase Clock Skew**: Set `FIREBASE_CLOCK_SKEW_SECONDS=10` to handle timing issues
+- **Regex Validation**: Updated for Python 3.14 compatibility (hyphen at end of character classes)
+- **High CPU**: Added `watchfiles` dependency for efficient development server reloading
+- **Memory Usage**: Configured database connection pooling with proper timeouts
+
+### Security Features
+- JWT tokens with 24-hour expiry
+- Password hashing with bcrypt
+- Firebase token cryptographic verification
+- SQL injection prevention via SQLAlchemy ORM
+- Role-based access control (RBAC)
+- Input validation and sanitization
+- Audit logging for all critical actions
+
+### Performance Optimizations
+- Database connection pooling (`pool_size=5, max_overflow=10, pool_recycle=1800`)
+- Efficient file watching during development (`watchfiles`)
+- Paginated API responses with configurable page sizes
+- Indexed database columns for frequent queries
+- Client-side caching for user authentication state
 - `backend/app/schemas/notification.py`
 - `backend/app/schemas/inventory_transaction.py`
 - `backend/app/services/notification_service.py`

@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
-import { Users, Briefcase, Search, User, Mail, Lock, CheckCircle } from 'lucide-react';
+import {
+  Users, Briefcase, Search, User, Mail, Lock, CheckCircle,
+  Trash2, UserCheck, UserX, RefreshCw, ChevronLeft, ChevronRight,
+  AlertCircle, X
+} from 'lucide-react';
+import { usersApi, Customer, Employee } from '../services/api';
 import './ManageUsers.css';
 
 interface UserForm {
@@ -10,12 +15,110 @@ interface UserForm {
   password: string;
 }
 
+type TabType = 'customers' | 'employees';
+
 const ManageUsers: React.FC = () => {
   const navigate = useNavigate();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('customers');
+
+  // Form states
   const [activeForm, setActiveForm] = useState<'manager' | 'auditor' | null>(null);
   const [managerForm, setManagerForm] = useState<UserForm>({ name: '', email: '', password: '' });
   const [auditorForm, setAuditorForm] = useState<UserForm>({ name: '', email: '', password: '' });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  // User list states
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Pagination
+  const [customerPage, setCustomerPage] = useState(1);
+  const [employeePage, setEmployeePage] = useState(1);
+  const [customerTotalPages, setCustomerTotalPages] = useState(1);
+  const [employeeTotalPages, setEmployeeTotalPages] = useState(1);
+  const [customerTotal, setCustomerTotal] = useState(0);
+  const [employeeTotal, setEmployeeTotal] = useState(0);
+
+  // Search
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{type: 'customer' | 'employee', id: string, name: string} | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Fetch customers
+  const fetchCustomers = async (page: number = 1, search?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await usersApi.getCustomers({
+        page,
+        page_size: 10,
+        search: search || undefined
+      });
+      setCustomers(response.items);
+      setCustomerTotalPages(response.total_pages);
+      setCustomerTotal(response.total);
+      setCustomerPage(page);
+    } catch (err: any) {
+      console.error('Error fetching customers:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch customers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch employees
+  const fetchEmployees = async (page: number = 1, search?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await usersApi.getEmployees({
+        page,
+        page_size: 10,
+        search: search || undefined
+      });
+      setEmployees(response.items);
+      setEmployeeTotalPages(response.total_pages);
+      setEmployeeTotal(response.total);
+      setEmployeePage(page);
+    } catch (err: any) {
+      console.error('Error fetching employees:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    if (activeTab === 'customers') {
+      fetchCustomers(1, searchTerm);
+    } else {
+      fetchEmployees(1, searchTerm);
+    }
+  }, [activeTab]);
+
+  // Search handler
+  const handleSearch = () => {
+    if (activeTab === 'customers') {
+      fetchCustomers(1, searchTerm);
+    } else {
+      fetchEmployees(1, searchTerm);
+    }
+  };
+
+  // Handle search on Enter key
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const handleBackToDashboard = () => {
     navigate('/admin-dashboard');
@@ -25,8 +128,7 @@ const ManageUsers: React.FC = () => {
     const { name, value } = e.target;
     const sanitizedValue = sanitizeInput(value);
     setManagerForm(prev => ({ ...prev, [name]: sanitizedValue }));
-    
-    // Clear error when user starts typing
+
     if (errors[`manager_${name}`]) {
       setErrors(prev => ({ ...prev, [`manager_${name}`]: '' }));
     }
@@ -36,8 +138,7 @@ const ManageUsers: React.FC = () => {
     const { name, value } = e.target;
     const sanitizedValue = sanitizeInput(value);
     setAuditorForm(prev => ({ ...prev, [name]: sanitizedValue }));
-    
-    // Clear error when user starts typing
+
     if (errors[`auditor_${name}`]) {
       setErrors(prev => ({ ...prev, [`auditor_${name}`]: '' }));
     }
@@ -87,93 +188,77 @@ const ManageUsers: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddManager = (e: React.FormEvent) => {
+  const handleAddManager = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateManagerForm()) {
       return;
     }
 
+    setLoading(true);
+    setError(null);
+
     try {
-      // Get existing users
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-
-      // Check if email already exists
-      const emailExists = registeredUsers.some((user: any) => 
-        user.email.toLowerCase() === managerForm.email.toLowerCase()
-      );
-
-      if (emailExists) {
-        setErrors({ manager_email: 'An account with this email already exists' });
-        return;
-      }
-
-      // Create new manager user
-      const newManager = {
+      const response = await usersApi.createStaff({
         email: managerForm.email.trim().toLowerCase(),
-        name: managerForm.name.trim(),
-        fullName: managerForm.name.trim(),
-        role: 'manager',
-        password: managerForm.password
-      };
+        full_name: managerForm.name.trim(),
+        password: managerForm.password,
+        role: 'MANAGER'
+      });
 
-      // Add to registered users
-      registeredUsers.push(newManager);
-      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-
-      alert(`Manager "${newManager.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newManager.email}\nPassword: ${newManager.password}\n\nThey can now login to the system.`);
-
-      // Reset form
+      setSuccessMessage(`Manager "${response.full_name}" created successfully!`);
       setManagerForm({ name: '', email: '', password: '' });
       setActiveForm(null);
-    } catch (error) {
-      console.error('Error creating manager:', error);
-      alert('An error occurred while creating the manager. Please try again.');
+
+      // Refresh employees list if on employees tab
+      if (activeTab === 'employees') {
+        fetchEmployees(1);
+      }
+
+      // Auto-hide success message
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error creating manager:', err);
+      setErrors({ manager_email: err.response?.data?.detail || 'Failed to create manager' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddAuditor = (e: React.FormEvent) => {
+  const handleAddAuditor = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateAuditorForm()) {
       return;
     }
 
+    setLoading(true);
+    setError(null);
+
     try {
-      // Get existing users
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-
-      // Check if email already exists
-      const emailExists = registeredUsers.some((user: any) => 
-        user.email.toLowerCase() === auditorForm.email.toLowerCase()
-      );
-
-      if (emailExists) {
-        setErrors({ auditor_email: 'An account with this email already exists' });
-        return;
-      }
-
-      // Create new auditor user
-      const newAuditor = {
+      const response = await usersApi.createStaff({
         email: auditorForm.email.trim().toLowerCase(),
-        name: auditorForm.name.trim(),
-        fullName: auditorForm.name.trim(),
-        role: 'auditor',
-        password: auditorForm.password
-      };
+        full_name: auditorForm.name.trim(),
+        password: auditorForm.password,
+        role: 'AUDITOR'
+      });
 
-      // Add to registered users
-      registeredUsers.push(newAuditor);
-      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-
-      alert(`Auditor "${newAuditor.name}" created successfully!\n\nLogin Credentials:\nEmail: ${newAuditor.email}\nPassword: ${newAuditor.password}\n\nThey can now login to the system.`);
-
-      // Reset form
+      setSuccessMessage(`Auditor "${response.full_name}" created successfully!`);
       setAuditorForm({ name: '', email: '', password: '' });
       setActiveForm(null);
-    } catch (error) {
-      console.error('Error creating auditor:', error);
-      alert('An error occurred while creating the auditor. Please try again.');
+
+      // Refresh employees list if on employees tab
+      if (activeTab === 'employees') {
+        fetchEmployees(1);
+      }
+
+      // Auto-hide success message
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error creating auditor:', err);
+      setErrors({ auditor_email: err.response?.data?.detail || 'Failed to create auditor' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -189,18 +274,101 @@ const ManageUsers: React.FC = () => {
     setActiveForm(null);
   };
 
+  // Delete handlers
+  const handleDeleteClick = (type: 'customer' | 'employee', id: string, name: string) => {
+    setDeleteConfirm({ type, id, name });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      if (deleteConfirm.type === 'customer') {
+        await usersApi.deleteCustomer(deleteConfirm.id);
+        setSuccessMessage(`Customer "${deleteConfirm.name}" deleted successfully`);
+        fetchCustomers(customerPage, searchTerm);
+      } else {
+        await usersApi.deleteEmployee(deleteConfirm.id);
+        setSuccessMessage(`Employee "${deleteConfirm.name}" deleted successfully`);
+        fetchEmployees(employeePage, searchTerm);
+      }
+
+      setDeleteConfirm(null);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      setError(err.response?.data?.detail || 'Failed to delete user');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null);
+  };
+
+  // Toggle user status
+  const handleToggleStatus = async (type: 'customer' | 'employee', id: string, currentStatus: boolean) => {
+    setError(null);
+    try {
+      if (type === 'customer') {
+        await usersApi.updateCustomerStatus(id, !currentStatus);
+        fetchCustomers(customerPage, searchTerm);
+      } else {
+        await usersApi.updateEmployeeStatus(id, !currentStatus);
+        fetchEmployees(employeePage, searchTerm);
+      }
+      setSuccessMessage(`User ${currentStatus ? 'deactivated' : 'activated'} successfully`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Error updating status:', err);
+      setError(err.response?.data?.detail || 'Failed to update user status');
+    }
+  };
+
+  // Format role for display
+  const formatRole = (role: string) => {
+    return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+  };
+
   return (
     <div className="manage-users-container">
       <header className="manage-users-header">
         <div className="header-content">
           <h1><Users size={24} /> Manage Users</h1>
           <button onClick={handleBackToDashboard} className="back-btn">
-            ← Back to Dashboard
+            <ChevronLeft size={18} /> Back to Dashboard
           </button>
         </div>
       </header>
 
       <main className="manage-users-main">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="success-banner">
+            <CheckCircle size={20} />
+            <span>{successMessage}</span>
+            <button onClick={() => setSuccessMessage(null)} className="close-banner">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-banner">
+            <AlertCircle size={20} />
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="close-banner">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Add Staff Section */}
         <div className="intro-section">
           <h2>Add New Staff Members</h2>
           <p>Create new Manager or Auditor accounts for Japan Lanka Enterprises</p>
@@ -302,11 +470,12 @@ const ManageUsers: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="submit-btn manager-submit">
-                    <CheckCircle size={16} /> Create Manager Account
+                  <button type="submit" className="submit-btn manager-submit" disabled={loading}>
+                    {loading ? <RefreshCw size={16} className="spin" /> : <CheckCircle size={16} />}
+                    {loading ? 'Creating...' : 'Create Manager Account'}
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleCancelManager}
                     className="cancel-btn"
                   >
@@ -388,11 +557,12 @@ const ManageUsers: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="submit-btn auditor-submit">
-                    <CheckCircle size={16} /> Create Auditor Account
+                  <button type="submit" className="submit-btn auditor-submit" disabled={loading}>
+                    {loading ? <RefreshCw size={16} className="spin" /> : <CheckCircle size={16} />}
+                    {loading ? 'Creating...' : 'Create Auditor Account'}
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleCancelAuditor}
                     className="cancel-btn"
                   >
@@ -403,7 +573,245 @@ const ManageUsers: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* User List Section */}
+        <div className="users-list-section">
+          <div className="section-header">
+            <h2>All Users</h2>
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+              />
+              <button onClick={handleSearch} className="search-btn">
+                <Search size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="tabs">
+            <button
+              className={`tab ${activeTab === 'customers' ? 'active' : ''}`}
+              onClick={() => setActiveTab('customers')}
+            >
+              <User size={18} />
+              Customers ({customerTotal})
+            </button>
+            <button
+              className={`tab ${activeTab === 'employees' ? 'active' : ''}`}
+              onClick={() => setActiveTab('employees')}
+            >
+              <Briefcase size={18} />
+              Employees ({employeeTotal})
+            </button>
+          </div>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="loading-state">
+              <RefreshCw size={24} className="spin" />
+              <span>Loading users...</span>
+            </div>
+          )}
+
+          {/* Customers Table */}
+          {activeTab === 'customers' && !loading && (
+            <>
+              <div className="users-table-container">
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customers.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="no-data">No customers found</td>
+                      </tr>
+                    ) : (
+                      customers.map(customer => (
+                        <tr key={customer.id}>
+                          <td className="name-cell">
+                            <User size={16} />
+                            {customer.full_name}
+                          </td>
+                          <td>{customer.email}</td>
+                          <td>{customer.phone_number || '-'}</td>
+                          <td>
+                            <span className={`status-badge ${customer.is_active ? 'active' : 'inactive'}`}>
+                              {customer.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="actions-cell">
+                            <button
+                              onClick={() => handleToggleStatus('customer', customer.id, customer.is_active)}
+                              className={`action-btn ${customer.is_active ? 'deactivate' : 'activate'}`}
+                              title={customer.is_active ? 'Deactivate' : 'Activate'}
+                            >
+                              {customer.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick('customer', customer.id, customer.full_name)}
+                              className="action-btn delete"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {customerTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    onClick={() => fetchCustomers(customerPage - 1, searchTerm)}
+                    disabled={customerPage === 1}
+                    className="page-btn"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="page-info">
+                    Page {customerPage} of {customerTotalPages}
+                  </span>
+                  <button
+                    onClick={() => fetchCustomers(customerPage + 1, searchTerm)}
+                    disabled={customerPage === customerTotalPages}
+                    className="page-btn"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Employees Table */}
+          {activeTab === 'employees' && !loading && (
+            <>
+              <div className="users-table-container">
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="no-data">No employees found</td>
+                      </tr>
+                    ) : (
+                      employees.map(employee => (
+                        <tr key={employee.id}>
+                          <td className="name-cell">
+                            <Briefcase size={16} />
+                            {employee.full_name}
+                          </td>
+                          <td>{employee.email}</td>
+                          <td>
+                            <span className={`role-badge ${employee.role.toLowerCase()}`}>
+                              {formatRole(employee.role)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${employee.is_active ? 'active' : 'inactive'}`}>
+                              {employee.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="actions-cell">
+                            <button
+                              onClick={() => handleToggleStatus('employee', employee.id, employee.is_active)}
+                              className={`action-btn ${employee.is_active ? 'deactivate' : 'activate'}`}
+                              title={employee.is_active ? 'Deactivate' : 'Activate'}
+                            >
+                              {employee.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick('employee', employee.id, employee.full_name)}
+                              className="action-btn delete"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {employeeTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    onClick={() => fetchEmployees(employeePage - 1, searchTerm)}
+                    disabled={employeePage === 1}
+                    className="page-btn"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="page-info">
+                    Page {employeePage} of {employeeTotalPages}
+                  </span>
+                  <button
+                    onClick={() => fetchEmployees(employeePage + 1, searchTerm)}
+                    disabled={employeePage === employeeTotalPages}
+                    className="page-btn"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content delete-modal">
+            <div className="modal-icon delete">
+              <Trash2 size={32} />
+            </div>
+            <h3>Delete {deleteConfirm.type === 'customer' ? 'Customer' : 'Employee'}</h3>
+            <p>Are you sure you want to delete <strong>{deleteConfirm.name}</strong>?</p>
+            <p className="warning-text">This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button
+                onClick={handleDeleteConfirm}
+                className="confirm-delete-btn"
+                disabled={deleting}
+              >
+                {deleting ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button onClick={handleDeleteCancel} className="cancel-modal-btn">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

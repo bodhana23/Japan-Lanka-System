@@ -553,3 +553,371 @@
     font-size: 0.95rem;
   }
 }
+
+/* Logs Header with Filters */
+.logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logs-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+}
+
+.filter-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  min-width: 150px;
+  transition: all 0.3s ease;
+}
+
+.filter-select:hover {
+  border-color: #00b894;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #00b894;
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.15);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.refresh-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error and Loading States */
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.loading-cell,
+.empty-cell {
+  text-align: center;
+  padding: 3rem !important;
+  color: #666;
+  font-style: italic;
+}
+
+/* User Info in Tables */
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.user-email {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.user-type-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+  margin-top: 0.2rem;
+  width: fit-content;
+}
+
+.user-type-badge.customer {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.user-type-badge.employee {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Related Entity Display */
+.related-entity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.entity-type-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.entity-type-badge.order {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.entity-type-badge.product {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.entity-type-badge.return_request {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.entity-summary {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Action Badges for Inventory Logs */
+.action-badge.action-order_placed {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.action-badge.action-order_status_changed {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.action-badge.action-product_created {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.action-badge.action-product_updated {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.action-badge.action-product_deleted {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.action-badge.action-stock_adjusted {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.action-badge.action-return_created {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+.action-badge.action-return_approved {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.action-badge.action-return_rejected {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+
+.action-badge.action-return_completed {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+/* Activity Badges */
+.activity-badge {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.activity-badge.activity-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.activity-badge.activity-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.activity-badge.activity-info {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.activity-badge.activity-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Description Column */
+.description {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* IP Address Column */
+.ip-address {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e8e8e8;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: #00b894;
+  color: #00b894;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-number {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Responsive Adjustments for New Features */
+@media (max-width: 992px) {
+  .logs-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logs-actions {
+    width: 100%;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+  }
+
+  .filter-select {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pagination-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-select {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .logs-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .refresh-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

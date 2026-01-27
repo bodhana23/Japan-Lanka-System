@@ -29,6 +29,17 @@ export interface Employee {
   updated_at: string;
 }
 
+export interface Customer {
+  id: string;
+  email: string;
+  full_name: string;
+  phone_number?: string;
+  address?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmployeeAuthResponse {
   access_token: string;
   token_type: string;
@@ -572,6 +583,29 @@ export const usersApi = {
     const response = await api.put<Employee>(`/users/employee/${id}/status`, { is_active: isActive });
     return response.data;
   },
+
+  getCustomers: async (params?: {
+    is_active?: boolean;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<{ items: Customer[]; total: number; page: number; page_size: number; total_pages: number }> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get(`/users/customers?${searchParams.toString()}`);
+    return response.data;
+  },
+
+  updateCustomerStatus: async (id: string, isActive: boolean): Promise<Customer> => {
+    const response = await api.put<Customer>(`/users/customer/${id}/status`, { is_active: isActive });
+    return response.data;
+  },
 };
 
 // ============ RETURNS API ============
@@ -689,6 +723,98 @@ export const notificationsApi = {
 
   deleteNotification: async (id: string): Promise<{ message: string }> => {
     const response = await api.delete<{ message: string }>(`/notifications/${id}`);
+    return response.data;
+  },
+};
+
+// ============ AUDITOR API ============
+
+// Inventory Log types
+export interface InventoryLog {
+  id: string;
+  actor_customer_id?: string;
+  actor_employee_id?: string;
+  actor_name?: string;
+  actor_email?: string;
+  actor_type?: 'customer' | 'employee';
+  action_type: string;
+  description: string;
+  related_entity_type?: 'order' | 'product' | 'return_request';
+  related_entity_id?: string;
+  related_entity_summary?: string;
+  created_at: string;
+}
+
+export interface InventoryLogListResponse {
+  items: InventoryLog[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+// Activity Log types
+export interface ActivityLog {
+  id: string;
+  customer_id?: string;
+  employee_id?: string;
+  user_name?: string;
+  user_email?: string;
+  user_type?: 'customer' | 'employee';
+  activity_type: string;
+  description: string;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
+}
+
+export interface ActivityLogListResponse {
+  items: ActivityLog[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const auditorApi = {
+  getInventoryLogs: async (params?: {
+    action_type?: string;
+    related_entity_type?: string;
+    actor_type?: string;
+    from_date?: string;
+    to_date?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<InventoryLogListResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get<InventoryLogListResponse>(`/auditor/inventory-logs?${searchParams.toString()}`);
+    return response.data;
+  },
+
+  getActivityLogs: async (params?: {
+    activity_type?: string;
+    user_type?: string;
+    from_date?: string;
+    to_date?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<ActivityLogListResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get<ActivityLogListResponse>(`/auditor/activity-logs?${searchParams.toString()}`);
     return response.data;
   },
 };

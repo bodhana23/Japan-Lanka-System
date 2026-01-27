@@ -1,7 +1,7 @@
 """Product management router."""
 
 from decimal import Decimal
-from typing import Optional, Union
+from typing import Optional
 from uuid import UUID
 import math
 
@@ -11,6 +11,8 @@ from sqlalchemy import or_
 
 from app.database import get_db
 from app.models import Product, Customer, Employee
+from app.services.audit_service import log_inventory_event
+from app.models.inventory_log import InventoryActionType, RelatedEntityType
 from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
@@ -132,6 +134,18 @@ async def create_product(
     """Create a new product. Manager or Admin only."""
     product = Product(**product_data.model_dump())
     db.add(product)
+    db.flush()  # Get product ID
+
+    # Log inventory event for product creation
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.PRODUCT_CREATED,
+        description=f"Product '{product.name}' ({product.brand}) created with {product.quantity_available} units by {current_user.email}",
+        actor_employee_id=current_user.id,
+        related_entity_type=RelatedEntityType.PRODUCT,
+        related_entity_id=product.id
+    )
+
     db.commit()
     db.refresh(product)
 
@@ -161,8 +175,32 @@ async def update_product(
             detail="No fields to update"
         )
 
+    # Track if quantity was changed for logging
+    old_quantity = product.quantity_available
+    quantity_changed = 'quantity_available' in update_dict and update_dict['quantity_available'] != old_quantity
+
     for field, value in update_dict.items():
         setattr(product, field, value)
+
+    # Log inventory event for product update
+    if quantity_changed:
+        log_inventory_event(
+            db=db,
+            action_type=InventoryActionType.STOCK_ADJUSTED,
+            description=f"Stock adjusted for '{product.name}': {old_quantity} -> {product.quantity_available} by {current_user.email}",
+            actor_employee_id=current_user.id,
+            related_entity_type=RelatedEntityType.PRODUCT,
+            related_entity_id=product.id
+        )
+    else:
+        log_inventory_event(
+            db=db,
+            action_type=InventoryActionType.PRODUCT_UPDATED,
+            description=f"Product '{product.name}' updated ({', '.join(update_dict.keys())}) by {current_user.email}",
+            actor_employee_id=current_user.id,
+            related_entity_type=RelatedEntityType.PRODUCT,
+            related_entity_id=product.id
+        )
 
     db.commit()
     db.refresh(product)
@@ -186,6 +224,17 @@ async def delete_product(
         )
 
     product.is_active = False
+
+    # Log inventory event for product deletion
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.PRODUCT_DELETED,
+        description=f"Product '{product.name}' ({product.brand}) deactivated by {current_user.email}",
+        actor_employee_id=current_user.id,
+        related_entity_type=RelatedEntityType.PRODUCT,
+        related_entity_id=product.id
+    )
+
     db.commit()
     db.refresh(product)
 

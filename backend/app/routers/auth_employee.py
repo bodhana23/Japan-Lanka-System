@@ -9,7 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Employee, AuditLog
+from app.models import Employee
+from app.services.audit_service import log_activity_event
+from app.models.activity_log import ActivityType
 from app.schemas.employee import (
     EmployeeLogin,
     EmployeeUpdate,
@@ -41,19 +43,9 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def log_action(db: Session, employee_id, action: str, entity_type: str = None,
-               entity_id: str = None, details: dict = None, ip_address: str = None):
-    """Create an audit log entry for an employee action."""
-    audit_log = AuditLog(
-        employee_id=employee_id,
-        action=action,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        details=details,
-        ip_address=ip_address
-    )
-    db.add(audit_log)
-    db.commit()
+def get_user_agent(request: Request) -> str:
+    """Get user agent from request."""
+    return request.headers.get("User-Agent", "unknown")
 
 
 @router.post("/login", response_model=EmployeeTokenResponse)
@@ -64,6 +56,7 @@ async def login(
 ):
     """Login with email and password (employees only)."""
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Check rate limit before processing login
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -75,14 +68,15 @@ async def login(
         auth_rate_limiter.record_attempt(ip_address, success=False)
 
         # Log failed login attempt
-        log_action(
+        log_activity_event(
             db=db,
-            employee_id=None,
-            action="employee_login_failed",
-            entity_type="employee",
-            details={"email": credentials.email, "reason": "invalid_credentials"},
-            ip_address=ip_address
+            activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
+            description=f"Failed login attempt for employee {credentials.email} (invalid credentials)",
+            employee_id=employee.id if employee else None,
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,15 +96,15 @@ async def login(
     auth_rate_limiter.record_attempt(ip_address, success=True)
 
     # Log the login
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.EMPLOYEE_LOGIN,
+        description=f"Employee {employee.email} ({employee.role.value}) logged in",
         employee_id=employee.id,
-        action="employee_login",
-        entity_type="employee",
-        entity_id=str(employee.id),
-        details={"role": employee.role.value},
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Create access token
     access_token = create_access_token(
@@ -145,6 +139,7 @@ async def forgot_password(
     Customers MUST use the customer forgot-password endpoint.
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Rate limit password reset requests to prevent abuse
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -165,26 +160,27 @@ async def forgot_password(
 
     if not employee:
         # Email doesn't exist - return generic message without revealing this
-        log_action(
+        log_activity_event(
             db=db,
-            employee_id=None,
-            action="employee_password_reset_requested_unknown_email",
-            entity_type="employee",
-            details={"email": request_data.email},
-            ip_address=ip_address
+            activity_type=ActivityType.EMPLOYEE_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested for unknown employee email: {request_data.email}",
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     if not employee.is_active:
         # Account is deactivated - still return generic message
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.EMPLOYEE_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset requested for inactive employee: {employee.email}",
             employee_id=employee.id,
-            action="employee_password_reset_requested_inactive",
-            entity_type="employee",
-            entity_id=str(employee.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     # Check if user exists in Firebase
@@ -203,24 +199,17 @@ async def forgot_password(
             # Update employee with firebase_uid
             employee.firebase_uid = firebase_uid
             db.commit()
-            log_action(
-                db=db,
-                employee_id=employee.id,
-                action="employee_firebase_user_created_for_reset",
-                entity_type="employee",
-                entity_id=str(employee.id),
-                ip_address=ip_address
-            )
         else:
             # Failed to create Firebase user
-            log_action(
+            log_activity_event(
                 db=db,
+                activity_type=ActivityType.EMPLOYEE_PASSWORD_RESET_REQUESTED,
+                description=f"Password reset Firebase user creation failed for {employee.email}",
                 employee_id=employee.id,
-                action="employee_password_reset_firebase_creation_failed",
-                entity_type="employee",
-                entity_id=str(employee.id),
-                ip_address=ip_address
+                ip_address=ip_address,
+                user_agent=user_agent
             )
+            db.commit()
             return MessageResponse(message=generic_success_message)
 
     # Generate password reset link via Firebase
@@ -229,25 +218,27 @@ async def forgot_password(
 
     if reset_link is None:
         # Failed to generate link - could be Firebase issue
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.EMPLOYEE_PASSWORD_RESET_REQUESTED,
+            description=f"Password reset link generation failed for {employee.email}",
             employee_id=employee.id,
-            action="employee_password_reset_link_generation_failed",
-            entity_type="employee",
-            entity_id=str(employee.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         return MessageResponse(message=generic_success_message)
 
     # Successfully generated reset link
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.EMPLOYEE_PASSWORD_RESET_REQUESTED,
+        description=f"Password reset link sent to {employee.email}",
         employee_id=employee.id,
-        action="employee_password_reset_link_sent",
-        entity_type="employee",
-        entity_id=str(employee.id),
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Record as successful attempt
     auth_rate_limiter.record_attempt(ip_address, success=True)
@@ -280,6 +271,7 @@ async def google_auth(
     - Correct issuer
     """
     ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
 
     # Check rate limit
     auth_rate_limiter.check_rate_limit(ip_address)
@@ -321,18 +313,14 @@ async def google_auth(
         # SECURITY: Employee not found - DO NOT CREATE
         # Log the failed attempt for security monitoring
         auth_rate_limiter.record_attempt(ip_address, success=False)
-        log_action(
+        log_activity_event(
             db=db,
-            employee_id=None,
-            action="employee_google_login_denied_not_found",
-            entity_type="employee",
-            details={
-                "email": email,
-                "reason": "employee_not_provisioned",
-                "firebase_uid": firebase_uid
-            },
-            ip_address=ip_address
+            activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
+            description=f"Google login denied for {email} (employee not provisioned)",
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No employee account found. Employee accounts must be created by an administrator. Please contact your administrator."
@@ -341,14 +329,15 @@ async def google_auth(
     # Check if employee is active
     if not employee.is_active:
         auth_rate_limiter.record_attempt(ip_address, success=False)
-        log_action(
+        log_activity_event(
             db=db,
+            activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
+            description=f"Google login denied for inactive employee {employee.email}",
             employee_id=employee.id,
-            action="employee_google_login_denied_inactive",
-            entity_type="employee",
-            entity_id=str(employee.id),
-            ip_address=ip_address
+            ip_address=ip_address,
+            user_agent=user_agent
         )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated. Please contact your administrator."
@@ -363,15 +352,15 @@ async def google_auth(
     auth_rate_limiter.record_attempt(ip_address, success=True)
 
     # Log the successful login
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.EMPLOYEE_GOOGLE_LOGIN,
+        description=f"Employee {employee.email} ({employee.role.value}) logged in via Google",
         employee_id=employee.id,
-        action="employee_google_login",
-        entity_type="employee",
-        entity_id=str(employee.id),
-        details={"role": employee.role.value, "firebase_uid": firebase_uid},
-        ip_address=ip_address
+        ip_address=ip_address,
+        user_agent=user_agent
     )
+    db.commit()
 
     # Create access token with employee role
     access_token = create_access_token(
@@ -418,14 +407,14 @@ async def update_profile(
     db.refresh(current_employee)
 
     # Log the update
-    log_action(
+    log_activity_event(
         db=db,
+        activity_type=ActivityType.EMPLOYEE_PROFILE_UPDATED,
+        description=f"Employee {current_employee.email} updated profile: {', '.join(update_dict.keys())}",
         employee_id=current_employee.id,
-        action="employee_profile_updated",
-        entity_type="employee",
-        entity_id=str(current_employee.id),
-        details={"updated_fields": list(update_dict.keys())},
-        ip_address=get_client_ip(request)
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
+    db.commit()
 
     return EmployeeResponse.model_validate(current_employee)

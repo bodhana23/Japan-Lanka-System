@@ -1,6 +1,6 @@
 """User management router for admins to manage customers and employees."""
 
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 from enum import Enum as PyEnum
 import math
@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models import Customer, Employee, AuditLog
+from app.models import Customer, Employee, ActivityLog
 from app.models.employee import EmployeeRole
+from app.services.audit_service import log_activity_event
+from app.models.activity_log import ActivityType
 from app.utils.deps import require_admin
 
 router = APIRouter(prefix="/users", tags=["User Management"])
@@ -50,6 +52,11 @@ def get_client_ip(request: Request) -> str:
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+def get_user_agent(request: Request) -> str:
+    """Get user agent from request."""
+    return request.headers.get("User-Agent", "unknown")
 
 
 @router.get("", response_model=dict)
@@ -313,16 +320,15 @@ async def update_employee_role(
     old_role = employee.role
     employee.role = role_update.role
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="employee_role_updated",
-        entity_type="employee",
-        entity_id=str(employee.id),
-        details={"old_role": old_role.value, "new_role": role_update.role.value},
-        ip_address=get_client_ip(request)
+    # Log activity for role change
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.EMPLOYEE_ROLE_UPDATED,
+        description=f"Employee {employee.email} role changed from {old_role.value} to {role_update.role.value} by {current_user.email}",
+        employee_id=employee.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(employee)
@@ -358,19 +364,16 @@ async def update_customer_status(
     old_status = customer.is_active
     customer.is_active = status_update.is_active
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="customer_status_updated",
-        entity_type="customer",
-        entity_id=str(customer.id),
-        details={
-            "old_status": "active" if old_status else "inactive",
-            "new_status": "active" if status_update.is_active else "inactive"
-        },
-        ip_address=get_client_ip(request)
+    # Log activity for status change
+    action = "activated" if status_update.is_active else "deactivated"
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.CUSTOMER_STATUS_UPDATED,
+        description=f"Customer {customer.email} {action} by {current_user.email}",
+        customer_id=customer.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(customer)
@@ -414,19 +417,16 @@ async def update_employee_status(
     old_status = employee.is_active
     employee.is_active = status_update.is_active
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="employee_status_updated",
-        entity_type="employee",
-        entity_id=str(employee.id),
-        details={
-            "old_status": "active" if old_status else "inactive",
-            "new_status": "active" if status_update.is_active else "inactive"
-        },
-        ip_address=get_client_ip(request)
+    # Log activity for status change
+    action = "activated" if status_update.is_active else "deactivated"
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.EMPLOYEE_STATUS_UPDATED,
+        description=f"Employee {employee.email} ({employee.role.value}) {action} by {current_user.email}",
+        employee_id=employee.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(employee)
@@ -454,7 +454,14 @@ async def delete_customer(
     """Delete a customer. Admin only.
 
     Note: This is a hard delete. For soft delete, use the status endpoint.
+    This will delete all related orders, returns, notifications, etc.
     """
+    from app.models import (
+        Order, OrderItem, OrderStatusHistory, ReturnRequest, ReturnItem,
+        Notification, Cart, CartItem, InventoryTransaction, AuditLog,
+        InventoryLog
+    )
+
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
 
     if not customer:
@@ -466,23 +473,73 @@ async def delete_customer(
     customer_email = customer.email
     customer_name = customer.full_name
 
-    # Create audit log before deletion
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="customer_deleted",
-        entity_type="customer",
-        entity_id=str(customer_id),
-        details={
-            "deleted_email": customer_email,
-            "deleted_name": customer_name
-        },
-        ip_address=get_client_ip(request)
-    )
-    db.add(audit_log)
+    # Get all order IDs for this customer
+    order_ids = [order.id for order in db.query(Order.id).filter(Order.customer_id == customer_id).all()]
 
-    # Delete the customer
+    # Get all return request IDs for this customer
+    return_request_ids = [rr.id for rr in db.query(ReturnRequest.id).filter(ReturnRequest.customer_id == customer_id).all()]
+
+    # Delete in the correct order to avoid FK violations:
+
+    # 1. Delete notifications related to orders and returns
+    if order_ids:
+        db.query(Notification).filter(Notification.related_order_id.in_(order_ids)).delete(synchronize_session=False)
+    if return_request_ids:
+        db.query(Notification).filter(Notification.related_return_id.in_(return_request_ids)).delete(synchronize_session=False)
+
+    # 2. Delete customer's direct notifications
+    db.query(Notification).filter(Notification.customer_id == customer_id).delete(synchronize_session=False)
+
+    # 3. Delete activity logs for this customer
+    db.query(ActivityLog).filter(ActivityLog.customer_id == customer_id).delete(synchronize_session=False)
+
+    # 4. Delete audit logs for this customer (legacy)
+    db.query(AuditLog).filter(AuditLog.customer_id == customer_id).delete(synchronize_session=False)
+
+    # 4b. Delete inventory logs for this customer
+    db.query(InventoryLog).filter(InventoryLog.actor_customer_id == customer_id).delete(synchronize_session=False)
+
+    # 5. Delete return items for all return requests
+    if return_request_ids:
+        db.query(ReturnItem).filter(ReturnItem.return_request_id.in_(return_request_ids)).delete(synchronize_session=False)
+
+    # 6. Delete return requests
+    db.query(ReturnRequest).filter(ReturnRequest.customer_id == customer_id).delete(synchronize_session=False)
+
+    # 7. Delete inventory transactions related to orders
+    if order_ids:
+        db.query(InventoryTransaction).filter(InventoryTransaction.reference_order_id.in_(order_ids)).delete(synchronize_session=False)
+
+    # 8. Delete order status history
+    if order_ids:
+        db.query(OrderStatusHistory).filter(OrderStatusHistory.order_id.in_(order_ids)).delete(synchronize_session=False)
+
+    # 9. Delete order items
+    if order_ids:
+        db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).delete(synchronize_session=False)
+
+    # 10. Delete orders
+    db.query(Order).filter(Order.customer_id == customer_id).delete(synchronize_session=False)
+
+    # 11. Delete cart items and cart (handled by cascade, but let's be explicit)
+    cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
+    if cart:
+        db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+        db.delete(cart)
+
+    # 12. Finally, delete the customer
     db.delete(customer)
     db.commit()
+
+    # Log activity for customer deletion (after delete, with employee_id instead of customer_id)
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.CUSTOMER_DELETED,
+        description=f"Customer {customer_email} ({customer_name}) deleted by {current_user.email}",
+        employee_id=current_user.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
 
     return {
         "message": f"Customer '{customer_name}' deleted successfully",
@@ -520,24 +577,22 @@ async def delete_employee(
     employee_name = employee.full_name
     employee_role = employee.role.value
 
-    # Create audit log before deletion
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="employee_deleted",
-        entity_type="employee",
-        entity_id=str(employee_id),
-        details={
-            "deleted_email": employee_email,
-            "deleted_name": employee_name,
-            "deleted_role": employee_role
-        },
-        ip_address=get_client_ip(request)
-    )
-    db.add(audit_log)
+    # Delete activity logs for this employee first (to avoid FK violation)
+    db.query(ActivityLog).filter(ActivityLog.employee_id == employee_id).delete()
 
     # Delete the employee
     db.delete(employee)
     db.commit()
+
+    # Log activity for employee deletion (after delete, with current admin's id)
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.EMPLOYEE_DELETED,
+        description=f"Employee {employee_email} ({employee_role}) deleted by {current_user.email}",
+        employee_id=current_user.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
 
     return {
         "message": f"Employee '{employee_name}' deleted successfully",
@@ -617,20 +672,17 @@ async def create_staff(
     )
 
     db.add(new_employee)
+    db.flush()
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_user.id,
-        action="staff_created",
-        entity_type="employee",
-        details={
-            "created_email": new_employee.email,
-            "created_name": new_employee.full_name,
-            "created_role": staff_data.role.value
-        },
-        ip_address=get_client_ip(request)
+    # Log activity for staff creation
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.EMPLOYEE_CREATED,
+        description=f"Employee {new_employee.email} ({staff_data.role.value}) created by {current_user.email}",
+        employee_id=new_employee.id,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(new_employee)

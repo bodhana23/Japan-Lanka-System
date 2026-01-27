@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Union
+from typing import Optional
 from uuid import UUID
 import math
 
@@ -10,9 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Order, OrderItem, Product, Customer, Employee, AuditLog, OrderStatusHistory, InventoryTransaction
+from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction
 from app.models.order import OrderStatus, DeliveryMethod
 from app.models.inventory_transaction import TransactionType
+from app.services.audit_service import log_inventory_event
+from app.models.inventory_log import InventoryActionType, RelatedEntityType
 from app.schemas.order import (
     OrderCreate,
     OrderStatusUpdate,
@@ -28,14 +30,6 @@ from app.utils.deps import get_current_user, get_current_customer, require_manag
 from app.services.notification_service import notify_order_status_change
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
-
-
-def get_client_ip(request: Request) -> str:
-    """Get client IP address from request."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 def order_to_response(order: Order) -> OrderResponse:
@@ -273,16 +267,15 @@ async def create_order(
         )
         db.add(inventory_transaction)
 
-    # Create audit log
-    audit_log = AuditLog(
-        customer_id=current_customer.id,
-        action="order_created",
-        entity_type="order",
-        entity_id=str(order.id),
-        details={"total_amount": str(total_amount), "items_count": len(order_items)},
-        ip_address=get_client_ip(request)
+    # Log inventory event for order placement
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_PLACED,
+        description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} ({len(order_items)} items)",
+        actor_customer_id=current_customer.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(order)
@@ -349,16 +342,15 @@ async def update_order_status(
         new_status=status_update.status.value
     )
 
-    # Create audit log
-    audit_log = AuditLog(
-        employee_id=current_employee.id,
-        action="order_status_updated",
-        entity_type="order",
-        entity_id=str(order.id),
-        details={"old_status": old_status.value, "new_status": status_update.status.value},
-        ip_address=get_client_ip(request)
+    # Log inventory event for order status change
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_STATUS_CHANGED,
+        description=f"Order status changed from {old_status.value} to {status_update.status.value} by {current_employee.email}",
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
     )
-    db.add(audit_log)
 
     db.commit()
     db.refresh(order)

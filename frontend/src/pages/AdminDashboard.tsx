@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../components/ProfileModal';
-import { usersApi, productsApi, User as ApiUser, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
+import { usersApi, productsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
 import { formatDate } from '../utils/dateUtils';
 import {
   User, Users, DollarSign, AlertTriangle, BarChart2, Package,
@@ -321,19 +321,19 @@ const AdminDashboard: React.FC = () => {
 
       // Fetch customers and employees in parallel
       const [customersResponse, employeesResponse] = await Promise.all([
-        usersApi.getUsers({ page_size: 100 }),
+        usersApi.getCustomers({ page_size: 100 }),
         usersApi.getEmployees({ page_size: 100 })
       ]);
 
       // Transform customers
-      const customers: UserDisplay[] = customersResponse.items.map((u: ApiUser) => ({
-        id: u.id,
-        fullName: u.full_name,
-        email: u.email,
+      const customers: UserDisplay[] = customersResponse.items.map((c: ApiCustomer) => ({
+        id: c.id,
+        fullName: c.full_name,
+        email: c.email,
         role: 'customer' as const,
         userType: 'customer' as const,
-        dateCreated: u.created_at,
-        status: u.is_active ? 'active' as const : 'inactive' as const
+        dateCreated: c.created_at,
+        status: c.is_active ? 'active' as const : 'inactive' as const
       }));
 
       // Transform employees
