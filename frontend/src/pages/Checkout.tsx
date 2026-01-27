@@ -388,7 +388,7 @@ const Checkout: React.FC = () => {
                     <div className="info-box">
                       <h4><MapPin size={16} /> Pickup Location</h4>
                       <p><strong>Japan Lanka Enterprises</strong></p>
-                      <p>123 Galle Road, Colombo 03</p>
+                      <p>Matara-Hakmana Rd, Thihagoda 81000</p>
                       <p>Sri Lanka</p>
                       <br />
                       <h4><Clock size={16} /> Pickup Hours</h4>

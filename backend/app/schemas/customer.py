@@ -181,6 +181,7 @@ class CustomerResponse(BaseModel):
     full_name: str
     phone_number: Optional[str] = None
     address: Optional[str] = None
+    role: str = "customer"  # Customers always have role "customer"
     is_active: bool
     is_google_user: bool = False
     email_verified: bool = False
@@ -207,6 +208,7 @@ class CustomerResponse(BaseModel):
             'full_name': obj.full_name,
             'phone_number': obj.phone_number,
             'address': obj.address,
+            'role': 'customer',  # Customers always have role "customer"
             'is_active': obj.is_active,
             'is_google_user': is_google,
             'email_verified': obj.email_verified,

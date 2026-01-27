@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Rocket, ClipboardList, Wrench, Zap, Gem, Target, Car, Building2, Mail, Phone, MapPin, User } from 'lucide-react';
+import { Lock, ClipboardList, Wrench, Zap, Gem, Target, Car, Mail, Phone, MapPin, User } from 'lucide-react';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -33,11 +33,6 @@ const Home: React.FC = () => {
 
   const handleSearchPartsClick = () => {
     navigate('/browse-parts');
-  };
-
-  const handleSearchVehiclesClick = () => {
-    // Future implementation
-    alert('Vehicle search feature coming soon!');
   };
 
   const handleEmployeeLoginClick = () => {
@@ -76,9 +71,9 @@ const Home: React.FC = () => {
                 Experience excellence in automotive care.
               </p>
               <div className="hero-actions">
-                <button className="cta-primary" onClick={handleLoginClick}>
-                  <Rocket size={18} className="cta-icon" />
-                  Get Started
+                <button className="cta-primary" onClick={handleSearchPartsClick}>
+                  <Wrench size={18} className="cta-icon" />
+                  Search Parts
                 </button>
                 <button className="cta-secondary" onClick={handleLearnMoreClick}>
                   <ClipboardList size={18} className="cta-icon" />
@@ -104,32 +99,6 @@ const Home: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Window Shopper Section */}
-      <section className="window-shopper-section">
-        <div className="window-shopper-container">
-          <h2 className="shopper-title">Browse Our Collection</h2>
-          <p className="shopper-description">
-            Explore our extensive catalog of quality automobile parts and vehicles. No account needed to browse!
-          </p>
-          <div className="shopper-buttons">
-            <button className="shopper-btn shopper-btn-parts" onClick={handleSearchPartsClick}>
-              <Wrench size={24} className="shopper-icon" />
-              <div className="shopper-btn-content">
-                <span className="shopper-btn-title">Search for Parts</span>
-                <span className="shopper-btn-subtitle">Browse our parts catalog</span>
-              </div>
-            </button>
-            <button className="shopper-btn shopper-btn-vehicles" onClick={handleSearchVehiclesClick}>
-              <Car size={24} className="shopper-icon" />
-              <div className="shopper-btn-content">
-                <span className="shopper-btn-title">Search for Vehicles</span>
-                <span className="shopper-btn-subtitle">Coming soon!</span>
-              </div>
-            </button>
           </div>
         </div>
       </section>
@@ -268,7 +237,7 @@ const Home: React.FC = () => {
               <ul className="footer-contact">
                 <li><Mail size={14} /> japanlanka@gmail.com</li>
                 <li><Phone size={14} /> +94 41 234 5678</li>
-                <li><MapPin size={14} /> Matara, Sri Lanka</li>
+                <li><MapPin size={14} /> Matara-Hakmana Rd, Thihagoda 81000</li>
               </ul>
             </div>
           </div>

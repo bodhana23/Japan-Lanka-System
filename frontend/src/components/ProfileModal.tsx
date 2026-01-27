@@ -175,6 +175,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
           ×
         </button>
 
+        {/* Scrollable wrapper to allow content scrolling while container has overflow:hidden
+            This fixes the white gap in top-right corner caused by border-radius mismatch */}
+        <div className="profile-modal-scrollable">
         <div className="profile-modal-header">
           <div className="profile-modal-avatar">
             <div className="avatar-circle">
@@ -437,6 +440,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
               </div>
             </form>
           )}
+        </div>
         </div>
       </div>
     </div>
