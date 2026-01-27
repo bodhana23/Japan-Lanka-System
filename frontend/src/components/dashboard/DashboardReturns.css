@@ -1,0 +1,730 @@
+/* ================================================
+   DASHBOARD RETURNS - RETURN REQUEST STYLES
+   Japan Lanka Enterprises
+   ================================================ */
+
+.dret-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ================================================
+   PAGE HEADER
+   ================================================ */
+.dret-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.dret-header-info {
+  flex: 1;
+}
+
+.dret-page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 5px 0;
+}
+
+.dret-title-icon {
+  color: #9b59b6;
+}
+
+.dret-page-subtitle {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dret-back-btn {
+  background: white;
+  border: 2px solid #e9ecef;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dret-back-btn:hover {
+  border-color: #9b59b6;
+  color: #9b59b6;
+}
+
+/* ================================================
+   ERROR BANNER
+   ================================================ */
+.dret-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  background: #fdedec;
+  border: 1px solid #e74c3c;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.dret-error-banner .dret-error-icon {
+  color: #e74c3c;
+  flex-shrink: 0;
+}
+
+.dret-error-banner p {
+  flex: 1;
+  margin: 0;
+  color: #c0392b;
+  font-weight: 500;
+}
+
+.dret-error-banner button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #e74c3c;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+/* ================================================
+   LOADING, SUCCESS, EMPTY STATES
+   ================================================ */
+.dret-loading,
+.dret-success,
+.dret-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dret-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9ecef;
+  border-top-color: #9b59b6;
+  border-radius: 50%;
+  animation: dret-spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes dret-spin {
+  to { transform: rotate(360deg); }
+}
+
+.dret-loading p {
+  color: #6c757d;
+  margin: 0;
+}
+
+.dret-success-icon {
+  color: #27ae60;
+  margin-bottom: 15px;
+}
+
+.dret-success h2 {
+  color: #27ae60;
+  margin: 0 0 10px 0;
+}
+
+.dret-success p {
+  color: #6c757d;
+  margin: 0;
+}
+
+.dret-empty-icon {
+  color: #6c757d;
+  opacity: 0.5;
+  margin-bottom: 15px;
+}
+
+.dret-empty h3 {
+  font-size: 1.3rem;
+  color: #2d3436;
+  margin: 0 0 10px 0;
+}
+
+.dret-empty p {
+  color: #6c757d;
+  margin: 0 0 20px 0;
+}
+
+.dret-shop-btn {
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dret-shop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+}
+
+/* ================================================
+   SECTION INFO
+   ================================================ */
+.dret-section-info {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.dret-section-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+/* ================================================
+   ORDERS GRID
+   ================================================ */
+.dret-orders-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.dret-order-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.dret-order-clickable:hover {
+  border-left-color: #9b59b6;
+  transform: translateX(5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.dret-order-disabled {
+  opacity: 0.7;
+}
+
+.dret-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.dret-order-id {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #2d3436;
+}
+
+.dret-pending-badge,
+.dret-no-returnable-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dret-pending-badge {
+  background: #fef9e7;
+  color: #f39c12;
+}
+
+.dret-no-returnable-badge {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.dret-order-body {
+  margin-bottom: 15px;
+}
+
+.dret-order-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+.dret-order-items-count {
+  font-size: 0.9rem;
+  color: #495057;
+  margin-bottom: 10px;
+}
+
+.dret-order-items-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dret-item-preview {
+  font-size: 0.9rem;
+  color: #2d3436;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dret-partial-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: #f0e6f5;
+  color: #9b59b6;
+  border-radius: 10px;
+}
+
+.dret-more-items {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.dret-order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.dret-order-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.dret-request-btn {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dret-request-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(155, 89, 182, 0.35);
+}
+
+.dret-disabled-text {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* ================================================
+   RETURN FORM
+   ================================================ */
+.dret-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.dret-order-summary {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dret-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.dret-summary-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2d3436;
+}
+
+.dret-section-icon {
+  color: #9b59b6;
+}
+
+.dret-summary-date {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.dret-summary-total {
+  font-size: 1rem;
+  color: #495057;
+}
+
+/* Items Section */
+.dret-items-section,
+.dret-reason-section {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dret-section-header {
+  margin-bottom: 20px;
+}
+
+.dret-section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #2d3436;
+}
+
+.dret-section-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.dret-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dret-item-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.dret-item-card:hover:not(.dret-item-disabled) {
+  background: #fff;
+  border-color: #e9ecef;
+}
+
+.dret-item-selected {
+  background: #f0e6f5;
+  border-color: #9b59b6;
+}
+
+.dret-item-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dret-item-checkbox {
+  position: relative;
+}
+
+.dret-item-checkbox input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.dret-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dret-item-name {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.dret-item-price {
+  font-size: 0.9rem;
+  color: #28a745;
+}
+
+.dret-item-returned {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.dret-item-unavailable {
+  font-size: 0.8rem;
+  color: #e74c3c;
+}
+
+.dret-item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dret-item-quantity label {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.dret-item-quantity input {
+  width: 60px;
+  padding: 8px 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.dret-item-quantity input:focus {
+  outline: none;
+  border-color: #9b59b6;
+}
+
+.dret-max-qty {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.dret-return-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #f0e6f5, #e8dff5);
+  border-radius: 12px;
+  margin-top: 15px;
+}
+
+.dret-return-total {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #9b59b6;
+}
+
+/* Reason Section */
+.dret-reason-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dret-reason-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dret-reason-option:hover {
+  border-color: #e9ecef;
+  background: white;
+}
+
+.dret-reason-selected {
+  background: #f0e6f5;
+  border-color: #9b59b6;
+}
+
+.dret-reason-option input {
+  display: none;
+}
+
+.dret-reason-label {
+  font-weight: 500;
+  color: #2d3436;
+}
+
+.dret-description-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dret-description-field label {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.dret-description-field textarea {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.dret-description-field textarea:focus {
+  outline: none;
+  border-color: #9b59b6;
+}
+
+.dret-char-count {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-align: right;
+}
+
+/* Submit Section */
+.dret-submit-section {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.dret-cancel-btn {
+  background: white;
+  border: 2px solid #e9ecef;
+  padding: 14px 30px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dret-cancel-btn:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.dret-submit-btn {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  border: none;
+  padding: 14px 30px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.dret-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(155, 89, 182, 0.35);
+}
+
+.dret-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dret-btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: dret-spin 1s linear infinite;
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+@media (max-width: 768px) {
+  .dret-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dret-order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .dret-order-footer {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .dret-request-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .dret-reason-options {
+    grid-template-columns: 1fr;
+  }
+
+  .dret-submit-section {
+    flex-direction: column;
+  }
+
+  .dret-cancel-btn,
+  .dret-submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .dret-page-title {
+    font-size: 1.3rem;
+  }
+
+  .dret-item-card {
+    flex-wrap: wrap;
+  }
+
+  .dret-item-quantity {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}
+
+/* ================================================
+   ANIMATIONS
+   ================================================ */
+@keyframes dretFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dret-order-card {
+  animation: dretFadeIn 0.3s ease-out;
+}
+
+.dret-order-card:nth-child(1) { animation-delay: 0.05s; }
+.dret-order-card:nth-child(2) { animation-delay: 0.1s; }
+.dret-order-card:nth-child(3) { animation-delay: 0.15s; }

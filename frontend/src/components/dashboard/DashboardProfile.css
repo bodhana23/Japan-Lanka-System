@@ -1,0 +1,459 @@
+/* ================================================
+   DASHBOARD PROFILE - USER PROFILE STYLES
+   Japan Lanka Enterprises
+   ================================================ */
+
+.dprof-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ================================================
+   PAGE HEADER
+   ================================================ */
+.dprof-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.dprof-header-info {
+  flex: 1;
+}
+
+.dprof-page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 5px 0;
+}
+
+.dprof-title-icon {
+  color: #28a745;
+}
+
+.dprof-page-subtitle {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dprof-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dprof-edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+}
+
+/* ================================================
+   SUCCESS/ERROR BANNERS
+   ================================================ */
+.dprof-success-banner,
+.dprof-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.dprof-success-banner {
+  background: #eafaf1;
+  border: 1px solid #27ae60;
+  color: #27ae60;
+}
+
+.dprof-error-banner {
+  background: #fdedec;
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+}
+
+.dprof-success-banner p,
+.dprof-error-banner p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ================================================
+   PROFILE CARD
+   ================================================ */
+.dprof-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Card Header */
+.dprof-card-header {
+  background: linear-gradient(135deg, #28a745 0%, #00b894 100%);
+  padding: 40px 30px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.dprof-avatar-large {
+  width: 90px;
+  height: 90px;
+  background: white;
+  color: #28a745;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dprof-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dprof-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dprof-role-badge {
+  display: inline-flex;
+  padding: 5px 15px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.dprof-google-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: white;
+  color: #495057;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+/* Card Body */
+.dprof-card-body {
+  padding: 30px;
+}
+
+/* ================================================
+   VIEW MODE
+   ================================================ */
+.dprof-view-mode {
+  /* View mode container */
+}
+
+.dprof-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dprof-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 18px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.dprof-field:hover {
+  background: #f0f4f8;
+}
+
+.dprof-field-icon {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #28a745;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dprof-field-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dprof-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dprof-field-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2d3436;
+}
+
+.dprof-change-password-link {
+  background: none;
+  border: none;
+  color: #28a745;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 5px;
+  transition: color 0.3s ease;
+}
+
+.dprof-change-password-link:hover {
+  color: #00b894;
+  text-decoration: underline;
+}
+
+/* ================================================
+   EDIT MODE
+   ================================================ */
+.dprof-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dprof-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dprof-form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.dprof-label-icon {
+  color: #28a745;
+}
+
+.dprof-form-group input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.dprof-form-group input:focus {
+  outline: none;
+  border-color: #28a745;
+}
+
+.dprof-form-group input.error {
+  border-color: #e74c3c;
+}
+
+.dprof-form-group input:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.dprof-error-msg {
+  font-size: 0.85rem;
+  color: #e74c3c;
+}
+
+.dprof-field-note {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Form Actions */
+.dprof-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.dprof-cancel-btn {
+  background: white;
+  border: 2px solid #e9ecef;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dprof-cancel-btn:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.dprof-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dprof-save-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+}
+
+.dprof-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.dprof-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: dprof-spin 1s linear infinite;
+}
+
+@keyframes dprof-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+@media (max-width: 768px) {
+  .dprof-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dprof-card-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .dprof-header-text {
+    align-items: center;
+  }
+
+  .dprof-avatar-large {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .dprof-name {
+    font-size: 1.5rem;
+  }
+
+  .dprof-card-body {
+    padding: 20px;
+  }
+
+  .dprof-field {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .dprof-form-actions {
+    flex-direction: column;
+  }
+
+  .dprof-cancel-btn,
+  .dprof-save-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .dprof-page-title {
+    font-size: 1.3rem;
+  }
+
+  .dprof-avatar-large {
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+  }
+
+  .dprof-name {
+    font-size: 1.3rem;
+  }
+}
+
+/* ================================================
+   ANIMATIONS
+   ================================================ */
+@keyframes dprofFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dprof-card {
+  animation: dprofFadeIn 0.4s ease-out;
+}
