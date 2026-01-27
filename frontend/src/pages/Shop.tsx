@@ -4,7 +4,11 @@ import { useCart, Product } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { productsApi, Product as ApiProduct } from '../services/api';
 import NotificationBell from '../components/NotificationBell';
-import { ShoppingCart, Filter, Clock, XCircle, Search, Package } from 'lucide-react';
+import { 
+  ShoppingCart, Filter, Search, Package, X, 
+  ArrowLeft, Tag, Calendar, CheckCircle,
+  AlertCircle, RefreshCw
+} from 'lucide-react';
 import './Shop.css';
 
 interface FilterState {
@@ -243,39 +247,60 @@ const Shop: React.FC = () => {
     <div className="shop-container">
       <header className="shop-header">
         <div className="header-content">
-          <h1>Japan Lanka Auto Parts</h1>
+          <div className="header-left">
+            {isAuthenticated ? (
+              <button onClick={handleBackToDashboard} className="back-btn">
+                <ArrowLeft size={20} />
+                <span>Dashboard</span>
+              </button>
+            ) : (
+              <button onClick={handleBackToHome} className="back-btn">
+                <ArrowLeft size={20} />
+                <span>Home</span>
+              </button>
+            )}
+            <h1>Browse Auto Parts</h1>
+          </div>
           <div className="header-actions">
             <NotificationBell />
             <button
               onClick={() => setShowCart(!showCart)}
               className="cart-btn"
             >
-              <ShoppingCart size={18} /> Cart
+              <ShoppingCart size={20} />
+              <span>Cart</span>
               {getTotalItems() > 0 && (
                 <span className="cart-badge">{getTotalItems()}</span>
               )}
             </button>
-            {isAuthenticated ? (
-              <button onClick={handleBackToDashboard} className="back-btn">
-                ← Back to Dashboard
-              </button>
-            ) : (
-              <button onClick={handleBackToHome} className="back-btn">
-                ← Back to Home
-              </button>
-            )}
           </div>
         </div>
       </header>
 
       <main className="shop-main">
         <div className="shop-layout">
+          {/* Mobile Filter Toggle */}
+          <button 
+            className="mobile-filter-toggle"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={18} />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="filter-count-badge">{activeFilterCount}</span>
+            )}
+          </button>
+
           {/* Filter Sidebar */}
           <aside className={`filter-sidebar ${showFilters ? 'show' : ''}`}>
             <div className="filter-header">
-              <h3>Filters</h3>
+              <div className="filter-title">
+                <Filter size={20} />
+                <h3>Filters</h3>
+              </div>
               {activeFilterCount > 0 && (
                 <button onClick={clearAllFilters} className="clear-filters-btn">
+                  <X size={16} />
                   Clear All ({activeFilterCount})
                 </button>
               )}
@@ -427,41 +452,62 @@ const Shop: React.FC = () => {
             {/* Active Filters Display */}
             {activeFilterCount > 0 && (
               <div className="active-filters">
-                <span className="active-filters-label">Active Filters:</span>
+                <span className="active-filters-label">
+                  <Filter size={16} />
+                  Active Filters:
+                </span>
                 {filters.brands.map(brand => (
                   <span key={brand} className="filter-chip">
+                    <Tag size={14} />
                     {brand}
-                    <button onClick={() => removeFilter('brand', brand)}>×</button>
+                    <button onClick={() => removeFilter('brand', brand)}>
+                      <X size={14} />
+                    </button>
                   </span>
                 ))}
                 {filters.models.map(model => (
                   <span key={model} className="filter-chip">
+                    <Tag size={14} />
                     {model}
-                    <button onClick={() => removeFilter('model', model)}>×</button>
+                    <button onClick={() => removeFilter('model', model)}>
+                      <X size={14} />
+                    </button>
                   </span>
                 ))}
                 {(filters.yearFrom !== null || filters.yearTo !== null) && (
                   <span className="filter-chip">
+                    <Calendar size={14} />
                     Year: {filters.yearFrom || '2010'}-{filters.yearTo || '2025'}
-                    <button onClick={() => removeFilter('year', '')}>×</button>
+                    <button onClick={() => removeFilter('year', '')}>
+                      <X size={14} />
+                    </button>
                   </span>
                 )}
                 {(filters.priceMin > 0 || filters.priceMax < 50000) && (
                   <span className="filter-chip">
-                    Price: ${filters.priceMin}-${filters.priceMax}
-                    <button onClick={() => removeFilter('price', '')}>×</button>
+                    <Tag size={14} />
+                    Price: RS {filters.priceMin}-RS {filters.priceMax}
+                    <button onClick={() => removeFilter('price', '')}>
+                      <X size={14} />
+                    </button>
                   </span>
                 )}
                 {filters.inStockOnly && (
                   <span className="filter-chip">
+                    <CheckCircle size={14} />
                     In Stock
-                    <button onClick={() => removeFilter('stock', '')}>×</button>
+                    <button onClick={() => removeFilter('stock', '')}>
+                      <X size={14} />
+                    </button>
                   </span>
                 )}
                 {filters.searchQuery.trim() !== '' && (
                   <span className="filter-chip">
-                    Search: "{filters.searchQuery}"
-                    <button onClick={() => removeFilter('search', '')}>×</button>
+                    <Search size={14} />
+                    "{filters.searchQuery}"
+                    <button onClick={() => removeFilter('search', '')}>
+                      <X size={14} />
+                    </button>
                   </span>
                 )}
               </div>
@@ -478,26 +524,34 @@ const Shop: React.FC = () => {
             {/* Products Grid or Empty State */}
             {isLoadingProducts ? (
               <div className="empty-state">
-                <div className="empty-state-icon"><Clock size={48} /></div>
+                <div className="empty-state-icon">
+                  <RefreshCw size={48} />
+                </div>
                 <h3>Loading products...</h3>
                 <p>Please wait while we fetch the latest inventory</p>
               </div>
             ) : productsError ? (
-              <div className="empty-state">
-                <div className="empty-state-icon"><XCircle size={48} /></div>
+              <div className="empty-state error-state">
+                <div className="empty-state-icon">
+                  <AlertCircle size={48} />
+                </div>
                 <h3>Error loading products</h3>
                 <p>{productsError}</p>
                 <button onClick={() => window.location.reload()} className="clear-filters-cta">
+                  <RefreshCw size={18} />
                   Try Again
                 </button>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon"><Search size={48} /></div>
+                <div className="empty-state-icon">
+                  <Search size={48} />
+                </div>
                 <h3>No parts found</h3>
                 <p>Try adjusting your filters or search query</p>
                 {activeFilterCount > 0 && (
                   <button onClick={clearAllFilters} className="clear-filters-cta">
+                    <X size={18} />
                     Clear All Filters
                   </button>
                 )}
@@ -529,9 +583,21 @@ const Shop: React.FC = () => {
                     <p className="product-model">{product.model} {product.modelYear && `(${product.modelYear})`}</p>
                     <p className="product-description">{product.description}</p>
                     <div className="product-details">
-                      <span className="product-price">LKR {product.price.toLocaleString()}</span>
-                      <span className="product-stock">
-                        Stock: {product.quantityAvailable}
+                      <div className="product-price-wrapper">
+                        <span className="product-price">RS {product.price.toLocaleString()}</span>
+                      </div>
+                      <span className={`product-stock ${product.quantityAvailable === 0 ? 'out-of-stock' : ''}`}>
+                        {product.quantityAvailable > 0 ? (
+                          <>
+                            <CheckCircle size={16} />
+                            Stock: {product.quantityAvailable}
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle size={16} />
+                            Out of Stock
+                          </>
+                        )}
                       </span>
                     </div>
                     <button 
@@ -539,6 +605,7 @@ const Shop: React.FC = () => {
                       className="add-to-cart-btn"
                       disabled={product.quantityAvailable === 0}
                     >
+                      <ShoppingCart size={18} />
                       {product.quantityAvailable > 0 ? 'Add to Cart' : 'Out of Stock'}
                     </button>
                   </div>
@@ -552,18 +619,24 @@ const Shop: React.FC = () => {
           {showCart && (
             <aside className="cart-sidebar">
               <div className="cart-header">
-                <h3>Shopping Cart</h3>
+                <div className="cart-header-title">
+                  <ShoppingCart size={24} />
+                  <h3>Shopping Cart</h3>
+                </div>
                 <button 
                   onClick={() => setShowCart(false)} 
                   className="close-cart"
                 >
-                  ×
+                  <X size={20} />
                 </button>
               </div>
               
               <div className="cart-items">
                 {cart.length === 0 ? (
-                  <p className="empty-cart">Your cart is empty</p>
+                  <div className="empty-cart">
+                    <ShoppingCart size={48} />
+                    <p>Your cart is empty</p>
+                  </div>
                 ) : (
                   cart.map(item => (
                     <div key={item.id} className="cart-item">
@@ -575,10 +648,12 @@ const Shop: React.FC = () => {
                             <Package size={24} color="#ccc" />
                           )}
                         </div>
-                        <div>
+                        <div className="cart-item-details">
                           <h4>{item.name}</h4>
-                          <p>{item.model}</p>
-                          <span className="cart-item-price">LKR {item.price.toLocaleString()}</span>
+                          <p className="cart-item-model">{item.model}</p>
+                          <span className="cart-item-price">
+                            RS {item.price.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                       <div className="quantity-controls">
@@ -605,10 +680,12 @@ const Shop: React.FC = () => {
               {cart.length > 0 && (
                 <div className="cart-footer">
                   <div className="cart-total">
-                    <strong>Total: LKR {getTotalPrice().toLocaleString()}</strong>
+                    <span>Total:</span>
+                    <strong>RS {getTotalPrice().toLocaleString()}</strong>
                   </div>
                   <button onClick={handleCheckout} className="checkout-btn">
-                    Checkout
+                    <ShoppingCart size={18} />
+                    Proceed to Checkout
                   </button>
                 </div>
               )}
