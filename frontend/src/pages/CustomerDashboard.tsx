@@ -1,508 +1,68 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ProfileModal from '../components/ProfileModal';
-import { ordersApi, returnsApi, Order as ApiOrder, ReturnRequest } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { formatDateTime } from '../utils/dateUtils';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import CustomerDashboardLayout, { NavItemId } from '../components/CustomerDashboardLayout';
 import {
-  Car, LogOut, Calendar, Package, Clock, Truck, CheckCircle,
-  ShoppingCart, RotateCcw, ArrowRight, AlertTriangle, Inbox,
-  Store, Tag, Cog, Octagon, Wrench, Zap, Wind
-} from 'lucide-react';
-import './CustomerDashboard.css';
-
-interface Order {
-  id: string;
-  items: string[];
-  amount: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled';
-  orderDate: string;
-  deliveryMethod: 'pickup' | 'shipping';
-}
-
-// Product categories for quick navigation
-const categories = [
-  { id: 'engine', name: 'Engine Parts', icon: 'cog', color: '#3498db' },
-  { id: 'brake', name: 'Brake System', icon: 'octagon', color: '#e74c3c' },
-  { id: 'suspension', name: 'Suspension', icon: 'wrench', color: '#9b59b6' },
-  { id: 'electrical', name: 'Electrical', icon: 'zap', color: '#f39c12' },
-  { id: 'filters', name: 'Filters', icon: 'wind', color: '#1abc9c' },
-  { id: 'body', name: 'Body Parts', icon: 'car', color: '#34495e' },
-];
+  DashboardOverview,
+  DashboardOrders,
+  DashboardReturns,
+  DashboardCart,
+  DashboardProfile,
+  DashboardChangePassword,
+} from '../components/dashboard';
 
 const CustomerDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [showProfile, setShowProfile] = useState(false);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingReturns, setIsLoadingReturns] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
 
-  // Get current date formatted nicely
-  const currentDate = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }, []);
+  // Default to 'orders' as requested - show previous orders on login
+  const [activeNav, setActiveNav] = useState<NavItemId>('orders');
 
-  // Motivational messages
-  const greetings = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return { greeting: 'Good Morning', message: 'Start your day with quality parts!' };
-    if (hour < 17) return { greeting: 'Good Afternoon', message: 'Ready to find your next part?' };
-    return { greeting: 'Good Evening', message: 'Browse our collection tonight!' };
-  }, []);
-
-  // Fetch orders from API
+  // Parse section from URL query params if present
   useEffect(() => {
-    let isMounted = true;
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section') as NavItemId;
+    if (section && ['overview', 'orders', 'returns', 'cart', 'profile', 'change-password'].includes(section)) {
+      setActiveNav(section);
+    }
+  }, [location.search]);
 
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await ordersApi.getMyOrders();
-        if (isMounted) {
-          const transformedOrders: Order[] = response.items.map((o: ApiOrder) => ({
-            id: o.id,
-            items: o.items.map(item => item.product_name || `Product ${item.product_id}`),
-            amount: o.total_amount,
-            status: o.status,
-            orderDate: o.created_at,
-            deliveryMethod: o.delivery_method,
-          }));
-          setOrders(transformedOrders);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error fetching orders:', err);
-          setError('Failed to load orders');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchOrders();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Fetch return requests from API
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchReturnRequests = async () => {
-      try {
-        setIsLoadingReturns(true);
-        const response = await returnsApi.getMyReturns();
-        if (isMounted) {
-          setReturnRequests(response.items);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error fetching return requests:', err);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingReturns(false);
-        }
-      }
-    };
-
-    fetchReturnRequests();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const total = orders.length;
-    const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
-    const completed = orders.filter(o => o.status === 'delivered').length;
-    const inProgress = orders.filter(o => o.status === 'shipped' || o.status === 'ready_to_pickup').length;
-    return { total, pending, completed, inProgress };
-  }, [orders]);
-
-  // Get recent orders (last 5)
-  const recentOrders = useMemo(() => {
-    return [...orders]
-      .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
-      .slice(0, 5);
-  }, [orders]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  // Handle navigation changes
+  const handleNavChange = (navId: NavItemId) => {
+    // Handle logout separately
+    if (navId === 'orders' || navId === 'overview' || navId === 'returns' || navId === 'cart' || navId === 'profile' || navId === 'change-password') {
+      setActiveNav(navId);
+      // Update URL without reload
+      const newUrl = navId === 'orders' ? '/customer' : `/customer?section=${navId}`;
+      window.history.pushState({}, '', newUrl);
+    }
   };
 
-  const handleBrowseParts = () => {
-    navigate('/shop');
+  // Render the appropriate content based on active navigation
+  const renderContent = () => {
+    switch (activeNav) {
+      case 'overview':
+        return <DashboardOverview onNavigate={handleNavChange} />;
+      case 'orders':
+        return <DashboardOrders onNavigate={handleNavChange} />;
+      case 'returns':
+        return <DashboardReturns onNavigate={handleNavChange} />;
+      case 'cart':
+        return <DashboardCart onNavigate={handleNavChange} />;
+      case 'profile':
+        return <DashboardProfile onNavigate={handleNavChange} />;
+      case 'change-password':
+        return <DashboardChangePassword onNavigate={handleNavChange} />;
+      default:
+        return <DashboardOrders onNavigate={handleNavChange} />;
+    }
   };
-
-  const handleViewOrders = () => {
-    navigate('/my-orders');
-  };
-
-  const handleRequestReturn = () => {
-    navigate('/request-return');
-  };
-
-  const handleCategoryClick = (categoryId: string) => {
-    // Navigate to shop with category filter
-    navigate(`/shop?category=${categoryId}`);
-  };
-
-  const getStatusInfo = (status: string) => {
-    const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
-      'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
-      'confirmed': { text: 'Confirmed', color: '#3498db', bgColor: '#ebf5fb' },
-      'shipped': { text: 'Shipped', color: '#9b59b6', bgColor: '#f5eef8' },
-      'ready_to_pickup': { text: 'Ready', color: '#1abc9c', bgColor: '#e8f8f5' },
-      'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
-      'cancelled': { text: 'Cancelled', color: '#e74c3c', bgColor: '#fdedec' },
-    };
-    return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
-  };
-
-  const getReturnStatusInfo = (status: string) => {
-    const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
-      'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
-      'approved': { text: 'Approved', color: '#27ae60', bgColor: '#eafaf1' },
-      'rejected': { text: 'Rejected', color: '#e74c3c', bgColor: '#fdedec' },
-      'completed': { text: 'Completed', color: '#3498db', bgColor: '#ebf5fb' },
-    };
-    return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `Rs. ${amount.toLocaleString()}`;
-  };
-
-  // Get user's first name for greeting
-  const firstName = user?.full_name?.split(' ')[0] || 'Customer';
 
   return (
-    <div className="customer-dashboard">
-      {/* Header */}
-      <header className="cd-header">
-        <div className="cd-header-content">
-          <div className="cd-logo">
-            <Car size={24} className="cd-logo-icon" />
-            <span className="cd-logo-text">Japan Lanka</span>
-          </div>
-          <div className="cd-header-actions">
-            <button 
-              className="cd-profile-btn"
-              onClick={() => setShowProfile(true)}
-            >
-              <span className="cd-profile-avatar">
-                {firstName.charAt(0).toUpperCase()}
-              </span>
-              <span className="cd-profile-name">{firstName}</span>
-            </button>
-            <button onClick={handleLogout} className="cd-logout-btn">
-              <LogOut size={16} /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="cd-main">
-        {/* Welcome Section */}
-        <section className="cd-welcome-section">
-          <div className="cd-welcome-content">
-            <div className="cd-welcome-text">
-              <span className="cd-greeting-label">{greetings.greeting},</span>
-              <h1 className="cd-greeting-name">{user?.full_name || 'Customer'}!</h1>
-              <p className="cd-greeting-message">{greetings.message}</p>
-            </div>
-            <div className="cd-welcome-date">
-              <Calendar size={16} className="cd-date-icon" />
-              <span className="cd-date-text">{currentDate}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats Cards */}
-        <section className="cd-stats-section">
-          <div className="cd-stats-grid">
-            <div className="cd-stat-card cd-stat-total">
-              <div className="cd-stat-icon"><Package size={24} /></div>
-              <div className="cd-stat-info">
-                <span className="cd-stat-number">{isLoading ? '...' : stats.total}</span>
-                <span className="cd-stat-label">Total Orders</span>
-              </div>
-            </div>
-            <div className="cd-stat-card cd-stat-pending">
-              <div className="cd-stat-icon"><Clock size={24} /></div>
-              <div className="cd-stat-info">
-                <span className="cd-stat-number">{isLoading ? '...' : stats.pending}</span>
-                <span className="cd-stat-label">Pending</span>
-              </div>
-            </div>
-            <div className="cd-stat-card cd-stat-progress">
-              <div className="cd-stat-icon"><Truck size={24} /></div>
-              <div className="cd-stat-info">
-                <span className="cd-stat-number">{isLoading ? '...' : stats.inProgress}</span>
-                <span className="cd-stat-label">In Transit</span>
-              </div>
-            </div>
-            <div className="cd-stat-card cd-stat-completed">
-              <div className="cd-stat-icon"><CheckCircle size={24} /></div>
-              <div className="cd-stat-info">
-                <span className="cd-stat-number">{isLoading ? '...' : stats.completed}</span>
-                <span className="cd-stat-label">Completed</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Main Action Buttons */}
-        <section className="cd-actions-section">
-          <button className="cd-action-btn cd-action-primary" onClick={handleBrowseParts}>
-            <span className="cd-action-icon"><ShoppingCart size={24} /></span>
-            <span className="cd-action-text">
-              <span className="cd-action-title">Browse Parts</span>
-              <span className="cd-action-subtitle">Find quality auto parts</span>
-            </span>
-            <span className="cd-action-arrow"><ArrowRight size={20} /></span>
-          </button>
-          <button className="cd-action-btn cd-action-secondary" onClick={handleRequestReturn}>
-            <span className="cd-action-icon"><RotateCcw size={24} /></span>
-            <span className="cd-action-text">
-              <span className="cd-action-title">Request Returns</span>
-              <span className="cd-action-subtitle">Return delivered items</span>
-            </span>
-            <span className="cd-action-arrow"><ArrowRight size={20} /></span>
-          </button>
-        </section>
-
-        {/* Recent Orders Section */}
-        <section className="cd-recent-orders-section">
-          <div className="cd-section-header">
-            <h2 className="cd-section-title">
-              <Package size={20} className="cd-section-icon" />
-              Recent Orders
-            </h2>
-            {orders.length > 5 && (
-              <button className="cd-view-all-btn" onClick={handleViewOrders}>
-                View All →
-              </button>
-            )}
-          </div>
-
-          {isLoading ? (
-            <div className="cd-loading">
-              <div className="cd-loading-spinner"></div>
-              <p>Loading your orders...</p>
-            </div>
-          ) : error ? (
-            <div className="cd-error">
-              <AlertTriangle size={24} className="cd-error-icon" />
-              <p>{error}</p>
-            </div>
-          ) : recentOrders.length === 0 ? (
-            <div className="cd-empty-orders">
-              <Inbox size={48} className="cd-empty-icon" />
-              <h3>No orders yet</h3>
-              <p>Start shopping to see your orders here!</p>
-              <button className="cd-shop-now-btn" onClick={handleBrowseParts}>
-                Shop Now
-              </button>
-            </div>
-          ) : (
-            <div className="cd-orders-grid">
-              {recentOrders.map((order) => {
-                const statusInfo = getStatusInfo(order.status);
-                return (
-                  <div key={order.id} className="cd-order-card">
-                    <div className="cd-order-header">
-                      <span className="cd-order-id">#{order.id.slice(-8).toUpperCase()}</span>
-                      <span
-                        className="cd-order-status"
-                        style={{
-                          color: statusInfo.color,
-                          backgroundColor: statusInfo.bgColor
-                        }}
-                      >
-                        {statusInfo.text}
-                      </span>
-                    </div>
-                    <div className="cd-order-body">
-                      <div className="cd-order-date">
-                        <Calendar size={14} className="cd-order-date-icon" />
-                        {formatDateTime(order.orderDate)}
-                      </div>
-                      <div className="cd-order-items">
-                        {order.items.slice(0, 2).join(', ')}
-                        {order.items.length > 2 && ` +${order.items.length - 2} more`}
-                      </div>
-                    </div>
-                    <div className="cd-order-footer">
-                      <span className="cd-order-amount">{formatCurrency(order.amount)}</span>
-                      <span className="cd-order-delivery">
-                        {order.deliveryMethod === 'pickup' ? <><Store size={14} /> Pickup</> : <><Truck size={14} /> Delivery</>}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Return Requests Section */}
-        <section className="cd-recent-orders-section cd-returns-section">
-          <div className="cd-section-header">
-            <h2 className="cd-section-title">
-              <RotateCcw size={20} className="cd-section-icon" />
-              My Return Requests
-            </h2>
-            {returnRequests.length > 0 && (
-              <button className="cd-view-all-btn" onClick={handleRequestReturn}>
-                New Request →
-              </button>
-            )}
-          </div>
-
-          {isLoadingReturns ? (
-            <div className="cd-loading">
-              <div className="cd-loading-spinner"></div>
-              <p>Loading return requests...</p>
-            </div>
-          ) : returnRequests.length === 0 ? (
-            <div className="cd-empty-orders">
-              <CheckCircle size={48} className="cd-empty-icon" />
-              <h3>No return requests</h3>
-              <p>You haven't submitted any return requests yet.</p>
-              <button className="cd-shop-now-btn" onClick={handleRequestReturn}>
-                Request a Return
-              </button>
-            </div>
-          ) : (
-            <div className="cd-orders-grid">
-              {returnRequests.slice(0, 5).map((request) => {
-                const statusInfo = getReturnStatusInfo(request.status);
-                return (
-                  <div key={request.id} className="cd-order-card cd-return-card">
-                    <div className="cd-order-header">
-                      <div className="cd-return-ids">
-                        <span className="cd-order-id">Return #{request.id.slice(-8).toUpperCase()}</span>
-                        <span className="cd-return-order-ref">Order #{request.order_id.slice(-8).toUpperCase()}</span>
-                      </div>
-                      <span
-                        className="cd-order-status"
-                        style={{
-                          color: statusInfo.color,
-                          backgroundColor: statusInfo.bgColor
-                        }}
-                      >
-                        {statusInfo.text}
-                      </span>
-                    </div>
-                    <div className="cd-order-body">
-                      <div className="cd-order-date">
-                        <Calendar size={14} className="cd-order-date-icon" />
-                        {formatDateTime(request.created_at)}
-                      </div>
-                      <div className="cd-return-reason">
-                        <span className="cd-reason-label">Reason:</span> {request.reason}
-                      </div>
-                      {request.description && (
-                        <div className="cd-order-items">
-                          {request.description.length > 60
-                            ? `${request.description.substring(0, 60)}...`
-                            : request.description}
-                        </div>
-                      )}
-                      {request.items && request.items.length > 0 && (
-                        <div className="cd-return-items-count">
-                          {request.items.length} item{request.items.length > 1 ? 's' : ''} to return
-                        </div>
-                      )}
-                    </div>
-                    {request.admin_notes && (
-                      <div className="cd-manager-response-container">
-                        <span className="cd-admin-note">
-                          <span className="cd-admin-label">Manager Response:</span>
-                          {request.admin_notes}
-                        </span>
-                      </div>
-                    )}
-                    {request.order_total && (
-                      <div className="cd-order-footer">
-                        <span className="cd-order-amount">{formatCurrency(request.order_total)}</span>
-                        <span className="cd-order-delivery">Original Order</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Quick Categories Section */}
-        <section className="cd-categories-section">
-          <div className="cd-section-header">
-            <h2 className="cd-section-title">
-              <Tag size={20} className="cd-section-icon" />
-              Quick Categories
-            </h2>
-          </div>
-          <div className="cd-categories-grid">
-            {categories.map((category) => {
-              const IconComponent = {
-                cog: Cog,
-                octagon: Octagon,
-                wrench: Wrench,
-                zap: Zap,
-                wind: Wind,
-                car: Car,
-              }[category.icon] || Package;
-              return (
-                <button
-                  key={category.id}
-                  className="cd-category-card"
-                  onClick={() => handleCategoryClick(category.id)}
-                  style={{ '--category-color': category.color } as React.CSSProperties}
-                >
-                  <span className="cd-category-icon"><IconComponent size={24} /></span>
-                  <span className="cd-category-name">{category.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      </main>
-
-      {/* Profile Modal */}
-      {showProfile && user && (
-        <ProfileModal
-          onClose={() => setShowProfile(false)}
-          user={{
-            email: user.email,
-            fullName: user.full_name,
-            role: user.role,
-            phoneNumber: user.phone_number || '',
-            is_google_user: user.is_google_user
-          }}
-          roleLabel="Customer"
-        />
-      )}
-    </div>
+    <CustomerDashboardLayout
+      activeNav={activeNav}
+      onNavChange={handleNavChange}
+    >
+      {renderContent()}
+    </CustomerDashboardLayout>
   );
 };
 

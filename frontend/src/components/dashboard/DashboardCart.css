@@ -1,0 +1,467 @@
+/* ================================================
+   DASHBOARD CART - SHOPPING CART STYLES
+   Japan Lanka Enterprises
+   ================================================ */
+
+.dcart-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ================================================
+   PAGE HEADER
+   ================================================ */
+.dcart-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.dcart-header-info {
+  flex: 1;
+}
+
+.dcart-page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 5px 0;
+}
+
+.dcart-title-icon {
+  color: #28a745;
+}
+
+.dcart-page-subtitle {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dcart-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 2px solid #e74c3c;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #e74c3c;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dcart-clear-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* ================================================
+   EMPTY CART
+   ================================================ */
+.dcart-empty {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dcart-empty-icon {
+  color: #6c757d;
+  opacity: 0.4;
+  margin-bottom: 20px;
+}
+
+.dcart-empty h3 {
+  font-size: 1.5rem;
+  color: #2d3436;
+  margin: 0 0 10px 0;
+}
+
+.dcart-empty p {
+  color: #6c757d;
+  margin: 0 0 25px 0;
+  font-size: 1rem;
+}
+
+.dcart-shop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: white;
+  border: none;
+  padding: 14px 35px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dcart-shop-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.35);
+}
+
+/* ================================================
+   CART CONTENT LAYOUT
+   ================================================ */
+.dcart-content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 30px;
+  align-items: start;
+}
+
+/* ================================================
+   CART ITEMS
+   ================================================ */
+.dcart-items-section {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dcart-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.dcart-item-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.dcart-item-card:hover {
+  border-color: #28a745;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.dcart-item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dcart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dcart-item-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.dcart-item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.dcart-item-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin: 0 0 5px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dcart-item-price {
+  font-size: 0.9rem;
+  color: #28a745;
+  margin: 0;
+  font-weight: 500;
+}
+
+.dcart-item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dcart-qty-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #495057;
+}
+
+.dcart-qty-btn:hover:not(:disabled) {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.dcart-qty-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dcart-qty-value {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2d3436;
+}
+
+.dcart-item-subtotal {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3436;
+  min-width: 100px;
+  text-align: right;
+}
+
+.dcart-remove-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dcart-remove-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* ================================================
+   CART SUMMARY
+   ================================================ */
+.dcart-summary-section {
+  position: sticky;
+  top: 100px;
+}
+
+.dcart-summary-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dcart-summary-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 20px 0;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.dcart-summary-rows {
+  margin-bottom: 20px;
+}
+
+.dcart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 0.95rem;
+  color: #495057;
+}
+
+.dcart-shipping-note {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.dcart-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-top: 2px solid #e9ecef;
+  margin-bottom: 20px;
+}
+
+.dcart-summary-total span:first-child {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.dcart-total-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.dcart-checkout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: white;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 12px;
+}
+
+.dcart-checkout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.35);
+}
+
+.dcart-continue-btn {
+  width: 100%;
+  background: white;
+  border: 2px solid #e9ecef;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dcart-continue-btn:hover {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+@media (max-width: 992px) {
+  .dcart-content {
+    grid-template-columns: 1fr;
+  }
+
+  .dcart-summary-section {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .dcart-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dcart-item-card {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .dcart-item-details {
+    width: calc(100% - 100px);
+  }
+
+  .dcart-item-quantity {
+    order: 3;
+    width: auto;
+  }
+
+  .dcart-item-subtotal {
+    order: 4;
+    min-width: auto;
+    flex: 1;
+  }
+
+  .dcart-remove-btn {
+    order: 5;
+  }
+}
+
+@media (max-width: 480px) {
+  .dcart-page-title {
+    font-size: 1.3rem;
+  }
+
+  .dcart-item-card {
+    padding: 15px;
+  }
+
+  .dcart-item-image {
+    width: 60px;
+    height: 60px;
+  }
+
+  .dcart-item-details {
+    width: calc(100% - 80px);
+  }
+
+  .dcart-item-name {
+    font-size: 0.95rem;
+  }
+
+  .dcart-item-subtotal {
+    font-size: 1rem;
+  }
+}
+
+/* ================================================
+   ANIMATIONS
+   ================================================ */
+@keyframes dcartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dcart-item-card {
+  animation: dcartFadeIn 0.3s ease-out;
+}
+
+.dcart-item-card:nth-child(1) { animation-delay: 0.05s; }
+.dcart-item-card:nth-child(2) { animation-delay: 0.1s; }
+.dcart-item-card:nth-child(3) { animation-delay: 0.15s; }
+.dcart-item-card:nth-child(4) { animation-delay: 0.2s; }
+.dcart-item-card:nth-child(5) { animation-delay: 0.25s; }
