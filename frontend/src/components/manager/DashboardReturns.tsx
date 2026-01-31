@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { RefreshCw, AlertTriangle, Inbox } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Inbox, Package, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 
 interface ReturnRequestUI {
@@ -24,6 +24,7 @@ interface ReturnRequestUI {
     created_at: string;
     product_id?: string;
     product_name?: string;
+    product_image?: string;
     unit_price?: number;
     original_quantity?: number;
   }[];
@@ -34,13 +35,17 @@ interface DashboardReturnsProps {
   isLoading: boolean;
   error: string | null;
   onViewReturn: (returnRequest: ReturnRequestUI) => void;
+  onAcceptReturn?: (returnId: string) => void;
+  onRejectReturn?: (returnId: string) => void;
 }
 
 export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
   returnRequests,
   isLoading,
   error,
-  onViewReturn
+  onViewReturn,
+  onAcceptReturn,
+  onRejectReturn
 }) => {
   // Return filtering state
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -138,26 +143,46 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
                   {request.status.toUpperCase()}
                 </span>
               </div>
+
+              {/* Product Images Section */}
+              {request.items && request.items.length > 0 && (
+                <div className="return-products-preview">
+                  {request.items.slice(0, 3).map((item, idx) => (
+                    <div key={item.id || idx} className="return-product-thumb">
+                      {item.product_image ? (
+                        <img
+                          src={item.product_image}
+                          alt={item.product_name || 'Product'}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const placeholder = target.nextElementSibling as HTMLElement;
+                            if (placeholder) placeholder.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`product-thumb-placeholder ${item.product_image ? 'hidden' : ''}`}>
+                        <Package size={24} color="#ccc" />
+                      </div>
+                    </div>
+                  ))}
+                  {request.items.length > 3 && (
+                    <div className="return-product-more">+{request.items.length - 3}</div>
+                  )}
+                </div>
+              )}
+
               <div className="return-details">
-                <p><strong>Customer:</strong> {request.customer_name}</p>
-                <p><strong>Email:</strong> {request.customer_email}</p>
-                <p><strong>Order:</strong> #{request.order_id.slice(-8).toUpperCase()}</p>
+                <p><strong>Order ID:</strong> #{request.order_id.slice(-8).toUpperCase()}</p>
                 <p><strong>Reason:</strong> {request.reason}</p>
-                {request.description && (
-                  <p><strong>Description:</strong> {request.description.length > 100 ? `${request.description.substring(0, 100)}...` : request.description}</p>
-                )}
                 <p><strong>Date:</strong> {formatDateTime(request.created_at)}</p>
-                {request.order_total && (
-                  <p><strong>Order Total:</strong> Rs. {request.order_total.toLocaleString()}</p>
-                )}
                 {request.items && request.items.length > 0 && (
                   <div className="return-items-list">
-                    <strong>Items to Return:</strong>
+                    <strong>Items ({request.items.length}):</strong>
                     <ul>
                       {request.items.map((item, idx) => (
                         <li key={item.id || idx}>
                           {item.product_name || `Product ${item.product_id?.slice(-8)}`} - Qty: {item.quantity}
-                          {item.unit_price && ` (Rs. ${item.unit_price.toLocaleString()} each)`}
                         </li>
                       ))}
                     </ul>
@@ -167,13 +192,31 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
                   <p className="admin-notes-preview"><strong>Manager Note:</strong> {request.admin_notes}</p>
                 )}
               </div>
+
               <div className="return-actions">
-                <button
-                  className="view-chat-btn"
-                  onClick={() => onViewReturn(request)}
-                >
-                  {request.status === 'pending' ? 'Review & Take Action' : 'View Details'}
-                </button>
+                {request.status === 'pending' ? (
+                  <>
+                    <button
+                      className="accept-btn"
+                      onClick={() => onAcceptReturn?.(request.id)}
+                    >
+                      <CheckCircle size={16} /> Accept
+                    </button>
+                    <button
+                      className="reject-btn"
+                      onClick={() => onRejectReturn?.(request.id)}
+                    >
+                      <XCircle size={16} /> Reject
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="view-details-btn"
+                    onClick={() => onViewReturn(request)}
+                  >
+                    View Details
+                  </button>
+                )}
               </div>
             </div>
           ))}

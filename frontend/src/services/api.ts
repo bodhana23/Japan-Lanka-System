@@ -197,6 +197,7 @@ export interface ReturnItem {
   created_at: string;
   product_id?: string;
   product_name?: string;
+  product_image?: string;
   unit_price?: number;
   original_quantity?: number;
 }

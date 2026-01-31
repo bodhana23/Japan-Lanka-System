@@ -31,6 +31,7 @@ class ReturnItemResponse(BaseModel):
     # Order item info (enriched)
     product_id: Optional[UUID] = None
     product_name: Optional[str] = None
+    product_image: Optional[str] = None
     unit_price: Optional[float] = None
     original_quantity: Optional[int] = None
 

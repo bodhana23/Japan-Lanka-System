@@ -262,6 +262,16 @@ const Shop: React.FC = () => {
             <h1>Browse Auto Parts</h1>
           </div>
           <div className="header-actions">
+            <button
+              className="mobile-filter-toggle"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={18} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="filter-count-badge">{activeFilterCount}</span>
+              )}
+            </button>
             <NotificationBell />
             <button
               onClick={() => setShowCart(!showCart)}
@@ -279,18 +289,6 @@ const Shop: React.FC = () => {
 
       <main className="shop-main">
         <div className="shop-layout">
-          {/* Mobile Filter Toggle */}
-          <button 
-            className="mobile-filter-toggle"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={18} />
-            <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="filter-count-badge">{activeFilterCount}</span>
-            )}
-          </button>
-
           {/* Filter Sidebar */}
           <aside className={`filter-sidebar ${showFilters ? 'show' : ''}`}>
             <div className="filter-header">
@@ -435,17 +433,6 @@ const Shop: React.FC = () => {
               </label>
             </div>
           </aside>
-
-          {/* Mobile Filter Toggle */}
-          <button
-            className="filter-toggle-btn"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={16} /> Filters
-            {activeFilterCount > 0 && (
-              <span className="filter-badge">{activeFilterCount}</span>
-            )}
-          </button>
 
           {/* Products Section */}
           <section className="products-section">

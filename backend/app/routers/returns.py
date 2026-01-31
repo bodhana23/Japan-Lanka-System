@@ -41,6 +41,7 @@ def return_item_to_response(return_item: ReturnItem) -> ReturnItemResponse:
         created_at=return_item.created_at,
         product_id=order_item.product_id if order_item else None,
         product_name=product.name if product else None,
+        product_image=product.image_url if product else None,
         unit_price=float(order_item.unit_price) if order_item else None,
         original_quantity=order_item.quantity if order_item else None
     )

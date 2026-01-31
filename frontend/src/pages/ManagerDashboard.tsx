@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ManagerDashboardLayout, { NavItemId } from '../components/ManagerDashboardLayout';
-import { DashboardInventory, DashboardOrders, DashboardReturns } from '../components/manager';
+import { DashboardInventory, DashboardOrders, DashboardReturns, DashboardProfile } from '../components/manager';
 import { productsApi, ordersApi, returnsApi, Product as ApiProduct, Order as ApiOrder, ReturnRequest as ApiReturnRequest } from '../services/api';
 import { formatDateTime } from '../utils/dateUtils';
 import {
@@ -43,6 +43,7 @@ interface ReturnRequestUI {
     created_at: string;
     product_id?: string;
     product_name?: string;
+    product_image?: string;
     unit_price?: number;
     original_quantity?: number;
   }[];
@@ -340,26 +341,39 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const handleOrderStatusUpdate = (orderId: string, newStatus: CustomerOrder['status']) => {
-    setCustomerOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          status: newStatus
-        };
-      }
-      return order;
-    }));
-    
-    // Show success message
-    const statusMessages = {
-      'pending': 'Order marked as pending',
-      'in_progress': 'Order marked as in progress',
-      'ready_to_pickup': 'Order marked as ready for pickup',
-      'delivered': 'Order marked as delivered'
-    };
-    
-    alert(statusMessages[newStatus] || 'Order status updated');
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: CustomerOrder['status']) => {
+    try {
+      // Map UI status to API status
+      const apiStatus = newStatus === 'in_progress' ? 'confirmed' : newStatus;
+
+      // Call the backend API to update order status
+      await ordersApi.updateOrderStatus(orderId, apiStatus as any);
+
+      // Update local state on success
+      setCustomerOrders(prev => prev.map(order => {
+        if (order.id === orderId) {
+          return {
+            ...order,
+            status: newStatus
+          };
+        }
+        return order;
+      }));
+
+      // Show success message
+      const statusMessages = {
+        'pending': 'Order marked as pending',
+        'in_progress': 'Order marked as in progress',
+        'ready_to_pickup': 'Order marked as ready for pickup',
+        'delivered': 'Order marked as delivered'
+      };
+
+      alert(statusMessages[newStatus] || 'Order status updated');
+    } catch (error: any) {
+      console.error('Error updating order status:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to update order status.';
+      alert(`Error: ${errorMessage}`);
+    }
   };
 
   // Check authentication on component mount
@@ -439,9 +453,28 @@ const ManagerDashboard: React.FC = () => {
             isLoading={isLoadingReturns}
             error={returnsError}
             onViewReturn={(request) => setSelectedReturnRequest(request)}
+            onAcceptReturn={(returnId) => {
+              const request = returnRequests.find(r => r.id === returnId);
+              if (request) {
+                setSelectedReturnRequest(request);
+              }
+            }}
+            onRejectReturn={(returnId) => {
+              const request = returnRequests.find(r => r.id === returnId);
+              if (request) {
+                setSelectedReturnRequest(request);
+              }
+            }}
           />
         );
-      
+
+      case 'profile':
+        return (
+          <DashboardProfile
+            user={user}
+          />
+        );
+
       default:
         return null;
     }

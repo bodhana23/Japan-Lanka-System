@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import ProfileModal from './ProfileModal';
 import {
   Car, LogOut, Package, ClipboardList, RotateCcw,
   User, ChevronRight
@@ -9,7 +8,7 @@ import {
 import './ManagerDashboardLayout.css';
 
 // Navigation items for the sidebar
-export type NavItemId = 'inventory' | 'orders' | 'returns';
+export type NavItemId = 'inventory' | 'orders' | 'returns' | 'profile';
 
 interface NavItem {
   id: NavItemId;
@@ -39,7 +38,6 @@ const ManagerDashboardLayout: React.FC<ManagerDashboardLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [showProfile, setShowProfile] = React.useState(false);
 
   // Use passed user prop instead of AuthContext user
   const user = userProp;
@@ -49,6 +47,7 @@ const ManagerDashboardLayout: React.FC<ManagerDashboardLayoutProps> = ({
     { id: 'inventory', label: 'Inventory Management', icon: <Package size={20} /> },
     { id: 'orders', label: 'Order Management', icon: <ClipboardList size={20} /> },
     { id: 'returns', label: 'Return Requests', icon: <RotateCcw size={20} /> },
+    { id: 'profile', label: 'Profile', icon: <User size={20} /> },
   ], []);
 
   const handleLogout = () => {
@@ -98,15 +97,6 @@ const ManagerDashboardLayout: React.FC<ManagerDashboardLayoutProps> = ({
         </nav>
 
         <div className="mdl-sidebar-footer">
-          <button 
-            className="mdl-profile-btn"
-            onClick={() => setShowProfile(true)}
-          >
-            <span className="mdl-profile-avatar">
-              {firstName.charAt(0).toUpperCase()}
-            </span>
-            <span className="mdl-profile-name">{firstName}</span>
-          </button>
           <button className="mdl-logout-btn" onClick={handleLogout}>
             <LogOut size={20} />
             <span>Logout</span>
@@ -136,21 +126,6 @@ const ManagerDashboardLayout: React.FC<ManagerDashboardLayoutProps> = ({
           {children}
         </div>
       </main>
-
-      {/* Profile Modal */}
-      {showProfile && (
-        <ProfileModal
-          user={{
-            email: user.email || '',
-            full_name: user.full_name || user.name,
-            role: user.role || 'manager',
-            phone_number: user.phone_number,
-            is_google_user: user.is_google_user
-          }}
-          onClose={() => setShowProfile(false)}
-          roleLabel="Manager"
-        />
-      )}
     </div>
   );
 };

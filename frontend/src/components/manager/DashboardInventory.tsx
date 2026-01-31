@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Package, Store, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, Package, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Product } from '../../services/api';
 
 interface DashboardInventoryProps {
@@ -286,38 +286,60 @@ export const DashboardInventory: React.FC<DashboardInventoryProps> = ({
         </div>
       ) : (
         <div className="products-grid">
-          {filteredProducts.map(product => (
-            <div key={product.id} className="product-item">
-              <div className="product-image">
-                {product.imageLink ? (
-                  <img src={product.imageLink} alt={product.name} onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (nextSibling) nextSibling.style.display = 'flex';
-                  }} />
-                ) : null}
-                <div className="product-icon" style={{ display: product.imageLink ? 'none' : 'flex' }}><Store size={48} /></div>
+          {filteredProducts.map(product => {
+            // Determine stock status
+            const stockStatus = product.quantity === 0
+              ? 'out-of-stock'
+              : product.quantity < 10
+                ? 'low-stock'
+                : 'in-stock';
+
+            const stockLabel = product.quantity === 0
+              ? 'Out of Stock'
+              : product.quantity < 10
+                ? 'Low Stock'
+                : 'In Stock';
+
+            return (
+              <div key={product.id} className="product-item">
+                <div className="product-image-container">
+                  {product.imageLink ? (
+                    <img
+                      src={product.imageLink}
+                      alt={product.name}
+                      className="product-img"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const placeholder = target.nextElementSibling as HTMLElement;
+                        if (placeholder) placeholder.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`no-image-placeholder ${product.imageLink ? 'hidden' : ''}`}>
+                    <Package size={48} color="#ccc" />
+                  </div>
+                </div>
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <p className="product-brand">{product.brand}</p>
+                  <p className="product-model">{product.model}</p>
+                  <div className="product-stock-row">
+                    <span className="stock-quantity">Stock: {product.quantity} units</span>
+                    <span className={`stock-status-badge ${stockStatus}`}>{stockLabel}</span>
+                  </div>
+                </div>
+                <div className="product-actions">
+                  <button
+                    className="edit-btn"
+                    onClick={() => onEditProduct(product)}
+                  >
+                    Edit Product
+                  </button>
+                </div>
               </div>
-              <div className="product-info">
-                <h3>{product.name}</h3>
-                <p className="product-brand">{product.brand}</p>
-                <p className="product-model">{product.model}</p>
-                {product.description && (
-                  <p className="product-description">{product.description}</p>
-                )}
-                <p className="product-price">Rs. {product.price.toLocaleString()}</p>
-                <p className="product-stock">Stock: {product.quantity} units</p>
-              </div>
-              <div className="product-actions">
-                <button 
-                  className="edit-btn"
-                  onClick={() => onEditProduct(product)}
-                >
-                  Edit Product
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -40,21 +40,21 @@
 }
 
 .toast-success {
-  background: linear-gradient(135deg, rgba(0, 184, 148, 0.95) 0%, rgba(0, 160, 133, 0.95) 100%) !important;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.97) 0%, rgba(0, 184, 148, 0.97) 100%) !important;
   color: white !important;
-  border-left: 4px solid #00f2c3;
+  border-left: 4px solid #28a745;
 }
 
 .toast-error {
-  background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(239, 83, 80, 0.95) 100%) !important;
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.97) 0%, rgba(200, 35, 51, 0.97) 100%) !important;
   color: white !important;
-  border-left: 4px solid #ff6b6b;
+  border-left: 4px solid #dc3545;
 }
 
 .toast-info {
-  background: linear-gradient(135deg, rgba(52, 152, 219, 0.95) 0%, rgba(41, 128, 185, 0.95) 100%) !important;
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.97) 0%, rgba(41, 128, 185, 0.97) 100%) !important;
   color: white !important;
-  border-left: 4px solid #5dade2;
+  border-left: 4px solid #3498db;
 }
 
 .toast-icon {
