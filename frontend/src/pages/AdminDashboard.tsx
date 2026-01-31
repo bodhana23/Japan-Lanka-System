@@ -574,8 +574,25 @@ const AdminDashboard: React.FC = () => {
       showToast('Please enter a valid email address', 'error');
       return;
     }
-    if (!newUserForm.password || newUserForm.password.length < 6) {
-      showToast('Password must be at least 6 characters', 'error');
+    if (!newUserForm.password || newUserForm.password.length < 8) {
+      showToast('Password must be at least 8 characters', 'error');
+      return;
+    }
+    // Validate password strength
+    if (!/[a-z]/.test(newUserForm.password)) {
+      showToast('Password must contain at least one lowercase letter', 'error');
+      return;
+    }
+    if (!/[A-Z]/.test(newUserForm.password)) {
+      showToast('Password must contain at least one uppercase letter', 'error');
+      return;
+    }
+    if (!/\d/.test(newUserForm.password)) {
+      showToast('Password must contain at least one number', 'error');
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(newUserForm.password)) {
+      showToast('Password must contain at least one special character', 'error');
       return;
     }
     if (newUserForm.password !== newUserForm.confirmPassword) {
@@ -1227,11 +1244,12 @@ const AdminDashboard: React.FC = () => {
                 <input
                   id="email"
                   type="email"
-                  placeholder="Enter email address"
+                  placeholder="Enter email address (e.g., user@example.com)"
                   value={newUserForm.email}
                   onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                   className="form-input"
                 />
+                <p className="field-hint">Must include @ and a valid domain (e.g., .com, .org)</p>
               </div>
 
               <div className="form-group">
@@ -1253,11 +1271,12 @@ const AdminDashboard: React.FC = () => {
                 <input
                   id="password"
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="Enter strong password"
                   value={newUserForm.password}
                   onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                   className="form-input"
                 />
+                <p className="field-hint">Min 8 characters: uppercase, lowercase, number, special character (!@#$%^&*)</p>
               </div>
 
               <div className="form-group">
