@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ordersApi, CreateOrderRequest } from '../services/api';
-import { Store, Truck, MapPin, Clock, Info, AlertTriangle, Package, Check, CheckCircle } from 'lucide-react';
+import { Store, Truck, MapPin, Clock, Info, AlertTriangle, Package, Check, CheckCircle, ShoppingBag, ArrowLeft, Shield, CreditCard } from 'lucide-react';
 import './Checkout.css';
 
 interface ShippingInfo {
@@ -218,9 +218,10 @@ const Checkout: React.FC = () => {
       <header className="checkout-header">
         <div className="header-content">
           <button onClick={() => navigate('/shop')} className="back-btn">
-            ← Back to Shop
+            <ArrowLeft size={18} />
+            <span>Back to Shop</span>
           </button>
-          <h1>Checkout</h1>
+          <h1 style={{ color: '#ffffff' }}><ShoppingBag size={24} color="#ffffff" /> Checkout</h1>
           <div></div>
         </div>
       </header>
@@ -413,11 +414,11 @@ const Checkout: React.FC = () => {
               <div className="order-items">
                 {cart.map(item => (
                   <div key={item.id} className="order-item">
-                    <div className="item-icon">
+                    <div className="item-icon" style={{ width: '80px', minWidth: '80px', height: '80px', minHeight: '80px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', border: '1px solid #dee2e6', borderRadius: '8px', padding: 0 }}>
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="item-image" />
+                        <img src={item.image} alt={item.name} className="item-image" style={{ width: '100%', height: '100%', minWidth: '80px', minHeight: '80px', objectFit: 'cover', display: 'block' }} />
                       ) : (
-                        <Package size={24} />
+                        <Package size={32} color="#6c757d" />
                       )}
                     </div>
                     <div className="item-details">
@@ -460,9 +461,17 @@ const Checkout: React.FC = () => {
                     Processing...
                   </>
                 ) : (
-                  'Place Order'
+                  <>
+                    <CreditCard size={20} />
+                    Place Order
+                  </>
                 )}
               </button>
+
+              <div className="secure-checkout-badge">
+                <Shield size={16} />
+                <span>Secure Checkout</span>
+              </div>
             </section>
           </div>
         </div>

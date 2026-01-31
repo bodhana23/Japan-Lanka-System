@@ -1,0 +1,369 @@
+/* Admin Dashboard Low Stock Styles */
+
+.admin-lowstock-container {
+  animation: adminFadeIn 0.5s ease-out;
+}
+
+.admin-lowstock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-lowstock-title-section {
+  flex: 1;
+}
+
+.admin-lowstock-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-lowstock-icon {
+  color: #F59E0B;
+}
+
+.admin-lowstock-subtitle {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.admin-lowstock-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-refresh-btn,
+.admin-restock-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.admin-refresh-btn {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.admin-refresh-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.admin-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-restock-btn {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.admin-restock-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Loading, Error, Empty States */
+.admin-lowstock-loading,
+.admin-lowstock-error,
+.admin-lowstock-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  gap: 1rem;
+}
+
+.admin-lowstock-loading {
+  color: #28a745;
+}
+
+.admin-loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.admin-lowstock-error {
+  background: rgba(239, 68, 68, 0.05);
+  border: 2px solid rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.admin-lowstock-empty {
+  background: rgba(16, 185, 129, 0.05);
+  border: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.admin-empty-icon {
+  color: #10B981;
+}
+
+.admin-lowstock-empty h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1F2937;
+}
+
+.admin-lowstock-empty p {
+  margin: 0;
+  color: #10B981;
+}
+
+/* Low Stock Grid */
+.admin-lowstock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.admin-lowstock-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(245, 158, 11, 0.2);
+}
+
+.admin-lowstock-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.admin-stock-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 1rem;
+}
+
+.admin-stock-alert-badge svg {
+  color: #EF4444;
+}
+
+.admin-stock-alert-badge span {
+  font-weight: 700;
+  color: #EF4444;
+  font-size: 0.9rem;
+}
+
+.admin-product-image {
+  width: 100%;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.admin-product-image img:hover {
+  transform: scale(1.05);
+}
+
+.admin-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+}
+
+.admin-product-info {
+  margin-bottom: 1rem;
+}
+
+.admin-product-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-product-brand {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #28a745;
+  margin: 0 0 0.25rem 0;
+}
+
+.admin-product-model {
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-product-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #28a745;
+  margin: 0 0 0.25rem 0;
+}
+
+.admin-product-category {
+  font-size: 0.85rem;
+  color: #9CA3AF;
+  margin: 0;
+}
+
+.admin-product-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-order-btn,
+.admin-notify-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.admin-order-btn {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.admin-order-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+.admin-notify-btn {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.admin-notify-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* Inventory Summary */
+.admin-inventory-summary {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.admin-inventory-summary h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin: 0 0 1.25rem 0;
+}
+
+.admin-inventory-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.admin-inventory-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.admin-inventory-stat .admin-stat-label {
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.admin-inventory-stat .admin-stat-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1F2937;
+}
+
+.admin-stat-critical {
+  color: #EF4444 !important;
+}
+
+.admin-stat-healthy {
+  color: #10B981 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-lowstock-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-lowstock-actions {
+    flex-direction: column;
+  }
+
+  .admin-refresh-btn,
+  .admin-restock-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-lowstock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-inventory-stats {
+    grid-template-columns: 1fr;
+  }
+}
