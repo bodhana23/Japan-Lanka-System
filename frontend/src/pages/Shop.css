@@ -461,7 +461,7 @@
 }
 
 .product-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   box-shadow: var(--shop-shadow-lg);
   border-color: var(--shop-primary);
 }
@@ -626,8 +626,9 @@
 .add-to-cart-btn:disabled {
   background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
   box-shadow: none;
+  transform: none !important;
 }
 
 /* ================================================
@@ -692,7 +693,7 @@
 }
 
 .clear-filters-cta:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(40, 167, 69, 0.4);
 }
 
@@ -894,7 +895,8 @@
   border-color: var(--shop-border);
   color: #adb5bd;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
+  transform: none !important;
 }
 
 .quantity {

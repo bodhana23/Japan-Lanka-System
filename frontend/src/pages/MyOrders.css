@@ -168,7 +168,7 @@
 
 .mo-retry-btn:hover,
 .mo-shop-btn:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
 }
 
@@ -508,8 +508,9 @@
 }
 
 .mo-modal-cancel:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .mo-modal-submit {
@@ -529,9 +530,9 @@
 }
 
 .mo-modal-submit:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
   box-shadow: none;
 }
 

@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: January 27, 2026*
+*Last updated: February 1, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -22,7 +22,8 @@
 - Axios (HTTP client)
 - Firebase (Google Auth)
 - Context API for state management
-- Pure CSS styling
+- Pure CSS styling with Design Tokens (`tokens.css`)
+- Lucide React icons
 
 ### Backend
 - Python 3.11+
@@ -468,9 +469,29 @@ class Notification(Base):
 ### Authentication
 - **Customer Registration**: Email + password OR Google OAuth
 - **Email Verification**: Required for email/password users via Firebase
-- **Password Rules**: 8+ chars, uppercase, lowercase, number, special char
+- **Password Rules (Customers)**: 8+ chars, uppercase, lowercase, number, special char
+- **Password Rules (Employees)**: 8+ chars, uppercase, lowercase, number, special char
+- **Email Format**: Must contain @ and valid domain (validated via Pydantic EmailStr)
 - **Full Name**: Letters, spaces, hyphens, apostrophes only (no numbers)
 - **Phone**: Sri Lankan format (10 digits starting with 0)
+- **Employee Creation**: Admin-only, no Firebase UID required initially
+
+### Validation Implementation
+**Customer Validation** (`backend/app/schemas/customer.py`):
+- Line 14: `EmailStr` for email format
+- Lines 19-30: `validate_full_name` - no numbers allowed
+- Lines 32-43: `validate_phone_number` - Sri Lankan format (10 digits, starts with 0)
+- Lines 45-61: `validate_password_strength` - 8+ chars, mixed case, number, special char
+
+**Employee Validation** (`backend/app/routers/users.py`):
+- Line 608: `EmailStr` for email format validation
+- Lines 612-625: `validate_password_strength` - same rules as customers
+- Lines 647-660: Email uniqueness check (employees and customers tables)
+
+**Error Handling** (`backend/app/main.py`):
+- Lines 62-101: Custom RequestValidationError handler
+- Lines 104-124: Pydantic ValidationError handler
+- Transforms 422 → 400 with user-friendly messages
 
 ### Orders
 - **Eligible Status**: Only `delivered` or `ready_to_pickup` orders can be returned
@@ -688,7 +709,33 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Product reviews and ratings
 - Wishlist functionality
 
-## Recent Changes (January 2026)
+## Recent Changes (January-February 2026)
+
+### Validation & Error Handling (Jan 28 - Feb 1)
+**Backend Improvements:**
+- Added employee creation validation (email + password strength)
+  - Email validation using `EmailStr` (requires @ and valid domain)
+  - Password strength: 8+ characters, uppercase, lowercase, number, special character
+  - Located in: `backend/app/routers/users.py` (CreateStaffRequest schema, lines 606-625)
+- Custom validation exception handlers in `backend/app/main.py` (lines 62-124)
+  - Transforms Pydantic 422 errors → user-friendly 400 errors with clear messages
+  - Returns structured error responses with field-specific details
+- Fixed orphaned Firebase user cleanup in customer registration
+  - Auto-detects and removes Firebase users without database records
+  - Located in: `backend/app/routers/auth_customer.py` (lines 80-96)
+- Customer validation (existing):
+  - Password strength (8+ chars, mixed case, number, special character)
+  - Phone number format validation (Sri Lankan: 10 digits starting with 0)
+  - Full name validation (no numbers, letters/spaces/hyphens only)
+
+**Frontend Improvements:**
+- Admin dashboard form enhancements (`frontend/src/pages/AdminDashboard.tsx`)
+  - Added helpful hints for email format ("Must include @ and valid domain")
+  - Added password requirements hint ("Min 8 chars: uppercase, lowercase, number, special")
+  - Updated placeholder text for better UX
+  - Frontend validation now matches backend requirements (8 chars min, complexity checks)
+
+**Branch Created:** `Admins-Validation-Updated` (committed Jan 31, 2026)
 
 ### Database Normalization to 3NF (Jan 17)
 - Created new tables: `carts`, `cart_items`, `notifications`, `order_status_history`, `inventory_transactions`
@@ -732,15 +779,20 @@ npm run dev
 - **Regex Validation**: Updated for Python 3.14 compatibility (hyphen at end of character classes)
 - **High CPU**: Added `watchfiles` dependency for efficient development server reloading
 - **Memory Usage**: Configured database connection pooling with proper timeouts
+- **403 Forbidden on Customer Profile**: Customer email not verified - must click verification link sent to email
+- **"Email already registered" but user doesn't exist**: Orphaned Firebase user - system now auto-cleans up these cases
 
 ### Security Features
 - JWT tokens with 24-hour expiry
-- Password hashing with bcrypt
+- Password hashing with bcrypt (salt rounds: 12)
 - Firebase token cryptographic verification
 - SQL injection prevention via SQLAlchemy ORM
 - Role-based access control (RBAC)
-- Input validation and sanitization
+- Input validation and sanitization (Pydantic schemas)
+- Custom validation exception handlers (user-friendly error messages)
 - Audit logging for all critical actions
+- Orphaned Firebase user cleanup on registration failure
+- Rate limiting on authentication endpoints
 
 ### Performance Optimizations
 - Database connection pooling (`pool_size=5, max_overflow=10, pool_recycle=1800`)
@@ -748,6 +800,20 @@ npm run dev
 - Paginated API responses with configurable page sizes
 - Indexed database columns for frequent queries
 - Client-side caching for user authentication state
+
+### Key Files for Validation (Recent Updates)
+**Backend:**
+- `backend/app/main.py` - Custom exception handlers (lines 62-124)
+- `backend/app/schemas/customer.py` - Customer validation schemas (lines 12-61)
+- `backend/app/routers/users.py` - Employee creation validation (lines 606-625)
+- `backend/app/routers/auth_customer.py` - Customer registration with Firebase cleanup (lines 80-96)
+
+**Frontend:**
+- `frontend/src/pages/AdminDashboard.tsx` - Employee creation form with validation hints (lines 1226-1268)
+- `frontend/src/pages/Register.tsx` - Customer registration form
+- `frontend/src/services/api.ts` - API client with error handling
+
+### Files Created (January 2026)
 - `backend/app/schemas/notification.py`
 - `backend/app/schemas/inventory_transaction.py`
 - `backend/app/services/notification_service.py`
@@ -755,9 +821,12 @@ npm run dev
 - `frontend/src/components/NotificationBell.css`
 - `frontend/src/utils/dateUtils.ts`
 
-### Files Modified
+### Files Modified (January 2026)
 - `backend/app/models/order.py` - Removed customer_phone, added relationships
 - `backend/app/routers/orders.py` - Added status history tracking
+- `backend/app/main.py` - Added custom validation exception handlers
+- `backend/app/routers/auth_customer.py` - Added orphaned Firebase cleanup
+- `backend/app/routers/users.py` - Added employee creation validation
 - `frontend/src/services/api.ts` - Added cart, notifications APIs
 - `frontend/src/context/CartContext.tsx` - Complete rewrite for dual cart
 - `frontend/src/context/AuthContext.tsx` - Added setOnLoginSuccess callback
@@ -765,5 +834,5 @@ npm run dev
 - `frontend/src/pages/CustomerDashboard.tsx` - Uses formatDateTime
 - `frontend/src/pages/MyOrders.tsx` - Uses formatDateTime
 - `frontend/src/pages/ManagerDashboard.tsx` - Uses formatDateTime
-- `frontend/src/pages/AdminDashboard.tsx` - Uses formatDate
+- `frontend/src/pages/AdminDashboard.tsx` - Uses formatDate, added validation hints
 - `frontend/src/pages/Checkout.tsx` - Uses ordersApi.createOrder()
