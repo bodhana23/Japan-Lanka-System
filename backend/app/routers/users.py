@@ -4,10 +4,11 @@ from typing import Optional
 from uuid import UUID
 from enum import Enum as PyEnum
 import math
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 
 from app.database import get_db
 from app.models import Customer, Employee, ActivityLog
@@ -604,10 +605,26 @@ async def delete_employee(
 
 class CreateStaffRequest(BaseModel):
     """Request schema for creating a new staff member (employee)."""
-    email: str
+    email: EmailStr
     full_name: str
     password: str
     role: EmployeeRole
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """Validate password strength requirements."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', v):
+            raise ValueError('Password must contain at least one special character')
+        return v
 
 
 @router.post("/staff", status_code=status.HTTP_201_CREATED)
@@ -653,13 +670,6 @@ async def create_staff(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This email is already registered as a customer"
-        )
-
-    # Validate password length
-    if len(staff_data.password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 6 characters long"
         )
 
     # Create the new employee

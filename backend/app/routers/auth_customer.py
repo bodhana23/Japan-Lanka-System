@@ -1,7 +1,10 @@
 """Customer authentication router."""
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models import Customer
@@ -76,17 +79,29 @@ async def register(
             detail="Email verification service is not configured. Please contact support."
         )
 
-    # Create Firebase user first (for email verification)
-    # This allows Firebase to handle email verification flow
-    firebase_uid = create_firebase_user(customer_data.email, customer_data.password)
-    if firebase_uid is None:
-        # Check if user already exists in Firebase (edge case)
-        existing_firebase = get_firebase_user_by_email(customer_data.email)
-        if existing_firebase:
+    # Check if user already exists in Firebase (prevents orphaned accounts)
+    existing_firebase = get_firebase_user_by_email(customer_data.email)
+    if existing_firebase:
+        # Check if this Firebase user has a corresponding database record
+        orphaned_customer = db.query(Customer).filter(
+            Customer.firebase_uid == existing_firebase['uid']
+        ).first()
+        
+        if not orphaned_customer:
+            # Firebase user exists but no database record - clean up orphaned Firebase user
+            delete_firebase_user(existing_firebase['uid'])
+            logger.warning(f"Cleaned up orphaned Firebase user for email: {customer_data.email}")
+        else:
+            # Both Firebase and database records exist
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email already registered"
             )
+    
+    # Create Firebase user first (for email verification)
+    # This allows Firebase to handle email verification flow
+    firebase_uid = create_firebase_user(customer_data.email, customer_data.password)
+    if firebase_uid is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create account. Please try again later."
