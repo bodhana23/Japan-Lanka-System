@@ -165,6 +165,43 @@
   font-style: italic;
 }
 
+/* Form Divider for Password Section */
+.admin-form-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0 1.25rem;
+  gap: 1rem;
+}
+
+.admin-form-divider::before,
+.admin-form-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e9ecef;
+}
+
+.admin-form-divider span {
+  color: #6B7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Edit User Modal Styles */
+.admin-edit-user-modal {
+  max-width: 520px;
+}
+
+.admin-edit-confirm-btn {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.admin-edit-confirm-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
 /* Button Styles */
 .admin-cancel-btn,
 .admin-confirm-btn,

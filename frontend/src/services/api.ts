@@ -409,6 +409,14 @@ export const employeeAuthApi = {
     const response = await api.put<Employee>('/auth/employee/profile', data);
     return response.data;
   },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/auth/employee/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data;
+  },
 };
 
 // ============ PRODUCTS API ============
@@ -582,6 +590,25 @@ export const usersApi = {
 
   updateEmployeeStatus: async (id: string, isActive: boolean): Promise<Employee> => {
     const response = await api.put<Employee>(`/users/employee/${id}/status`, { is_active: isActive });
+    return response.data;
+  },
+
+  updateEmployee: async (id: string, data: {
+    full_name?: string;
+    email?: string;
+    password?: string;
+    role?: 'MANAGER' | 'AUDITOR';
+  }): Promise<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    message: string;
+  }> => {
+    const response = await api.put(`/users/employee/${id}`, data);
     return response.data;
   },
 

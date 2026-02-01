@@ -19,9 +19,10 @@ from app.schemas.employee import (
     EmployeeTokenResponse,
     EmployeeGoogleAuthRequest,
     EmployeeForgotPasswordRequest,
+    EmployeeChangePasswordRequest,
     MessageResponse,
 )
-from app.utils.security import verify_password, create_access_token
+from app.utils.security import verify_password, create_access_token, get_password_hash
 from app.utils.deps import get_current_employee
 from app.utils.rate_limiter import auth_rate_limiter
 from app.utils.firebase import (
@@ -418,3 +419,88 @@ async def update_profile(
     db.commit()
 
     return EmployeeResponse.model_validate(current_employee)
+
+
+@router.put("/password", response_model=MessageResponse)
+async def change_password(
+    password_data: EmployeeChangePasswordRequest,
+    request: Request,
+    current_employee: Employee = Depends(get_current_employee),
+    db: Session = Depends(get_db)
+):
+    """Change the current employee's password.
+
+    Validates the current password before allowing the change.
+    Requires the new password to meet complexity requirements.
+    """
+    ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
+    # Verify current password
+    if not verify_password(password_data.current_password, current_employee.password_hash):
+        log_activity_event(
+            db=db,
+            activity_type=ActivityType.EMPLOYEE_PASSWORD_CHANGE_FAILED,
+            description=f"Employee {current_employee.email} failed password change (incorrect current password)",
+            employee_id=current_employee.id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    # Validate new password strength
+    new_password = password_data.new_password
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long"
+        )
+    if not any(c.isupper() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one uppercase letter"
+        )
+    if not any(c.islower() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one lowercase letter"
+        )
+    if not any(c.isdigit() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one number"
+        )
+    special_chars = "!@#$%^&*()_+-=[]{}|;':\",./<>?"
+    if not any(c in special_chars for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one special character"
+        )
+
+    # Check that new password is different from current
+    if verify_password(new_password, current_employee.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password"
+        )
+
+    # Update password
+    current_employee.password_hash = get_password_hash(new_password)
+    db.commit()
+
+    # Log successful password change
+    log_activity_event(
+        db=db,
+        activity_type=ActivityType.EMPLOYEE_PASSWORD_CHANGED,
+        description=f"Employee {current_employee.email} successfully changed password",
+        employee_id=current_employee.id,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    db.commit()
+
+    return MessageResponse(message="Password changed successfully")

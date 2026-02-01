@@ -60,6 +60,12 @@ class EmployeeForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class EmployeeChangePasswordRequest(BaseModel):
+    """Schema for employee password change request."""
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
 # Response schemas
 class EmployeeResponse(BaseModel):
     """Schema for employee response."""

@@ -627,6 +627,151 @@ class CreateStaffRequest(BaseModel):
         return v
 
 
+class UpdateStaffRequest(BaseModel):
+    """Request schema for updating a staff member (employee)."""
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    role: Optional[EmployeeRole] = None
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: Optional[str]) -> Optional[str]:
+        """Validate password strength requirements if password is provided."""
+        if v is None:
+            return v
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
+
+@router.put("/employee/{employee_id}")
+async def update_employee(
+    employee_id: UUID,
+    staff_data: UpdateStaffRequest,
+    request: Request,
+    current_user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update an employee's profile including password. Admin only.
+
+    Business rules:
+    - Email must be unique across all employees (if changed)
+    - Password is hashed before storage (if provided)
+    - Cannot change an employee's role to ADMIN
+    - Admin cannot demote themselves
+    """
+    from app.utils.security import get_password_hash
+
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found"
+        )
+
+    # Track what was changed for activity log
+    changes = []
+
+    # Update full name if provided
+    if staff_data.full_name is not None and staff_data.full_name.strip():
+        old_name = employee.full_name
+        employee.full_name = staff_data.full_name.strip()
+        if old_name != employee.full_name:
+            changes.append(f"name changed from '{old_name}' to '{employee.full_name}'")
+
+    # Update email if provided
+    if staff_data.email is not None:
+        new_email = staff_data.email.lower().strip()
+        if new_email != employee.email:
+            # Check if email already exists in employees
+            existing_employee = db.query(Employee).filter(
+                Employee.email == new_email,
+                Employee.id != employee_id
+            ).first()
+
+            if existing_employee:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="An employee with this email already exists"
+                )
+
+            # Check if email exists in customers
+            existing_customer = db.query(Customer).filter(
+                Customer.email == new_email
+            ).first()
+
+            if existing_customer:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This email is already registered as a customer"
+                )
+
+            old_email = employee.email
+            employee.email = new_email
+            changes.append(f"email changed from '{old_email}' to '{new_email}'")
+
+    # Update role if provided
+    if staff_data.role is not None:
+        # Prevent changing role to ADMIN
+        if staff_data.role == EmployeeRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change role to admin through this endpoint"
+            )
+
+        # Prevent admin from changing their own role
+        if employee.id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change your own role"
+            )
+
+        if employee.role != staff_data.role:
+            old_role = employee.role.value
+            employee.role = staff_data.role
+            changes.append(f"role changed from '{old_role}' to '{staff_data.role.value}'")
+
+    # Update password if provided
+    if staff_data.password is not None:
+        employee.password_hash = get_password_hash(staff_data.password)
+        changes.append("password updated")
+
+    if changes:
+        # Log activity for profile update
+        log_activity_event(
+            db=db,
+            activity_type=ActivityType.EMPLOYEE_PROFILE_UPDATED,
+            description=f"Employee {employee.email} updated by {current_user.email}: {', '.join(changes)}",
+            employee_id=employee.id,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        db.commit()
+        db.refresh(employee)
+
+    return {
+        "id": str(employee.id),
+        "email": employee.email,
+        "full_name": employee.full_name,
+        "role": employee.role.value,
+        "is_active": employee.is_active,
+        "created_at": employee.created_at.isoformat() if employee.created_at else None,
+        "updated_at": employee.updated_at.isoformat() if employee.updated_at else None,
+        "message": f"Employee '{employee.full_name}' updated successfully" if changes else "No changes made"
+    }
+
+
 @router.post("/staff", status_code=status.HTTP_201_CREATED)
 async def create_staff(
     staff_data: CreateStaffRequest,
