@@ -1,0 +1,476 @@
+/* ================================================
+   UNIFIED PROFILE DISPLAY COMPONENT
+   Japan Lanka Enterprises
+   Supports: Customer (editable), Employee (view-only)
+   ================================================ */
+
+/* ================================================
+   CSS VARIABLES
+   ================================================ */
+.pd-container {
+  --pd-accent-color: var(--color-primary, #28a745);
+  --pd-accent-gradient: linear-gradient(135deg, var(--pd-accent-color), var(--color-primary-light, #00b894));
+  --pd-accent-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ================================================
+   PAGE HEADER
+   ================================================ */
+.pd-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pd-header-info {
+  flex: 1;
+}
+
+.pd-page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #2d3436);
+  margin: 0 0 5px 0;
+}
+
+.pd-title-icon {
+  color: var(--pd-accent-color);
+}
+
+.pd-page-subtitle {
+  color: var(--color-text-muted, #6c757d);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.pd-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pd-accent-gradient);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pd-edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-accent-shadow);
+}
+
+/* ================================================
+   SUCCESS/ERROR BANNERS
+   ================================================ */
+.pd-success-banner,
+.pd-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-radius: var(--radius-md, 12px);
+  margin-bottom: 25px;
+}
+
+.pd-success-banner {
+  background: #eafaf1;
+  border: 1px solid #27ae60;
+  color: #27ae60;
+}
+
+.pd-error-banner {
+  background: #fdedec;
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+}
+
+.pd-success-banner p,
+.pd-error-banner p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ================================================
+   PROFILE CARD
+   ================================================ */
+.pd-card {
+  background: white;
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+  animation: pdFadeIn 0.4s ease-out;
+}
+
+/* Card Header */
+.pd-card-header {
+  background: var(--pd-accent-gradient);
+  padding: 40px 30px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.pd-avatar-large {
+  width: 90px;
+  height: 90px;
+  background: white;
+  color: var(--pd-accent-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.pd-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pd-role-badge {
+  display: inline-flex;
+  padding: 5px 15px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.pd-google-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: white;
+  color: #495057;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+/* Card Body */
+.pd-card-body {
+  padding: 30px;
+}
+
+/* ================================================
+   VIEW MODE
+   ================================================ */
+.pd-view-mode {
+  /* View mode container */
+}
+
+.pd-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pd-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 18px 20px;
+  background: var(--color-bg-hover, #f8f9fa);
+  border-radius: var(--radius-md, 12px);
+  transition: all 0.3s ease;
+}
+
+.pd-field:hover {
+  background: #f0f4f8;
+}
+
+.pd-field-icon {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pd-accent-color);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pd-field-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pd-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6c757d);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pd-field-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #2d3436);
+}
+
+.pd-role-value {
+  color: var(--pd-accent-color);
+  font-weight: 600;
+}
+
+.pd-status-active {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.pd-change-password-link {
+  background: none;
+  border: none;
+  color: var(--pd-accent-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 5px;
+  transition: color 0.3s ease;
+}
+
+.pd-change-password-link:hover {
+  color: var(--color-primary-light, #00b894);
+  text-decoration: underline;
+}
+
+/* ================================================
+   EDIT MODE
+   ================================================ */
+.pd-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pd-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2d3436);
+}
+
+.pd-label-icon {
+  color: var(--pd-accent-color);
+}
+
+.pd-form-group input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--color-border, #e9ecef);
+  border-radius: var(--radius-md, 12px);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.pd-form-group input:focus {
+  outline: none;
+  border-color: var(--pd-accent-color);
+}
+
+.pd-form-group input.error {
+  border-color: var(--color-danger, #e74c3c);
+}
+
+.pd-form-group input:disabled {
+  background: var(--color-bg-hover, #f8f9fa);
+  color: var(--color-text-muted, #6c757d);
+  cursor: not-allowed;
+}
+
+.pd-error-msg {
+  font-size: 0.85rem;
+  color: var(--color-danger, #e74c3c);
+}
+
+.pd-field-note {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6c757d);
+  font-style: italic;
+}
+
+/* Form Actions */
+.pd-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.pd-cancel-btn {
+  background: white;
+  border: 2px solid var(--color-border, #e9ecef);
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 12px);
+  font-weight: 600;
+  color: var(--color-text-muted, #6c757d);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pd-cancel-btn:hover {
+  border-color: var(--color-danger, #e74c3c);
+  color: var(--color-danger, #e74c3c);
+}
+
+.pd-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pd-accent-gradient);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pd-save-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-accent-shadow);
+}
+
+.pd-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.pd-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: pdSpin 1s linear infinite;
+}
+
+@keyframes pdSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+@media (max-width: 768px) {
+  .pd-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pd-card-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .pd-header-text {
+    align-items: center;
+  }
+
+  .pd-avatar-large {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .pd-name {
+    font-size: 1.5rem;
+  }
+
+  .pd-card-body {
+    padding: 20px;
+  }
+
+  .pd-field {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pd-form-actions {
+    flex-direction: column;
+  }
+
+  .pd-cancel-btn,
+  .pd-save-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .pd-page-title {
+    font-size: 1.3rem;
+  }
+
+  .pd-avatar-large {
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+  }
+
+  .pd-name {
+    font-size: 1.3rem;
+  }
+}
+
+/* ================================================
+   ANIMATIONS
+   ================================================ */
+@keyframes pdFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

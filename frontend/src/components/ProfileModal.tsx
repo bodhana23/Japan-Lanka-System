@@ -171,7 +171,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, roleLabel })
   return (
     <div className="profile-modal-overlay" onClick={onClose}>
       <div className="profile-modal-container" onClick={(e) => e.stopPropagation()}>
-        <button className="profile-modal-close" onClick={onClose} disabled={isLoading}>
+        <button className="profile-modal-close" onClick={onClose} disabled={isLoading} aria-label="Close profile modal">
           ×
         </button>
 

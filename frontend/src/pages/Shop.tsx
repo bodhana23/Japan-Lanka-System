@@ -447,7 +447,7 @@ const Shop: React.FC = () => {
                   <span key={brand} className="filter-chip">
                     <Tag size={14} />
                     {brand}
-                    <button onClick={() => removeFilter('brand', brand)}>
+                    <button onClick={() => removeFilter('brand', brand)} aria-label={`Remove ${brand} brand filter`}>
                       <X size={14} />
                     </button>
                   </span>
@@ -456,7 +456,7 @@ const Shop: React.FC = () => {
                   <span key={model} className="filter-chip">
                     <Tag size={14} />
                     {model}
-                    <button onClick={() => removeFilter('model', model)}>
+                    <button onClick={() => removeFilter('model', model)} aria-label={`Remove ${model} model filter`}>
                       <X size={14} />
                     </button>
                   </span>
@@ -465,7 +465,7 @@ const Shop: React.FC = () => {
                   <span className="filter-chip">
                     <Calendar size={14} />
                     Year: {filters.yearFrom || '2010'}-{filters.yearTo || '2025'}
-                    <button onClick={() => removeFilter('year', '')}>
+                    <button onClick={() => removeFilter('year', '')} aria-label="Remove year range filter">
                       <X size={14} />
                     </button>
                   </span>
@@ -474,7 +474,7 @@ const Shop: React.FC = () => {
                   <span className="filter-chip">
                     <Tag size={14} />
                     Price: RS {filters.priceMin}-RS {filters.priceMax}
-                    <button onClick={() => removeFilter('price', '')}>
+                    <button onClick={() => removeFilter('price', '')} aria-label="Remove price range filter">
                       <X size={14} />
                     </button>
                   </span>
@@ -483,7 +483,7 @@ const Shop: React.FC = () => {
                   <span className="filter-chip">
                     <CheckCircle size={14} />
                     In Stock
-                    <button onClick={() => removeFilter('stock', '')}>
+                    <button onClick={() => removeFilter('stock', '')} aria-label="Remove in-stock filter">
                       <X size={14} />
                     </button>
                   </span>
@@ -492,7 +492,7 @@ const Shop: React.FC = () => {
                   <span className="filter-chip">
                     <Search size={14} />
                     "{filters.searchQuery}"
-                    <button onClick={() => removeFilter('search', '')}>
+                    <button onClick={() => removeFilter('search', '')} aria-label="Remove search filter">
                       <X size={14} />
                     </button>
                   </span>
@@ -610,9 +610,10 @@ const Shop: React.FC = () => {
                   <ShoppingCart size={24} />
                   <h3>Shopping Cart</h3>
                 </div>
-                <button 
-                  onClick={() => setShowCart(false)} 
+                <button
+                  onClick={() => setShowCart(false)}
                   className="close-cart"
+                  aria-label="Close shopping cart"
                 >
                   <X size={20} />
                 </button>
@@ -644,17 +645,19 @@ const Shop: React.FC = () => {
                         </div>
                       </div>
                       <div className="quantity-controls">
-                        <button 
+                        <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="quantity-btn"
+                          aria-label="Decrease quantity"
                         >
                           -
                         </button>
                         <span className="quantity">{item.quantity}</span>
-                        <button 
+                        <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           className="quantity-btn"
                           disabled={item.quantity >= item.quantityAvailable}
+                          aria-label="Increase quantity"
                         >
                           +
                         </button>

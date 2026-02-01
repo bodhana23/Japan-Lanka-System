@@ -200,6 +200,7 @@ const DashboardUsers: React.FC<DashboardUsersProps> = ({
                       className="admin-delete-btn"
                       onClick={() => onDeleteUser(user)}
                       title="Delete user"
+                      aria-label={`Delete user ${user.fullName}`}
                       disabled={user.role === 'admin'}
                     >
                       <Trash2 size={16} />

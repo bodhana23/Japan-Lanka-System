@@ -90,6 +90,7 @@ const DashboardCart: React.FC<DashboardCartProps> = ({ onNavigate }) => {
                       className="dcart-qty-btn"
                       onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                       disabled={item.quantity <= 1}
+                      aria-label="Decrease quantity"
                     >
                       <Minus size={16} />
                     </button>
@@ -97,6 +98,7 @@ const DashboardCart: React.FC<DashboardCartProps> = ({ onNavigate }) => {
                     <button
                       className="dcart-qty-btn"
                       onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      aria-label="Increase quantity"
                     >
                       <Plus size={16} />
                     </button>
@@ -108,6 +110,7 @@ const DashboardCart: React.FC<DashboardCartProps> = ({ onNavigate }) => {
                     className="dcart-remove-btn"
                     onClick={() => removeFromCart(item.id)}
                     title="Remove item"
+                    aria-label="Remove item from cart"
                   >
                     <Trash2 size={18} />
                   </button>

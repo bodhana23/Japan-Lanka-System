@@ -19,7 +19,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 260px;
+  width: var(--sidebar-width, 280px);
   background: linear-gradient(180deg, #1a1f2e 0%, #252b3d 100%);
   display: flex;
   flex-direction: column;
@@ -220,7 +220,7 @@
    ================================================ */
 .cdl-main-wrapper {
   flex: 1;
-  margin-left: 260px;
+  margin-left: var(--sidebar-width, 280px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -229,8 +229,8 @@
 /* Top Header */
 .cdl-header {
   background: #ffffff;
-  padding: 0 30px;
-  height: 70px;
+  padding: 0 var(--content-padding, 2rem);
+  height: var(--header-height, 70px);
   display: flex;
   align-items: center;
   border-bottom: 1px solid #e9ecef;
@@ -245,7 +245,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1400px;
+  max-width: var(--content-max-width, 1400px);
   margin: 0 auto;
   width: 100%;
 }
@@ -303,40 +303,33 @@
 /* Main Scrollable Content */
 .cdl-content {
   flex: 1;
-  padding: 30px;
+  padding: var(--content-padding, 2rem);
   overflow-y: auto;
 }
 
 /* ================================================
    RESPONSIVE DESIGN
+   Using standardized dashboard layout variables
    ================================================ */
 @media (max-width: 1200px) {
   .cdl-sidebar {
-    width: 240px;
+    width: var(--sidebar-width-tablet, 240px);
   }
 
   .cdl-main-wrapper {
-    margin-left: 240px;
+    margin-left: var(--sidebar-width-tablet, 240px);
   }
 }
 
 @media (max-width: 992px) {
-  .cdl-sidebar {
-    width: 220px;
-  }
-
-  .cdl-main-wrapper {
-    margin-left: 220px;
-  }
-
   .cdl-content {
-    padding: 20px;
+    padding: var(--content-padding-tablet, 1.5rem);
   }
 }
 
 @media (max-width: 768px) {
   .cdl-sidebar {
-    width: 70px;
+    width: var(--sidebar-width-mobile, 70px);
     padding: 0;
   }
 
@@ -392,12 +385,12 @@
   }
 
   .cdl-main-wrapper {
-    margin-left: 70px;
+    margin-left: var(--sidebar-width-mobile, 70px);
   }
 
   .cdl-header {
-    padding: 0 15px;
-    height: 60px;
+    padding: 0 var(--content-padding-mobile, 1rem);
+    height: var(--header-height-mobile, 60px);
   }
 
   .cdl-header-title h1 {
@@ -414,17 +407,17 @@
   }
 
   .cdl-content {
-    padding: 15px;
+    padding: var(--content-padding-mobile, 1rem);
   }
 }
 
 @media (max-width: 480px) {
   .cdl-sidebar {
-    width: 60px;
+    width: var(--sidebar-width-small, 60px);
   }
 
   .cdl-main-wrapper {
-    margin-left: 60px;
+    margin-left: var(--sidebar-width-small, 60px);
   }
 
   .cdl-header {

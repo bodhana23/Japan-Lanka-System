@@ -1,7 +1,7 @@
 # Frontend UI/UX Audit Report - Japan Lanka System
 
 **Last Updated:** February 2026
-**Status:** Phase 1 Complete
+**Status:** Phase 4 In Progress
 
 ---
 
@@ -316,27 +316,34 @@ textarea:focus-visible,
 | Standardize button hover transforms | **DONE** | All buttons now use `translateY(-2px)` |
 | Add focus-visible states | **DONE** | Global rule in tokens.css |
 
-### Phase 2: CSS Consolidation - **PENDING**
+### Phase 2: CSS Consolidation - **COMPLETE**
 
-- [ ] Create shared form input styles
-- [ ] Create shared modal styles
-- [ ] Create shared button base styles
-- [ ] Create shared card base styles
-- [ ] Unify dashboard layout widths
+- [x] Create shared form input styles (`.form-input`, `.form-select`, `.form-group`, `.form-hint`, `.form-error`)
+- [x] Create shared modal styles (`.modal-overlay`, `.modal-content`, `.modal-header`, `.modal-body`, `.modal-footer`, `.modal-close`)
+- [x] Create shared button base styles (`.btn`, `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-ghost`, `.btn-sm`, `.btn-lg`, `.btn-block`)
+- [x] Create shared card base styles (`.card`, `.card-hover`, `.card-bordered`, `.card-header`, `.card-body`, `.card-footer`, `.card-accent`)
+- [x] Unify dashboard layout widths (CSS variables: `--sidebar-width`, `--content-padding`, `--content-max-width`, `--header-height`)
+- [x] Create shared toast styles (`.toast`, `.toast-success`, `.toast-error`, `.toast-info`, `.toast-warning`)
+- [x] Create shared empty state styles (`.empty-state`, `.empty-state-icon`)
+- [x] Create shared badge styles (`.badge`, `.badge-success`, `.badge-danger`, `.badge-warning`, `.badge-info`)
+- [x] Create shared loading spinner (`.spinner`, `.spinner-dark`)
 
-### Phase 3: Component Improvements - **PENDING**
+### Phase 3: Component Improvements - **COMPLETE**
 
-- [ ] Add ARIA labels throughout
-- [ ] Create shared Button component
-- [ ] Create shared Input component
-- [ ] Create shared Card component
-- [ ] Consolidate Toast component
-- [ ] Create shared Empty/Loading states
+- [x] Add ARIA labels throughout (icon-only buttons in ProfileModal, DashboardCart, Shop, ManageUsers, DashboardUsers, Toast)
+- [x] Create shared Button component (`frontend/src/components/shared/Button.tsx`)
+- [x] Create shared Input component (`frontend/src/components/shared/Input.tsx`)
+- [x] Create shared Card component (`frontend/src/components/shared/Card.tsx`)
+- [x] Create shared Badge component (`frontend/src/components/shared/Badge.tsx`)
+- [x] Consolidate Toast component (added warning variant, exported from shared)
+- [x] Create shared EmptyState component (`frontend/src/components/shared/EmptyState.tsx`)
+- [x] Create shared LoadingSpinner component (`frontend/src/components/shared/LoadingSpinner.tsx`)
 
-### Phase 4: Major Refactors - **PENDING**
+### Phase 4: Major Refactors - **IN PROGRESS**
 
-- [ ] Unify all 4 dashboard layouts into 1
-- [ ] Consolidate Profile components
+- [x] Unify all 4 dashboard layouts into 1 (DashboardLayout component created)
+- [x] Consolidate Profile components (ProfileDisplay component created)
+- [ ] Migrate existing dashboards to use new unified components
 - [ ] Implement BEM naming convention
 - [ ] Consider CSS Modules or Styled Components
 
@@ -553,9 +560,570 @@ Focus states are handled globally in `tokens.css`. No additional CSS needed for 
 
 ## Next Steps
 
-1. **Phase 2** - Create shared CSS classes for forms, modals, buttons, and cards
+1. ~~**Phase 2** - Create shared CSS classes for forms, modals, buttons, and cards~~ **DONE**
 2. **Phase 3** - Build reusable React components (Button, Input, Card, Badge)
 3. **Phase 4** - Consolidate dashboard layouts into single configurable component
+
+---
+
+## Phase 2 Implementation Details
+
+### New Shared CSS Classes Added to `tokens.css`
+
+#### Form Inputs
+```css
+.form-group      /* Wrapper for label + input */
+.form-input      /* Standard text input */
+.form-select     /* Select dropdown */
+.form-textarea   /* Textarea element */
+.form-hint       /* Helper text below input */
+.form-error      /* Error message text */
+
+/* States */
+.form-input.error  /* Error state styling */
+```
+
+#### Modal Components
+```css
+.modal-overlay     /* Backdrop with blur */
+.modal-content     /* Main modal container (default 500px) */
+.modal-content-sm  /* Small modal (400px) */
+.modal-content-lg  /* Large modal (650px) */
+.modal-header      /* Header with title and close button */
+.modal-body        /* Content area */
+.modal-footer      /* Action buttons area */
+.modal-close       /* Close button (red circle) */
+.modal-description /* Description text */
+```
+
+#### Button Components
+```css
+.btn            /* Base button styles */
+.btn-primary    /* Green gradient primary action */
+.btn-secondary  /* Gray outline secondary action */
+.btn-danger     /* Red gradient destructive action */
+.btn-ghost      /* Transparent with green border */
+.btn-sm         /* Small button size */
+.btn-lg         /* Large button size */
+.btn-block      /* Full width button */
+.btn-icon       /* Icon-only button (44x44px) */
+```
+
+#### Card Components
+```css
+.card           /* Base card with shadow */
+.card-bordered  /* Adds visible border */
+.card-hover     /* Adds hover lift effect */
+.card-header    /* Card header section */
+.card-body      /* Card content section */
+.card-footer    /* Card footer section */
+.card-accent    /* Left green accent border */
+.card-accent-danger  /* Left red accent */
+.card-accent-warning /* Left yellow accent */
+.card-accent-info    /* Left blue accent */
+```
+
+#### Toast Notifications
+```css
+.toast          /* Base toast styles */
+.toast-success  /* Green gradient */
+.toast-error    /* Red gradient */
+.toast-info     /* Blue gradient */
+.toast-warning  /* Yellow gradient */
+.toast-icon     /* Icon container */
+.toast-message  /* Message text */
+```
+
+#### Badge Components
+```css
+.badge          /* Base badge styles */
+.badge-success  /* Green theme */
+.badge-danger   /* Red theme */
+.badge-warning  /* Yellow theme */
+.badge-info     /* Blue theme */
+.badge-neutral  /* Gray theme */
+```
+
+#### Empty State
+```css
+.empty-state       /* Container with centered content */
+.empty-state-icon  /* Animated icon container */
+```
+
+#### Loading Spinner
+```css
+.spinner       /* White spinner (for dark backgrounds) */
+.spinner-dark  /* Green spinner (for light backgrounds) */
+```
+
+### Dashboard Layout CSS Variables
+
+All dashboard layouts now use these standardized CSS variables:
+
+```css
+:root {
+  /* Sidebar widths */
+  --sidebar-width: 280px;
+  --sidebar-width-tablet: 240px;
+  --sidebar-width-mobile: 70px;
+  --sidebar-width-small: 60px;
+
+  /* Content padding */
+  --content-padding: 2rem;
+  --content-padding-tablet: 1.5rem;
+  --content-padding-mobile: 1rem;
+
+  /* Max content width */
+  --content-max-width: 1400px;
+
+  /* Header height */
+  --header-height: 70px;
+  --header-height-mobile: 60px;
+}
+```
+
+### Files Updated in Phase 2
+
+| File | Changes |
+|------|---------|
+| `frontend/src/styles/tokens.css` | Added all shared component styles |
+| `frontend/src/components/CustomerDashboardLayout.css` | Using CSS variables for widths/padding |
+| `frontend/src/components/ManagerDashboardLayout.css` | Using CSS variables for widths/padding |
+| `frontend/src/components/AdminDashboardLayout.css` | Using CSS variables for widths/padding |
+| `frontend/src/components/AuditorDashboardLayout.css` | Using CSS variables for widths/padding |
+
+### Usage Examples
+
+**Using form classes:**
+```jsx
+<div className="form-group">
+  <label>Email Address</label>
+  <input
+    type="email"
+    className={`form-input ${errors.email ? 'error' : ''}`}
+    placeholder="Enter email"
+  />
+  <span className="form-hint">We'll never share your email</span>
+  {errors.email && <span className="form-error">{errors.email}</span>}
+</div>
+```
+
+**Using button classes:**
+```jsx
+<button className="btn btn-primary">Save Changes</button>
+<button className="btn btn-secondary">Cancel</button>
+<button className="btn btn-danger btn-sm">Delete</button>
+```
+
+**Using card classes:**
+```jsx
+<div className="card card-hover card-bordered">
+  <div className="card-header">
+    <h3>Card Title</h3>
+  </div>
+  <div className="card-body">
+    Card content here
+  </div>
+</div>
+```
+
+**Using modal classes:**
+```jsx
+<div className="modal-overlay">
+  <div className="modal-content">
+    <div className="modal-header">
+      <h2>Modal Title</h2>
+      <button className="modal-close">&times;</button>
+    </div>
+    <div className="modal-body">
+      Modal content here
+    </div>
+    <div className="modal-footer">
+      <button className="btn btn-secondary">Cancel</button>
+      <button className="btn btn-primary">Confirm</button>
+    </div>
+  </div>
+</div>
+```
+
+---
+
+## Phase 3 Implementation Details
+
+### New Shared Components Created
+
+All shared components are located in `frontend/src/components/shared/` and exported from `frontend/src/components/shared/index.ts`.
+
+#### Button Component (`Button.tsx`)
+```tsx
+import { Button } from '../components/shared';
+
+// Variants: primary, secondary, danger, ghost
+// Sizes: sm, md, lg
+
+<Button variant="primary">Save</Button>
+<Button variant="danger" size="sm">Delete</Button>
+<Button variant="ghost" leftIcon={<Plus size={16} />}>Add Item</Button>
+<Button variant="primary" isLoading>Saving...</Button>
+<Button variant="secondary" isBlock>Full Width</Button>
+```
+
+#### Input Component (`Input.tsx`)
+```tsx
+import { Input } from '../components/shared';
+
+<Input label="Email" type="email" placeholder="Enter email" />
+<Input label="Password" type="password" error="Password is required" />
+<Input label="Search" leftIcon={<Search size={16} />} hint="Enter search term" />
+<Input label="Name" isRequired />
+```
+
+#### Card Component (`Card.tsx`)
+```tsx
+import { Card } from '../components/shared';
+
+// Variants: default, bordered, accent, accent-danger, accent-warning, accent-info
+
+<Card variant="bordered" isHoverable>
+  <Card.Header>
+    <h3>Card Title</h3>
+  </Card.Header>
+  <Card.Body>
+    Card content here
+  </Card.Body>
+  <Card.Footer>
+    <Button>Action</Button>
+  </Card.Footer>
+</Card>
+```
+
+#### Badge Component (`Badge.tsx`)
+```tsx
+import { Badge } from '../components/shared';
+
+// Variants: success, danger, warning, info, neutral
+
+<Badge variant="success">Active</Badge>
+<Badge variant="danger" icon={<AlertCircle size={12} />}>Error</Badge>
+<Badge variant="warning">Pending</Badge>
+```
+
+#### EmptyState Component (`EmptyState.tsx`)
+```tsx
+import { EmptyState } from '../components/shared';
+
+<EmptyState
+  icon={<ShoppingCart size={64} />}
+  title="Your cart is empty"
+  description="Add some items to get started"
+  actionLabel="Browse Products"
+  onAction={() => navigate('/shop')}
+/>
+```
+
+#### LoadingSpinner Component (`LoadingSpinner.tsx`)
+```tsx
+import { LoadingSpinner } from '../components/shared';
+
+// Sizes: sm, md, lg
+// Variants: light, dark
+
+<LoadingSpinner />
+<LoadingSpinner size="lg" text="Loading products..." />
+<LoadingSpinner variant="light" /> // For dark backgrounds
+```
+
+#### Toast Component (enhanced)
+```tsx
+import { Toast } from '../components/shared';
+
+// Types: success, error, info, warning
+
+<Toast
+  message="Operation successful!"
+  type="success"
+  duration={3000}
+  onClose={() => setShowToast(false)}
+/>
+```
+
+### ARIA Labels Added
+
+The following files were updated with `aria-label` attributes for accessibility:
+
+| File | Elements Updated |
+|------|------------------|
+| `ProfileModal.tsx` | Close modal button |
+| `DashboardCart.tsx` | Decrease/Increase quantity buttons, Remove item button |
+| `Shop.tsx` | Close cart button, All filter removal buttons, Quantity control buttons |
+| `ManageUsers.tsx` | Close banner buttons, Toggle status buttons, Delete buttons, Pagination buttons |
+| `DashboardUsers.tsx` | Delete user button |
+| `Toast.tsx` | Close notification button |
+
+### Files Created in Phase 3
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/components/shared/Button.tsx` | Shared Button component with variants |
+| `frontend/src/components/shared/Input.tsx` | Shared Input component with validation |
+| `frontend/src/components/shared/Card.tsx` | Shared Card component with layouts |
+| `frontend/src/components/shared/Badge.tsx` | Shared Badge for status indicators |
+| `frontend/src/components/shared/EmptyState.tsx` | Shared empty state display |
+| `frontend/src/components/shared/LoadingSpinner.tsx` | Shared loading indicator |
+| `frontend/src/components/shared/index.ts` | Export barrel file |
+
+### Files Modified in Phase 3
+
+| File | Changes |
+|------|---------|
+| `frontend/src/components/ProfileModal.tsx` | Added aria-label to close button |
+| `frontend/src/components/dashboard/DashboardCart.tsx` | Added aria-labels to quantity and remove buttons |
+| `frontend/src/pages/Shop.tsx` | Added aria-labels to filter and cart buttons |
+| `frontend/src/pages/ManageUsers.tsx` | Added aria-labels to action and pagination buttons |
+| `frontend/src/components/admin/DashboardUsers.tsx` | Added aria-label to delete button |
+| `frontend/src/components/Toast.tsx` | Added warning type, added aria-label to close button |
+| `frontend/src/components/Toast.css` | Added toast-warning styles |
+
+---
+
+## Phase 4 Implementation Details
+
+### Overview
+
+Phase 4 focuses on major refactors to consolidate duplicate code and create a unified architecture for dashboard layouts and profile components. This reduces maintenance overhead and ensures consistent behavior across all user roles.
+
+### Unified Dashboard Layout Component
+
+A single `DashboardLayout` component replaces the 4 separate layout components (CustomerDashboardLayout, ManagerDashboardLayout, AdminDashboardLayout, AuditorDashboardLayout).
+
+#### Key Features
+
+- **Role-based configuration**: Single component handles all 4 roles via configuration
+- **Collapsible sidebar**: Customer dashboard has collapsible sidebar on mobile; others keep text visible
+- **Header styles**: Two modes - "title-only" (Customer) and "greeting" (Manager/Admin/Auditor)
+- **Profile modal integration**: Customer layout supports profile modal on avatar click
+- **Accent color theming**: Each role can have custom accent color (Auditor uses teal)
+- **Badge support**: Navigation items can display badges (e.g., cart count)
+
+#### Component API
+
+```tsx
+import { DashboardLayout, roleConfigs } from '../components/shared';
+import type { NavItem, RoleConfig } from '../components/shared';
+
+// Define navigation items
+const navItems: NavItem<'overview' | 'orders' | 'profile'>[] = [
+  { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+  { id: 'orders', label: 'My Orders', icon: <Package size={20} /> },
+  { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+];
+
+// Create role config
+const roleConfig: RoleConfig = {
+  role: 'customer',
+  ...roleConfigs.customer,
+};
+
+// Use the component
+<DashboardLayout
+  navItems={navItems}
+  activeNav={activeNav}
+  onNavChange={setActiveNav}
+  roleConfig={roleConfig}
+  user={user} // Optional - uses AuthContext if not provided
+>
+  {/* Page content */}
+</DashboardLayout>
+```
+
+#### Role Configurations
+
+| Role | Portal Label | Header Style | Collapsible | Profile Modal | Accent Color |
+|------|--------------|--------------|-------------|---------------|--------------|
+| Customer | Customer Portal | title-only | Yes | Yes | #28a745 (green) |
+| Manager | Manager Portal | greeting | No | No | #28a745 (green) |
+| Admin | Admin Portal | greeting | No | No | #28a745 (green) |
+| Auditor | Auditor Portal | greeting | No | No | #00b894 (teal) |
+
+### Unified Profile Display Component
+
+A single `ProfileDisplay` component replaces the 4 separate profile components with configurable fields and edit capability.
+
+#### Key Features
+
+- **View-only mode**: For employees (Manager/Admin/Auditor) - displays profile info
+- **Editable mode**: For customers - allows editing name and phone number
+- **Configurable fields**: Show/hide specific fields (phone, role, member since, password)
+- **Google account handling**: Displays Google badge and disables email editing
+- **Accent color theming**: Customizable accent color per role
+- **Form validation**: Built-in validation for name and phone number
+- **Success/error banners**: Feedback after save operations
+
+#### Component API
+
+```tsx
+import { ProfileDisplay } from '../components/shared';
+import type { ProfileUser, ProfileFieldConfig } from '../components/shared';
+
+// For Customer (editable)
+<ProfileDisplay
+  user={user}
+  title="My Profile"
+  subtitle="View and manage your account information"
+  roleLabel="Customer"
+  isEditable={true}
+  onSave={async (data) => {
+    await authApi.updateMe(data);
+    // Handle success...
+  }}
+  onChangePassword={() => onNavigate('change-password')}
+  fieldConfig={{
+    showPhone: true,
+    showRole: true,
+    showMemberSince: false,
+    showPassword: true,
+  }}
+/>
+
+// For Employee (view-only)
+<ProfileDisplay
+  user={user}
+  title="Profile Information"
+  subtitle="View your account details"
+  roleLabel="Administrator"
+  isEditable={false}
+  fieldConfig={{
+    showPhone: true,
+    showRole: true,
+    showMemberSince: true,
+    showAccountStatus: true,
+  }}
+  accentColor="#00b894" // Teal for auditor
+/>
+```
+
+#### Field Configuration Options
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `showPhone` | Display phone number field | `true` |
+| `showRole` | Display role field | `true` |
+| `showMemberSince` | Display account creation date | `true` |
+| `showAccountStatus` | Display active/inactive status | `false` |
+| `showPassword` | Display password field with change link | `false` |
+
+### Files Created in Phase 4
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/components/shared/DashboardLayout.tsx` | Unified dashboard layout component |
+| `frontend/src/components/shared/DashboardLayout.css` | Styles for unified dashboard layout |
+| `frontend/src/components/shared/ProfileDisplay.tsx` | Unified profile display component |
+| `frontend/src/components/shared/ProfileDisplay.css` | Styles for unified profile display |
+
+### Files Modified in Phase 4
+
+| File | Changes |
+|------|---------|
+| `frontend/src/components/shared/index.ts` | Added exports for DashboardLayout and ProfileDisplay |
+
+### Migration Guide
+
+To migrate existing dashboard pages to use the new unified components:
+
+#### Step 1: Update Dashboard Page Imports
+
+```tsx
+// Before
+import CustomerDashboardLayout, { NavItemId } from '../components/CustomerDashboardLayout';
+
+// After
+import { DashboardLayout, roleConfigs } from '../components/shared';
+import type { NavItem, RoleConfig } from '../components/shared';
+```
+
+#### Step 2: Define Navigation Items
+
+```tsx
+// Define your navigation items with the NavItem type
+type MyNavId = 'overview' | 'orders' | 'profile';
+
+const navItems: NavItem<MyNavId>[] = [
+  { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+  { id: 'orders', label: 'My Orders', icon: <Package size={20} />, badge: cartCount },
+  { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+];
+```
+
+#### Step 3: Create Role Configuration
+
+```tsx
+const roleConfig: RoleConfig = {
+  role: 'customer',
+  ...roleConfigs.customer,
+  // Override any defaults if needed
+  portalLabel: 'My Custom Portal',
+};
+```
+
+#### Step 4: Replace Layout Component
+
+```tsx
+// Before
+<CustomerDashboardLayout activeNav={activeNav} onNavChange={setActiveNav}>
+  {/* content */}
+</CustomerDashboardLayout>
+
+// After
+<DashboardLayout
+  navItems={navItems}
+  activeNav={activeNav}
+  onNavChange={setActiveNav}
+  roleConfig={roleConfig}
+>
+  {/* content */}
+</DashboardLayout>
+```
+
+### CSS Architecture
+
+The unified components use CSS custom properties (CSS variables) for theming:
+
+```css
+/* DashboardLayout CSS Variables */
+.dl-container {
+  --dl-accent-color: var(--color-primary, #28a745);
+  --dl-accent-color-light: var(--color-primary-light, #00b894);
+  --dl-accent-gradient: linear-gradient(135deg, var(--dl-accent-color), var(--dl-accent-color-light));
+  --dl-accent-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* Role-specific overrides */
+.dl-container.dl--auditor {
+  --dl-accent-color: #00b894;
+  --dl-accent-color-light: #00a085;
+}
+
+/* ProfileDisplay CSS Variables */
+.pd-container {
+  --pd-accent-color: var(--color-primary, #28a745);
+  --pd-accent-gradient: linear-gradient(135deg, var(--pd-accent-color), var(--color-primary-light, #00b894));
+}
+```
+
+### Backward Compatibility
+
+The original layout components (CustomerDashboardLayout, ManagerDashboardLayout, etc.) remain in the codebase for backward compatibility. They can be gradually migrated to use the unified components.
+
+### Next Steps
+
+1. **Phase 4b**: Migrate CustomerDashboard.tsx to use DashboardLayout
+2. **Phase 4c**: Migrate ManagerDashboard.tsx to use DashboardLayout
+3. **Phase 4d**: Migrate AdminDashboard.tsx to use DashboardLayout
+4. **Phase 4e**: Migrate AuditorDashboard.tsx to use DashboardLayout
+5. **Phase 4f**: Replace individual DashboardProfile components with ProfileDisplay
+6. **Phase 5**: Implement BEM naming convention for remaining CSS
+7. **Phase 6**: Consider migration to CSS Modules or Styled Components
 
 ---
 
