@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AdminDashboardLayout, { AdminNavItemId } from '../components/AdminDashboardLayout';
+import { useAuth } from '../context/AuthContext';
+import { DashboardLayout, roleConfigs } from '../components/shared';
+import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
 import {
   DashboardOverview,
   DashboardUsers,
@@ -11,9 +13,13 @@ import {
 import ProfileModal from '../components/ProfileModal';
 import { usersApi, productsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
 import {
-  Plus, CheckCircle, Clock, AlertTriangle, Trash2
+  Plus, CheckCircle, Clock, AlertTriangle, Trash2,
+  LayoutDashboard, Users, BarChart2, User, Shield
 } from 'lucide-react';
 import './AdminDashboard.css';
+
+// Navigation item IDs for Admin Dashboard
+type AdminNavId = 'overview' | 'users' | 'low-stock' | 'analytics' | 'profile';
 
 interface LowStockProduct {
   id: string;
@@ -72,7 +78,7 @@ interface NewUserForm {
 
 const AdminDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeNav, setActiveNav] = useState<AdminNavItemId>('overview');
+  const [activeNav, setActiveNav] = useState<AdminNavId>('overview');
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -87,6 +93,42 @@ const AdminDashboard: React.FC = () => {
     confirmPassword: ''
   });
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+
+  // Navigation items for Admin Dashboard
+  const navItems: NavItem<AdminNavId>[] = useMemo(() => [
+    { id: 'overview', label: 'Dashboard Overview', icon: <LayoutDashboard size={20} /> },
+    { id: 'users', label: 'Manage Users', icon: <Users size={20} /> },
+    { id: 'low-stock', label: 'Low Stock Alerts', icon: <AlertTriangle size={20} /> },
+    { id: 'analytics', label: 'Financial Analytics', icon: <BarChart2 size={20} /> },
+    { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+  ], []);
+
+  // Role configuration for Admin
+  const roleConfig: RoleConfig = useMemo(() => ({
+    role: 'admin',
+    ...roleConfigs.admin,
+    portalIcon: <Shield size={14} />,
+  }), []);
+
+  // Dashboard user for layout
+  const dashboardUser: DashboardUser | undefined = useMemo(() => {
+    if (authUser) {
+      return {
+        email: authUser.email,
+        full_name: authUser.full_name,
+        role: authUser.role,
+      };
+    }
+    if (user) {
+      return {
+        email: user.email,
+        full_name: user.fullName || user.name,
+        role: user.role,
+      };
+    }
+    return undefined;
+  }, [authUser, user]);
 
   // Sales data (placeholder - TODO: Replace with API call)
   const [allSalesData] = useState<SalesData[]>([
@@ -470,7 +512,7 @@ const AdminDashboard: React.FC = () => {
   }, [navigate]);
 
   // Navigation handler
-  const handleNavigation = (navId: AdminNavItemId) => {
+  const handleNavigation = (navId: AdminNavId) => {
     setActiveNav(navId);
   };
 
@@ -549,10 +591,12 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <AdminDashboardLayout
-      user={user}
+    <DashboardLayout<AdminNavId>
+      navItems={navItems}
       activeNav={activeNav}
       onNavChange={handleNavigation}
+      roleConfig={roleConfig}
+      user={dashboardUser}
     >
       {renderContent()}
 
@@ -710,7 +754,7 @@ const AdminDashboard: React.FC = () => {
           <span className="admin-toast-message">{toast.message}</span>
         </div>
       )}
-    </AdminDashboardLayout>
+    </DashboardLayout>
   );
 };
 
