@@ -17,9 +17,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(0, 184, 148, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(0, 160, 133, 0.05) 0%, transparent 50%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(40, 167, 69, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(40, 167, 69, 0.05) 0%, transparent 50%);
   opacity: 0.8;
 }
 
@@ -37,8 +37,8 @@
 
 .go-back-btn {
   background: transparent;
-  border: 2px solid #00b894;
-  color: #00b894;
+  border: 2px solid var(--color-primary, #28a745);
+  color: var(--color-primary, #28a745);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -53,7 +53,7 @@
 }
 
 .go-back-btn:hover {
-  background: #00b894;
+  background: var(--color-primary, #28a745);
   color: white;
   transform: translateX(-3px);
 }
@@ -62,11 +62,11 @@
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 2px solid #00b894;
+  border-bottom: 2px solid var(--color-primary, #28a745);
 }
 
 .company-header h1 {
-  color: #00b894;
+  color: var(--color-primary, #28a745);
   font-size: 2rem;
   margin: 0 0 0.5rem 0;
   font-weight: 700;
@@ -122,8 +122,8 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #00b894;
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
+  border-color: var(--color-primary, #28a745);
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
   background: #ffffff;
   transform: translateY(-2px);
 }
@@ -189,7 +189,7 @@
 }
 
 .password-toggle-btn:hover {
-  color: #00b894;
+  color: var(--color-primary, #28a745);
 }
 
 .password-toggle-btn:focus {
@@ -206,7 +206,7 @@
 .login-btn {
   width: 100%;
   padding: 1.2rem;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, var(--color-primary, #28a745) 0%, var(--color-primary-dark, #218838) 100%);
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -217,13 +217,13 @@
   margin-top: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  box-shadow: var(--shadow-primary-sm, 0 4px 15px rgba(40, 167, 69, 0.3));
 }
 
 .login-btn:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #00b894 100%);
+  background: linear-gradient(135deg, var(--color-primary-light, #00b894) 0%, var(--color-primary, #28a745) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+  box-shadow: var(--shadow-primary-md, 0 6px 20px rgba(40, 167, 69, 0.4));
 }
 
 .login-btn:active {
@@ -234,7 +234,7 @@
   text-align: center;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 2px solid rgba(0, 184, 148, 0.2);
+  border-top: 2px solid rgba(40, 167, 69, 0.2);
 }
 
 .register-section p {
@@ -245,8 +245,8 @@
 
 .register-btn {
   background: transparent;
-  color: #00b894;
-  border: 2px solid #00b894;
+  color: var(--color-primary, #28a745);
+  border: 2px solid var(--color-primary, #28a745);
   padding: 0.8rem 2rem;
   border-radius: 12px;
   font-size: 1rem;
@@ -258,10 +258,10 @@
 }
 
 .register-btn:hover {
-  background: #00b894;
+  background: var(--color-primary, #28a745);
   color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  box-shadow: var(--shadow-primary-sm, 0 4px 15px rgba(40, 167, 69, 0.3));
 }
 
 /* Divider */
@@ -305,7 +305,7 @@
 }
 
 .google-btn:hover:not(:disabled) {
-  border-color: #00b894;
+  border-color: var(--color-primary, #28a745);
   background: #f8fffe;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);

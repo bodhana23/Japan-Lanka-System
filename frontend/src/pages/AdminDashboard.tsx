@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AdminDashboardLayout, { AdminNavItemId } from '../components/AdminDashboardLayout';
+import { useAuth } from '../context/AuthContext';
+import { DashboardLayout, roleConfigs } from '../components/shared';
+import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
 import {
   DashboardOverview,
   DashboardUsers,
   DashboardLowStock,
   DashboardAnalytics,
-  DashboardProfile
+  DashboardProfile,
+  DashboardChangePassword
 } from '../components/admin';
 import ProfileModal from '../components/ProfileModal';
 import { usersApi, productsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
 import {
-  Plus, CheckCircle, Clock, AlertTriangle, Trash2
+  Plus, CheckCircle, Clock, AlertTriangle, Trash2,
+  LayoutDashboard, Users, BarChart2, User, Shield, Pencil, Lock
 } from 'lucide-react';
 import './AdminDashboard.css';
+
+// Navigation item IDs for Admin Dashboard
+type AdminNavId = 'overview' | 'users' | 'low-stock' | 'analytics' | 'profile' | 'change-password';
 
 interface LowStockProduct {
   id: string;
@@ -70,13 +77,24 @@ interface NewUserForm {
   confirmPassword: string;
 }
 
+interface EditUserForm {
+  id: string;
+  fullName: string;
+  email: string;
+  role: 'manager' | 'auditor';
+  password: string;
+  confirmPassword: string;
+}
+
 const AdminDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeNav, setActiveNav] = useState<AdminNavItemId>('overview');
+  const [activeNav, setActiveNav] = useState<AdminNavId>('overview');
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserDisplay | null>(null);
+  const [userToEdit, setUserToEdit] = useState<UserDisplay | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [dateRange, setDateRange] = useState<'3months' | '6months' | 'year'>('3months');
   const [newUserForm, setNewUserForm] = useState<NewUserForm>({
@@ -86,7 +104,52 @@ const AdminDashboard: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
+  const [editUserForm, setEditUserForm] = useState<EditUserForm>({
+    id: '',
+    fullName: '',
+    email: '',
+    role: 'manager',
+    password: '',
+    confirmPassword: ''
+  });
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+
+  // Navigation items for Admin Dashboard
+  const navItems: NavItem<AdminNavId>[] = useMemo(() => [
+    { id: 'overview', label: 'Dashboard Overview', icon: <LayoutDashboard size={20} /> },
+    { id: 'users', label: 'Manage Users', icon: <Users size={20} /> },
+    { id: 'low-stock', label: 'Low Stock Alerts', icon: <AlertTriangle size={20} /> },
+    { id: 'analytics', label: 'Financial Analytics', icon: <BarChart2 size={20} /> },
+    { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+    { id: 'change-password', label: 'Change Password', icon: <Lock size={20} /> },
+  ], []);
+
+  // Role configuration for Admin
+  const roleConfig: RoleConfig = useMemo(() => ({
+    role: 'admin',
+    ...roleConfigs.admin,
+    portalIcon: <Shield size={14} />,
+  }), []);
+
+  // Dashboard user for layout
+  const dashboardUser: DashboardUser | undefined = useMemo(() => {
+    if (authUser) {
+      return {
+        email: authUser.email,
+        full_name: authUser.full_name,
+        role: authUser.role,
+      };
+    }
+    if (user) {
+      return {
+        email: user.email,
+        full_name: user.fullName || user.name,
+        role: user.role,
+      };
+    }
+    return undefined;
+  }, [authUser, user]);
 
   // Sales data (placeholder - TODO: Replace with API call)
   const [allSalesData] = useState<SalesData[]>([
@@ -158,6 +221,7 @@ const AdminDashboard: React.FC = () => {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [isAddingStaff, setIsAddingStaff] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [isEditingStaff, setIsEditingStaff] = useState(false);
 
   // Products data
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
@@ -423,6 +487,113 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleEditUser = (userToEditItem: UserDisplay) => {
+    // Only allow editing staff members (manager/auditor), not customers or admins
+    if (userToEditItem.userType !== 'employee' || userToEditItem.role === 'admin') {
+      showToast('Can only edit staff members (Manager/Auditor)', 'error');
+      return;
+    }
+
+    setUserToEdit(userToEditItem);
+    setEditUserForm({
+      id: userToEditItem.id,
+      fullName: userToEditItem.fullName,
+      email: userToEditItem.email,
+      role: userToEditItem.role as 'manager' | 'auditor',
+      password: '',
+      confirmPassword: ''
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleUpdateUser = async () => {
+    // Validation
+    if (!editUserForm.fullName.trim()) {
+      showToast('Please enter full name', 'error');
+      return;
+    }
+    if (!editUserForm.email.trim() || !editUserForm.email.includes('@')) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+
+    // Password validation only if password is being changed
+    if (editUserForm.password) {
+      if (editUserForm.password.length < 8) {
+        showToast('Password must be at least 8 characters', 'error');
+        return;
+      }
+      if (!/[a-z]/.test(editUserForm.password)) {
+        showToast('Password must contain at least one lowercase letter', 'error');
+        return;
+      }
+      if (!/[A-Z]/.test(editUserForm.password)) {
+        showToast('Password must contain at least one uppercase letter', 'error');
+        return;
+      }
+      if (!/\d/.test(editUserForm.password)) {
+        showToast('Password must contain at least one number', 'error');
+        return;
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(editUserForm.password)) {
+        showToast('Password must contain at least one special character', 'error');
+        return;
+      }
+      if (editUserForm.password !== editUserForm.confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+      }
+    }
+
+    try {
+      setIsEditingStaff(true);
+
+      // Build update payload - only include changed fields
+      const updatePayload: {
+        full_name?: string;
+        email?: string;
+        password?: string;
+        role?: 'MANAGER' | 'AUDITOR';
+      } = {};
+
+      if (editUserForm.fullName.trim() !== userToEdit?.fullName) {
+        updatePayload.full_name = editUserForm.fullName.trim();
+      }
+      if (editUserForm.email.trim().toLowerCase() !== userToEdit?.email.toLowerCase()) {
+        updatePayload.email = editUserForm.email.trim().toLowerCase();
+      }
+      if (editUserForm.role !== userToEdit?.role) {
+        updatePayload.role = editUserForm.role.toUpperCase() as 'MANAGER' | 'AUDITOR';
+      }
+      if (editUserForm.password) {
+        updatePayload.password = editUserForm.password;
+      }
+
+      const response = await usersApi.updateEmployee(editUserForm.id, updatePayload);
+
+      showToast(response.message || `Staff member "${response.full_name}" updated successfully`, 'success');
+
+      setEditUserForm({
+        id: '',
+        fullName: '',
+        email: '',
+        role: 'manager',
+        password: '',
+        confirmPassword: ''
+      });
+      setShowEditUserModal(false);
+      setUserToEdit(null);
+      await fetchAllUsers();
+    } catch (error: unknown) {
+      console.error('Error updating staff:', error);
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      const errorMessage = axiosError.response?.data?.detail || 'Failed to update staff member';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsEditingStaff(false);
+    }
+  };
+
   // Inventory handlers
   const notifyManager = (productName: string) => {
     showToast(`Notification sent to inventory manager about "${productName}"`, 'info');
@@ -470,7 +641,7 @@ const AdminDashboard: React.FC = () => {
   }, [navigate]);
 
   // Navigation handler
-  const handleNavigation = (navId: AdminNavItemId) => {
+  const handleNavigation = (navId: AdminNavId) => {
     setActiveNav(navId);
   };
 
@@ -499,6 +670,7 @@ const AdminDashboard: React.FC = () => {
             error={usersError}
             onToggleStatus={toggleUserStatus}
             onDeleteUser={handleDeleteUser}
+            onEditUser={handleEditUser}
             onAddUser={() => setShowAddUserModal(true)}
             onRetry={fetchAllUsers}
           />
@@ -536,6 +708,14 @@ const AdminDashboard: React.FC = () => {
           <DashboardProfile
             user={user || { email: '', name: '', role: 'admin' }}
             onEditProfile={() => setShowProfile(true)}
+            onChangePassword={() => setActiveNav('change-password')}
+          />
+        );
+
+      case 'change-password':
+        return (
+          <DashboardChangePassword
+            onNavigate={handleNavigation}
           />
         );
 
@@ -549,10 +729,12 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <AdminDashboardLayout
-      user={user}
+    <DashboardLayout<AdminNavId>
+      navItems={navItems}
       activeNav={activeNav}
       onNavChange={handleNavigation}
+      roleConfig={roleConfig}
+      user={dashboardUser}
     >
       {renderContent()}
 
@@ -656,6 +838,123 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Edit User Modal */}
+      {showEditUserModal && userToEdit && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-content admin-edit-user-modal">
+            <div className="admin-modal-header">
+              <h2><Pencil size={20} /> Edit Staff Member</h2>
+              <button onClick={() => {
+                setShowEditUserModal(false);
+                setUserToEdit(null);
+                setEditUserForm({
+                  id: '',
+                  fullName: '',
+                  email: '',
+                  role: 'manager',
+                  password: '',
+                  confirmPassword: ''
+                });
+              }} className="admin-close-modal">×</button>
+            </div>
+            <div className="admin-modal-body">
+              <p className="admin-modal-description">Update profile details for {userToEdit.fullName}</p>
+
+              <div className="admin-form-group">
+                <label htmlFor="editFullName">Full Name *</label>
+                <input
+                  id="editFullName"
+                  type="text"
+                  placeholder="Enter full name"
+                  value={editUserForm.fullName}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, fullName: e.target.value })}
+                  className="admin-form-input"
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="editEmail">Email Address *</label>
+                <input
+                  id="editEmail"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                  className="admin-form-input"
+                />
+                <p className="admin-field-hint">Must include @ and a valid domain (e.g., .com, .org)</p>
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="editRole">User Role *</label>
+                <select
+                  id="editRole"
+                  value={editUserForm.role}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as 'manager' | 'auditor' })}
+                  className="admin-form-select"
+                >
+                  <option value="manager">Manager</option>
+                  <option value="auditor">Auditor</option>
+                </select>
+              </div>
+
+              <div className="admin-form-divider">
+                <span>Password Change (Optional)</span>
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="editPassword">New Password</label>
+                <input
+                  id="editPassword"
+                  type="password"
+                  placeholder="Leave blank to keep current password"
+                  value={editUserForm.password}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
+                  className="admin-form-input"
+                />
+                <p className="admin-field-hint">Min 8 characters: uppercase, lowercase, number, special character (!@#$%^&*)</p>
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="editConfirmPassword">Confirm New Password</label>
+                <input
+                  id="editConfirmPassword"
+                  type="password"
+                  placeholder="Re-enter new password"
+                  value={editUserForm.confirmPassword}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, confirmPassword: e.target.value })}
+                  className="admin-form-input"
+                  disabled={!editUserForm.password}
+                />
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button onClick={() => {
+                setShowEditUserModal(false);
+                setUserToEdit(null);
+                setEditUserForm({
+                  id: '',
+                  fullName: '',
+                  email: '',
+                  role: 'manager',
+                  password: '',
+                  confirmPassword: ''
+                });
+              }} className="admin-cancel-btn" disabled={isEditingStaff}>
+                Cancel
+              </button>
+              <button onClick={handleUpdateUser} className="admin-confirm-btn admin-edit-confirm-btn" disabled={isEditingStaff}>
+                {isEditingStaff ? (
+                  <><Clock size={16} /> Updating...</>
+                ) : (
+                  <><CheckCircle size={16} /> Save Changes</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && userToDelete && (
         <div className="admin-modal-overlay">
@@ -710,7 +1009,7 @@ const AdminDashboard: React.FC = () => {
           <span className="admin-toast-message">{toast.message}</span>
         </div>
       )}
-    </AdminDashboardLayout>
+    </DashboardLayout>
   );
 };
 

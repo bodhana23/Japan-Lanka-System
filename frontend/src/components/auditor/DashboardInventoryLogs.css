@@ -95,8 +95,9 @@
 }
 
 .refresh-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .refresh-btn .spinning {
@@ -370,8 +371,9 @@
 }
 
 .pagination-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .page-number {

@@ -261,7 +261,7 @@
 }
 
 .rr-shop-btn:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
 }
 
@@ -435,7 +435,7 @@
 .rr-order-clickable:hover {
   border-color: #28a745;
   box-shadow: 0 8px 30px rgba(40, 167, 69, 0.15);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 .rr-no-returnable-badge {
@@ -768,7 +768,7 @@
 .rr-cancel-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
 }
 
 .rr-btn-spinner {

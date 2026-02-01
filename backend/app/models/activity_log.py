@@ -33,6 +33,8 @@ class ActivityType(str, PyEnum):
     EMPLOYEE_LOGIN = "employee_login"
     EMPLOYEE_LOGIN_FAILED = "employee_login_failed"
     EMPLOYEE_LOGOUT = "employee_logout"
+    EMPLOYEE_PASSWORD_CHANGED = "employee_password_changed"
+    EMPLOYEE_PASSWORD_CHANGE_FAILED = "employee_password_change_failed"
     EMPLOYEE_PASSWORD_RESET_REQUESTED = "employee_password_reset_requested"
     EMPLOYEE_PROFILE_UPDATED = "employee_profile_updated"
     EMPLOYEE_GOOGLE_LOGIN = "employee_google_login"

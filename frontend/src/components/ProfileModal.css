@@ -95,7 +95,7 @@
 .profile-modal-header {
   text-align: center;
   padding: 40px 30px 30px;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, var(--color-primary, #28a745) 0%, var(--color-primary-dark, #218838) 100%);
   color: white;
   /* No border-radius needed here - container's overflow:hidden
      clips the header to match the container's rounded corners */
@@ -167,14 +167,14 @@
 }
 
 .profile-tab:hover {
-  background: rgba(0, 184, 148, 0.05);
-  color: #00b894;
+  background: rgba(40, 167, 69, 0.05);
+  color: var(--color-primary, #28a745);
 }
 
 .profile-tab.active {
-  color: #00b894;
+  color: var(--color-primary, #28a745);
   background: white;
-  border-bottom: 3px solid #00b894;
+  border-bottom: 3px solid var(--color-primary, #28a745);
 }
 
 .profile-tab:disabled {
@@ -313,8 +313,8 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #00b894;
-  box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
+  border-color: var(--color-primary, #28a745);
+  box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
 }
 
 .form-group input.error {
@@ -378,14 +378,14 @@
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  background: linear-gradient(135deg, var(--color-primary, #28a745) 0%, var(--color-primary-dark, #218838) 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  box-shadow: var(--shadow-primary-sm, 0 4px 15px rgba(40, 167, 69, 0.3));
 }
 
 .btn-save:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
+  box-shadow: var(--shadow-primary-lg, 0 8px 25px rgba(40, 167, 69, 0.4));
 }
 
 .btn-save.loading {
@@ -397,7 +397,7 @@
 .btn-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
 }
 
 .btn-icon {
@@ -520,12 +520,12 @@
 }
 
 .profile-modal-scrollable::-webkit-scrollbar-thumb {
-  background: #00b894;
+  background: var(--color-primary, #28a745);
   border-radius: 4px;
 }
 
 .profile-modal-scrollable::-webkit-scrollbar-thumb:hover {
-  background: #00a085;
+  background: var(--color-primary-dark, #218838);
 }
 
 /* Google Auth Notice */

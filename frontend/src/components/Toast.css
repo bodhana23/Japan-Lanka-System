@@ -57,6 +57,12 @@
   border-left: 4px solid #3498db;
 }
 
+.toast-warning {
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.97) 0%, rgba(214, 137, 16, 0.97) 100%) !important;
+  color: white !important;
+  border-left: 4px solid #f39c12;
+}
+
 .toast-icon {
   width: 18px;
   height: 18px;

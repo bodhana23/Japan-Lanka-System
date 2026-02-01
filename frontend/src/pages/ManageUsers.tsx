@@ -351,7 +351,7 @@ const ManageUsers: React.FC = () => {
           <div className="success-banner">
             <CheckCircle size={20} />
             <span>{successMessage}</span>
-            <button onClick={() => setSuccessMessage(null)} className="close-banner">
+            <button onClick={() => setSuccessMessage(null)} className="close-banner" aria-label="Close success message">
               <X size={16} />
             </button>
           </div>
@@ -362,7 +362,7 @@ const ManageUsers: React.FC = () => {
           <div className="error-banner">
             <AlertCircle size={20} />
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="close-banner">
+            <button onClick={() => setError(null)} className="close-banner" aria-label="Close error message">
               <X size={16} />
             </button>
           </div>
@@ -656,6 +656,7 @@ const ManageUsers: React.FC = () => {
                               onClick={() => handleToggleStatus('customer', customer.id, customer.is_active)}
                               className={`action-btn ${customer.is_active ? 'deactivate' : 'activate'}`}
                               title={customer.is_active ? 'Deactivate' : 'Activate'}
+                              aria-label={customer.is_active ? `Deactivate ${customer.full_name}` : `Activate ${customer.full_name}`}
                             >
                               {customer.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
                             </button>
@@ -663,6 +664,7 @@ const ManageUsers: React.FC = () => {
                               onClick={() => handleDeleteClick('customer', customer.id, customer.full_name)}
                               className="action-btn delete"
                               title="Delete"
+                              aria-label={`Delete customer ${customer.full_name}`}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -681,6 +683,7 @@ const ManageUsers: React.FC = () => {
                     onClick={() => fetchCustomers(customerPage - 1, searchTerm)}
                     disabled={customerPage === 1}
                     className="page-btn"
+                    aria-label="Previous page"
                   >
                     <ChevronLeft size={18} />
                   </button>
@@ -691,6 +694,7 @@ const ManageUsers: React.FC = () => {
                     onClick={() => fetchCustomers(customerPage + 1, searchTerm)}
                     disabled={customerPage === customerTotalPages}
                     className="page-btn"
+                    aria-label="Next page"
                   >
                     <ChevronRight size={18} />
                   </button>
@@ -741,6 +745,7 @@ const ManageUsers: React.FC = () => {
                               onClick={() => handleToggleStatus('employee', employee.id, employee.is_active)}
                               className={`action-btn ${employee.is_active ? 'deactivate' : 'activate'}`}
                               title={employee.is_active ? 'Deactivate' : 'Activate'}
+                              aria-label={employee.is_active ? `Deactivate ${employee.full_name}` : `Activate ${employee.full_name}`}
                             >
                               {employee.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
                             </button>
@@ -748,6 +753,7 @@ const ManageUsers: React.FC = () => {
                               onClick={() => handleDeleteClick('employee', employee.id, employee.full_name)}
                               className="action-btn delete"
                               title="Delete"
+                              aria-label={`Delete employee ${employee.full_name}`}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -766,6 +772,7 @@ const ManageUsers: React.FC = () => {
                     onClick={() => fetchEmployees(employeePage - 1, searchTerm)}
                     disabled={employeePage === 1}
                     className="page-btn"
+                    aria-label="Previous page"
                   >
                     <ChevronLeft size={18} />
                   </button>
@@ -776,6 +783,7 @@ const ManageUsers: React.FC = () => {
                     onClick={() => fetchEmployees(employeePage + 1, searchTerm)}
                     disabled={employeePage === employeeTotalPages}
                     className="page-btn"
+                    aria-label="Next page"
                   >
                     <ChevronRight size={18} />
                   </button>

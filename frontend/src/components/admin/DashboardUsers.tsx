@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Users, Search, Plus, Trash2, CheckCircle, AlertTriangle,
-  Clock, Briefcase, ClipboardList, User as UserIcon
+  Clock, Briefcase, ClipboardList, User as UserIcon, Pencil
 } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import './DashboardUsers.css';
@@ -22,6 +22,7 @@ interface DashboardUsersProps {
   error: string | null;
   onToggleStatus: (user: UserDisplay) => void;
   onDeleteUser: (user: UserDisplay) => void;
+  onEditUser: (user: UserDisplay) => void;
   onAddUser: () => void;
   onRetry: () => void;
 }
@@ -32,6 +33,7 @@ const DashboardUsers: React.FC<DashboardUsersProps> = ({
   error,
   onToggleStatus,
   onDeleteUser,
+  onEditUser,
   onAddUser,
   onRetry,
 }) => {
@@ -196,14 +198,28 @@ const DashboardUsers: React.FC<DashboardUsersProps> = ({
                     </button>
                   </td>
                   <td>
-                    <button
-                      className="admin-delete-btn"
-                      onClick={() => onDeleteUser(user)}
-                      title="Delete user"
-                      disabled={user.role === 'admin'}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="admin-action-buttons">
+                      {/* Edit button - only for staff (manager/auditor), not customers or admins */}
+                      {user.userType === 'employee' && user.role !== 'admin' && (
+                        <button
+                          className="admin-edit-btn"
+                          onClick={() => onEditUser(user)}
+                          title="Edit user"
+                          aria-label={`Edit user ${user.fullName}`}
+                        >
+                          <Pencil size={16} />
+                        </button>
+                      )}
+                      <button
+                        className="admin-delete-btn"
+                        onClick={() => onDeleteUser(user)}
+                        title="Delete user"
+                        aria-label={`Delete user ${user.fullName}`}
+                        disabled={user.role === 'admin'}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -341,7 +341,7 @@
 }
 
 .admin-summary-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   border-color: #28a745;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }

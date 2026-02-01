@@ -205,7 +205,7 @@
 
 .delivery-option:hover {
   border-color: var(--checkout-primary);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: 0 6px 20px rgba(40, 167, 69, 0.15);
 }
 
@@ -661,9 +661,9 @@
 }
 
 .place-order-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
   box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
 }
 

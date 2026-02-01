@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ManagerDashboardLayout, { NavItemId } from '../components/ManagerDashboardLayout';
+import { useAuth } from '../context/AuthContext';
+import { DashboardLayout, roleConfigs } from '../components/shared';
+import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
 import { DashboardInventory, DashboardOrders, DashboardReturns, DashboardProfile } from '../components/manager';
 import { productsApi, ordersApi, returnsApi, Product as ApiProduct, Order as ApiOrder, ReturnRequest as ApiReturnRequest } from '../services/api';
 import { formatDateTime } from '../utils/dateUtils';
 import {
   Package, Clock, RotateCcw, AlertTriangle,
-  Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, FileText, CheckCircle, XCircle
+  Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, FileText, CheckCircle, XCircle,
+  ClipboardList, User
 } from 'lucide-react';
 import './ManagerDashboard.css';
+
+// Navigation item IDs for Manager Dashboard
+type ManagerNavId = 'inventory' | 'orders' | 'returns' | 'profile';
 
 interface Product {
   id: string;
@@ -69,11 +75,12 @@ interface UserProfile {
 }
 
 const ManagerDashboard: React.FC = () => {
-  const [activeNav, setActiveNav] = useState<NavItemId>('inventory');
+  const [activeNav, setActiveNav] = useState<ManagerNavId>('inventory');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
 
   // User state
   const [user, setUser] = useState<UserProfile>({
@@ -82,6 +89,36 @@ const ManagerDashboard: React.FC = () => {
     role: 'Manager',
     password: 'manager@1'
   });
+
+  // Navigation items for Manager Dashboard
+  const navItems: NavItem<ManagerNavId>[] = useMemo(() => [
+    { id: 'inventory', label: 'Inventory Management', icon: <Package size={20} /> },
+    { id: 'orders', label: 'Order Management', icon: <ClipboardList size={20} /> },
+    { id: 'returns', label: 'Return Requests', icon: <RotateCcw size={20} /> },
+    { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+  ], []);
+
+  // Role configuration for Manager
+  const roleConfig: RoleConfig = useMemo(() => ({
+    role: 'manager',
+    ...roleConfigs.manager,
+  }), []);
+
+  // Dashboard user for layout
+  const dashboardUser: DashboardUser | undefined = useMemo(() => {
+    if (authUser) {
+      return {
+        email: authUser.email,
+        full_name: authUser.full_name,
+        role: authUser.role,
+      };
+    }
+    return {
+      email: user.email,
+      full_name: user.name,
+      role: user.role,
+    };
+  }, [authUser, user]);
 
   // Product management state - fetched from API
   const [products, setProducts] = useState<Product[]>([]);
@@ -418,7 +455,7 @@ const ManagerDashboard: React.FC = () => {
   }, [navigate]);
 
   // Navigation handler
-  const handleNavigation = (navId: NavItemId) => {
+  const handleNavigation = (navId: ManagerNavId) => {
     setActiveNav(navId);
   };
 
@@ -481,10 +518,12 @@ const ManagerDashboard: React.FC = () => {
   };
 
   return (
-    <ManagerDashboardLayout
-      user={user}
+    <DashboardLayout<ManagerNavId>
+      navItems={navItems}
       activeNav={activeNav}
       onNavChange={handleNavigation}
+      roleConfig={roleConfig}
+      user={dashboardUser}
     >
       {renderContent()}
 
@@ -597,7 +636,7 @@ const ManagerDashboard: React.FC = () => {
           error={returnActionError}
         />
       )}
-    </ManagerDashboardLayout>
+    </DashboardLayout>
   );
 };
 
