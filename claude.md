@@ -737,6 +737,23 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 
 **Branch Created:** `Admins-Validation-Updated` (committed Jan 31, 2026)
 
+### TypeScript Type Fixes (Feb 1)
+**DashboardLayout.tsx Fixes:**
+- Fixed `DashboardUser` interface to match `User` type from `api.ts`
+  - Removed non-existent properties `fullName` and `name`
+  - Changed `full_name` from optional to required (matches API response)
+- Updated `displayName` resolution to use only `full_name` property (line 97)
+- Updated ProfileModal user prop to use `full_name` only (line 240)
+- Located in: `frontend/src/components/shared/DashboardLayout.tsx`
+
+**CustomerDashboard.tsx Fixes:**
+- Added `'order-details'` to `CustomerNavId` type union
+  - Fixes type mismatch with `NavItemId` expected by dashboard components
+  - Dashboard components (DashboardOrders, DashboardReturns, etc.) define `NavItemId` with `'order-details'`
+- Located in: `frontend/src/pages/CustomerDashboard.tsx` (line 20)
+
+**Branch:** `UI/UX_Audit_Fix`
+
 ### Database Normalization to 3NF (Jan 17)
 - Created new tables: `carts`, `cart_items`, `notifications`, `order_status_history`, `inventory_transactions`
 - Removed redundant `customer_phone` from orders table (now fetched from `user.phone_number`)
@@ -821,7 +838,7 @@ npm run dev
 - `frontend/src/components/NotificationBell.css`
 - `frontend/src/utils/dateUtils.ts`
 
-### Files Modified (January 2026)
+### Files Modified (January-February 2026)
 - `backend/app/models/order.py` - Removed customer_phone, added relationships
 - `backend/app/routers/orders.py` - Added status history tracking
 - `backend/app/main.py` - Added custom validation exception handlers
@@ -831,8 +848,9 @@ npm run dev
 - `frontend/src/context/CartContext.tsx` - Complete rewrite for dual cart
 - `frontend/src/context/AuthContext.tsx` - Added setOnLoginSuccess callback
 - `frontend/src/App.tsx` - Added CartSyncManager component
-- `frontend/src/pages/CustomerDashboard.tsx` - Uses formatDateTime
+- `frontend/src/pages/CustomerDashboard.tsx` - Uses formatDateTime, added 'order-details' to NavId type
 - `frontend/src/pages/MyOrders.tsx` - Uses formatDateTime
 - `frontend/src/pages/ManagerDashboard.tsx` - Uses formatDateTime
 - `frontend/src/pages/AdminDashboard.tsx` - Uses formatDate, added validation hints
 - `frontend/src/pages/Checkout.tsx` - Uses ordersApi.createOrder()
+- `frontend/src/components/shared/DashboardLayout.tsx` - Fixed DashboardUser interface type alignment

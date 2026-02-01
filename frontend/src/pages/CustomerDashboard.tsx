@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 // Navigation item IDs for Customer Dashboard
-type CustomerNavId = 'overview' | 'browse-parts' | 'orders' | 'returns' | 'cart' | 'profile' | 'change-password';
+type CustomerNavId = 'overview' | 'browse-parts' | 'orders' | 'order-details' | 'returns' | 'cart' | 'profile' | 'change-password';
 
 const CustomerDashboard: React.FC = () => {
   const location = useLocation();

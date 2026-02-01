@@ -27,12 +27,10 @@ export interface RoleConfig {
   headerStyle?: 'title-only' | 'greeting'; // Header display style
 }
 
-// User type for the layout
+// User type for the layout (matches User from api.ts)
 export interface DashboardUser {
   email: string;
-  full_name?: string;
-  fullName?: string;
-  name?: string;
+  full_name: string;
   role: string;
   phone_number?: string;
   is_google_user?: boolean;
@@ -94,7 +92,7 @@ function DashboardLayout<T extends string = string>({
   const user = userProp || authUser;
 
   // Get display name
-  const displayName = user?.full_name || user?.fullName || user?.name || 'User';
+  const displayName = user?.full_name || 'User';
   const firstName = displayName.split(' ')[0];
 
   // Get current page title
@@ -237,7 +235,7 @@ function DashboardLayout<T extends string = string>({
           onClose={() => setShowProfileModal(false)}
           user={{
             email: user.email,
-            fullName: user.full_name || user.fullName || user.name || '',
+            fullName: user.full_name || '',
             role: user.role,
             phoneNumber: user.phone_number || '',
             is_google_user: user.is_google_user,
