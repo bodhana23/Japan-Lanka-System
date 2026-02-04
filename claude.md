@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: February 1, 2026*
+*Last updated: February 4, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -11,6 +11,7 @@
 - Google OAuth integration via Firebase
 - Return request system for order management
 - Real-time notifications and audit logging
+- Offline sales support for in-store transactions
 
 ## Tech Stack
 
@@ -61,7 +62,9 @@ Japan-Lanka-System/
 │   │   │   ├── AuditorDashboard.tsx
 │   │   │   ├── Shop.tsx
 │   │   │   ├── Checkout.tsx
-│   │   │   └── ManageUsers.tsx
+│   │   │   ├── ManageUsers.tsx
+│   │   │   ├── OfflineSales.tsx          # Manager offline sales page
+│   │   │   └── OfflineSales.css
 │   │   ├── services/
 │   │   │   └── api.ts                  # API client with axios
 │   │   ├── utils/
@@ -134,7 +137,11 @@ Japan-Lanka-System/
 │   │       ├── deps.py                 # FastAPI dependencies
 │   │       ├── security.py             # JWT & password utils
 │   │       └── firebase.py             # Firebase token verification
-│   ├── alembic/                        # Database migrations
+│   ├── alembic/                        # Database migrations (Alembic)
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions/                   # Migration scripts
+│   ├── migrations/                     # SQL migration scripts
 │   ├── requirements.txt
 │   └── alembic.ini
 │
@@ -175,6 +182,7 @@ Japan-Lanka-System/
 | GET | `/my-orders` | Get customer's orders |
 | GET | `/` | List all orders (employees) |
 | POST | `/` | Create new order |
+| POST | `/offline` | Create offline sale (manager only) |
 | GET | `/{id}` | Get order details |
 | PUT | `/{id}/status` | Update order status (employees) |
 
@@ -196,24 +204,6 @@ Japan-Lanka-System/
 | PUT | `/items/{id}` | Update cart item quantity |
 | DELETE | `/items/{id}` | Remove item from cart |
 | DELETE | `/clear` | Clear entire cart |
-
-### Notifications (`/api/v1/notifications`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | List all orders (manager+) |
-| GET | `/my-orders` | Get current user's orders |
-| GET | `/{id}` | Get order by ID |
-| POST | `/` | Create new order |
-| PUT | `/{id}/status` | Update order status (manager+) |
-
-### Cart (`/api/v1/cart`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Get current user's cart |
-| POST | `/items` | Add item to cart |
-| PUT | `/items/{id}` | Update cart item quantity |
-| DELETE | `/items/{id}` | Remove item from cart |
-| DELETE | `/` | Clear entire cart |
 
 ### Notifications (`/api/v1/notifications`)
 | Method | Endpoint | Description |
@@ -310,13 +300,16 @@ class Product(Base):
 ```python
 class Order(Base):
     id: UUID
-    customer_id: UUID (FK)
+    customer_id: UUID (FK, optional)  # Nullable for offline sales
     status: Enum['pending', 'confirmed', 'shipped', 'ready_to_pickup', 'delivered', 'cancelled']
     delivery_method: Enum['pickup', 'shipping']
+    sales_channel: Enum['online', 'offline']  # NEW: Distinguishes online vs in-store sales
     total_amount: Decimal
     shipping_address: str (optional)
     shipping_city: str (optional)
-    payment_status: Enum['pending', 'paid', 'failed']
+    shipping_postal_code: str (optional)
+    offline_customer_name: str (optional)   # For offline sales when customer_id is null
+    offline_customer_phone: str (optional)  # For offline sales when customer_id is null
     notes: str (optional)
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
@@ -350,16 +343,6 @@ class Cart(Base):
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
 
-class CartItem(Base):
-    id: UUID
-    cart_id: UUID (FK)
-    product_id: UUID (FK)
-    quantity: int
-    created_at: datetime (UTC)
-```
-
-### CartItem
-```python
 class CartItem(Base):
     id: UUID
     cart_id: UUID (FK)
@@ -449,21 +432,6 @@ class AuditLog(Base):
     created_at: datetime (UTC)
 ```
 
-### Notification
-```python
-class Notification(Base):
-    id: UUID
-    customer_id: UUID (FK, optional)
-    employee_id: UUID (FK, optional)
-    title: str
-    message: str
-    type: Enum['order_update', 'return_update', 'system', 'promotion']
-    is_read: bool (default: False)
-    related_order_id: UUID (optional)
-    related_return_id: UUID (optional)
-    created_at: datetime (UTC)
-```
-
 ## Business Rules & Validation
 
 ### Authentication
@@ -503,10 +471,14 @@ class Notification(Base):
 - **Stock Tracking**: Real-time quantity updates via `InventoryTransaction`
 - **Return Processing**: Approved returns add stock back via `return_in` transaction
 - **Audit Trail**: All inventory changes logged with reference to order/return
-    ip_address: str (optional)
-    user_agent: str (optional)
-    created_at: datetime (UTC)
-```
+
+### Offline Sales
+- **Manager Only**: Only users with `manager` role can create offline sales
+- **Customer Info**: Customer name required, phone optional (Sri Lankan format validated)
+- **No Customer Account**: Offline sales have `customer_id = null`, use `offline_customer_name` and `offline_customer_phone`
+- **Sales Channel**: Orders distinguished by `sales_channel` enum (`online` vs `offline`)
+- **Delivery Method**: Offline sales default to `pickup` delivery method
+- **Inventory**: Stock automatically deducted upon offline sale creation
 
 ## Frontend API Client (`services/api.ts`)
 
@@ -560,6 +532,10 @@ usersApi.getUsers(params?)
 usersApi.getUser(id)
 usersApi.updateUserRole(id, role)
 usersApi.updateUserStatus(id, isActive)
+
+// Offline Sales (Manager only)
+ordersApi.createOfflineSale(data)        // Create in-store sale
+// CreateOfflineSaleRequest: { items: [{product_id, quantity, unit_price}], customer_name, customer_phone?, notes? }
 ```
 
 ## Recent Fixes & Updates
@@ -673,12 +649,12 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 
 ## User Roles & Permissions
 
-| Role | Products | Orders | Users | Analytics | Returns | Inventory |
-|------|----------|--------|-------|-----------|---------|-----------|
-| Customer | View | Create, View Own | - | - | Create, View Own | - |
-| Manager | CRUD | View All, Update Status | - | - | View All, Update | Adjust |
-| Admin | View | View All | CRUD | View | View All | View |
-| Auditor | View | View All | View | View | View All | View |
+| Role | Products | Orders | Users | Analytics | Returns | Inventory | Offline Sales |
+|------|----------|--------|-------|-----------|---------|-----------|---------------|
+| Customer | View | Create, View Own | - | - | Create, View Own | - | - |
+| Manager | CRUD | View All, Update Status | - | - | View All, Update | Adjust | Create |
+| Admin | View | View All | CRUD | View | View All | View | - |
+| Auditor | View | View All | View | View | View All | View | - |
 
 ## Current Features
 
@@ -693,6 +669,7 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Customer order history with My Orders page
 - Manager inventory management
 - Manager order processing
+- **Offline sales for in-store transactions (Manager only)**
 - Admin user management
 - Notification system with bell dropdown
 - Return request management
@@ -710,6 +687,34 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Wishlist functionality
 
 ## Recent Changes (January-February 2026)
+
+### Offline Sales Feature (Feb 4, 2026)
+**Backend Changes:**
+- Added `SalesChannel` enum (`online`, `offline`) to `backend/app/models/order.py`
+- Made `customer_id` nullable in Order model (null for offline sales)
+- Added `offline_customer_name` and `offline_customer_phone` fields to Order model
+- Created new endpoint `POST /api/v1/orders/offline` (manager only)
+- Added Alembic migration for sales_channel column
+- Updated `OrderResponse` schema to include sales_channel and offline customer fields
+- Located in: `backend/app/routers/orders.py` (lines 427-575)
+
+**Frontend Changes:**
+- Created `OfflineSales.tsx` page with product search, cart management, and customer info
+- Added `OfflineSales.css` for styling
+- Updated `ManagerDashboard.tsx` with offline-sales navigation
+- Added route `/manager/offline-sales` in `App.tsx`
+- Updated `DashboardOrders.tsx` to display sales_channel badge
+- Added new API types: `OfflineSaleItem`, `CreateOfflineSaleRequest`, `OfflineSaleResponse`
+- Added `ordersApi.createOfflineSale()` function
+
+**New Files:**
+- `frontend/src/pages/OfflineSales.tsx`
+- `frontend/src/pages/OfflineSales.css`
+- `backend/alembic/` (Alembic migrations setup)
+- `backend/alembic/versions/f1a7baf8f1fd_add_sales_channel_to_orders.py`
+- `backend/migrations/003_add_sales_channel_to_orders.sql`
+
+**Branch:** `Offline_Order_Feature`
 
 ### Validation & Error Handling (Jan 28 - Feb 1)
 **Backend Improvements:**
@@ -830,27 +835,33 @@ npm run dev
 - `frontend/src/pages/Register.tsx` - Customer registration form
 - `frontend/src/services/api.ts` - API client with error handling
 
-### Files Created (January 2026)
+### Files Created (January-February 2026)
 - `backend/app/schemas/notification.py`
 - `backend/app/schemas/inventory_transaction.py`
 - `backend/app/services/notification_service.py`
 - `frontend/src/components/NotificationBell.tsx`
 - `frontend/src/components/NotificationBell.css`
 - `frontend/src/utils/dateUtils.ts`
+- `frontend/src/pages/OfflineSales.tsx` - Manager offline sales page (Feb 4)
+- `frontend/src/pages/OfflineSales.css` - Offline sales styling (Feb 4)
+- `backend/alembic/` - Alembic migrations setup (Feb 4)
+- `backend/migrations/003_add_sales_channel_to_orders.sql` - SQL migration (Feb 4)
 
 ### Files Modified (January-February 2026)
-- `backend/app/models/order.py` - Removed customer_phone, added relationships
-- `backend/app/routers/orders.py` - Added status history tracking
+- `backend/app/models/order.py` - Added sales_channel, offline customer fields, nullable customer_id
+- `backend/app/routers/orders.py` - Added offline sales endpoint, status history tracking
+- `backend/app/schemas/order.py` - Added OfflineSaleCreate, OfflineSaleResponse schemas
 - `backend/app/main.py` - Added custom validation exception handlers
 - `backend/app/routers/auth_customer.py` - Added orphaned Firebase cleanup
 - `backend/app/routers/users.py` - Added employee creation validation
-- `frontend/src/services/api.ts` - Added cart, notifications APIs
+- `frontend/src/services/api.ts` - Added cart, notifications, offline sales APIs
 - `frontend/src/context/CartContext.tsx` - Complete rewrite for dual cart
 - `frontend/src/context/AuthContext.tsx` - Added setOnLoginSuccess callback
-- `frontend/src/App.tsx` - Added CartSyncManager component
+- `frontend/src/App.tsx` - Added CartSyncManager, offline sales route
 - `frontend/src/pages/CustomerDashboard.tsx` - Uses formatDateTime, added 'order-details' to NavId type
 - `frontend/src/pages/MyOrders.tsx` - Uses formatDateTime
-- `frontend/src/pages/ManagerDashboard.tsx` - Uses formatDateTime
+- `frontend/src/pages/ManagerDashboard.tsx` - Added offline-sales navigation
 - `frontend/src/pages/AdminDashboard.tsx` - Uses formatDate, added validation hints
 - `frontend/src/pages/Checkout.tsx` - Uses ordersApi.createOrder()
 - `frontend/src/components/shared/DashboardLayout.tsx` - Fixed DashboardUser interface type alignment
+- `frontend/src/components/manager/DashboardOrders.tsx` - Added sales_channel display
