@@ -97,6 +97,10 @@ ENV/
 .pytest_cache/
 .mypy_cache/
 
+# Alembic
+# Note: alembic/versions/*.py migration files SHOULD be committed
+# Only ignore temporary/generated files
+
 # Firebase/Secret Keys
 # SECURITY: Never commit service account credentials or secret keys
 backend/keys/

@@ -3,6 +3,7 @@ fastapi
 uvicorn[standard]
 watchfiles  # Efficient file watching for uvicorn --reload (prevents high CPU usage)
 sqlalchemy
+alembic
 psycopg
 python-dotenv
 pydantic

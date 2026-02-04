@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DashboardLayout, roleConfigs } from '../components/shared';
 import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
@@ -9,12 +9,12 @@ import { formatDateTime } from '../utils/dateUtils';
 import {
   Package, Clock, RotateCcw, AlertTriangle,
   Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, FileText, CheckCircle, XCircle,
-  ClipboardList, User
+  ClipboardList, User, Store
 } from 'lucide-react';
 import './ManagerDashboard.css';
 
 // Navigation item IDs for Manager Dashboard
-type ManagerNavId = 'inventory' | 'orders' | 'returns' | 'profile';
+type ManagerNavId = 'inventory' | 'orders' | 'offline-sales' | 'returns' | 'profile';
 
 interface Product {
   id: string;
@@ -65,6 +65,10 @@ interface CustomerOrder {
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
+  // Offline sales fields
+  salesChannel?: 'online' | 'offline';
+  offlineCustomerName?: string;
+  offlineCustomerPhone?: string;
 }
 
 interface UserProfile {
@@ -74,13 +78,37 @@ interface UserProfile {
   password: string;
 }
 
+// Map URL paths to nav IDs
+const pathToNavId: Record<string, ManagerNavId> = {
+  '/manager/inventory': 'inventory',
+  '/manager/orders': 'orders',
+  '/manager/offline-sales': 'offline-sales',
+  '/manager/returns': 'returns',
+  '/manager/profile': 'profile',
+};
+
+// Map nav IDs to URL paths
+const navIdToPath: Record<ManagerNavId, string> = {
+  'inventory': '/manager/inventory',
+  'orders': '/manager/orders',
+  'offline-sales': '/manager/offline-sales',
+  'returns': '/manager/returns',
+  'profile': '/manager/profile',
+};
+
 const ManagerDashboard: React.FC = () => {
-  const [activeNav, setActiveNav] = useState<ManagerNavId>('inventory');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user: authUser } = useAuth();
+
+  // Derive active nav from current URL path (single source of truth)
+  const activeNav = useMemo<ManagerNavId>(() => {
+    return pathToNavId[location.pathname] || 'inventory';
+  }, [location.pathname]);
+
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const navigate = useNavigate();
-  const { user: authUser } = useAuth();
 
   // User state
   const [user, setUser] = useState<UserProfile>({
@@ -94,6 +122,7 @@ const ManagerDashboard: React.FC = () => {
   const navItems: NavItem<ManagerNavId>[] = useMemo(() => [
     { id: 'inventory', label: 'Inventory Management', icon: <Package size={20} /> },
     { id: 'orders', label: 'Order Management', icon: <ClipboardList size={20} /> },
+    { id: 'offline-sales', label: 'Offline Sales', icon: <Store size={20} /> },
     { id: 'returns', label: 'Return Requests', icon: <RotateCcw size={20} /> },
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
   ], []);
@@ -187,21 +216,36 @@ const ManagerDashboard: React.FC = () => {
         setOrdersError(null);
         const response = await ordersApi.getOrders({ page_size: 100 });
         if (isMounted) {
-          const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => ({
-            id: o.id,
-            customerName: o.customer_name || 'Unknown Customer',
-            customerEmail: o.customer_email || '',
-            items: o.items.map(item => ({
-              name: item.product_name || `Product ${item.product_id}`,
-              quantity: item.quantity,
-              price: item.unit_price
-            })),
-            totalAmount: o.total_amount,
-            status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
-            orderDate: o.created_at,
-            deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
-            contactNumber: o.customer_phone
-          }));
+          const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => {
+            // For offline sales, use offline customer info if available
+            const isOffline = o.sales_channel === 'offline';
+            const customerName = isOffline
+              ? (o.offline_customer_name || 'Walk-in Customer')
+              : (o.customer_name || 'Unknown Customer');
+            const customerPhone = isOffline
+              ? (o.offline_customer_phone || '')
+              : (o.customer_phone || '');
+
+            return {
+              id: o.id,
+              customerName,
+              customerEmail: o.customer_email || '',
+              items: o.items.map(item => ({
+                name: item.product_name || `Product ${item.product_id}`,
+                quantity: item.quantity,
+                price: item.unit_price
+              })),
+              totalAmount: o.total_amount,
+              status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
+              orderDate: o.created_at,
+              deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
+              contactNumber: customerPhone,
+              // Offline sales fields
+              salesChannel: o.sales_channel,
+              offlineCustomerName: o.offline_customer_name,
+              offlineCustomerPhone: o.offline_customer_phone,
+            };
+          });
           setCustomerOrders(transformedOrders);
         }
       } catch (error) {
@@ -454,9 +498,12 @@ const ManagerDashboard: React.FC = () => {
     }
   }, [navigate]);
 
-  // Navigation handler
+  // Navigation handler - always use URL navigation
   const handleNavigation = (navId: ManagerNavId) => {
-    setActiveNav(navId);
+    const path = navIdToPath[navId];
+    if (path) {
+      navigate(path);
+    }
   };
 
   // Render the appropriate content based on active navigation

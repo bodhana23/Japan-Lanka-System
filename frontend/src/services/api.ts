@@ -100,10 +100,13 @@ export interface Order {
   user_id: string;
   status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled';
   delivery_method: 'pickup' | 'shipping';
+  sales_channel?: 'online' | 'offline';
   total_amount: number;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
+  offline_customer_name?: string;
+  offline_customer_phone?: string;
   customer_phone: string;
   notes?: string;
   created_at: string;
@@ -133,6 +136,34 @@ export interface CreateOrderRequest {
   shipping_postal_code?: string;
   notes?: string;
   items: CreateOrderItem[];
+}
+
+// Offline Sales types
+export interface OfflineSaleItem {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface CreateOfflineSaleRequest {
+  items: OfflineSaleItem[];
+  customer_name: string;
+  customer_phone?: string;
+  notes?: string;
+}
+
+export interface OfflineSaleResponse {
+  id: string;
+  status: string;
+  delivery_method: string;
+  sales_channel: string;
+  total_amount: number;
+  offline_customer_name?: string;
+  offline_customer_phone?: string;
+  notes?: string;
+  created_at: string;
+  items: OrderItem[];
+  message: string;
 }
 
 // Cart types
@@ -500,6 +531,11 @@ export const ordersApi = {
 
   updateOrderStatus: async (id: string, status: Order['status']): Promise<Order> => {
     const response = await api.put<Order>(`/orders/${id}/status`, { status });
+    return response.data;
+  },
+
+  createOfflineSale: async (data: CreateOfflineSaleRequest): Promise<OfflineSaleResponse> => {
+    const response = await api.post<OfflineSaleResponse>('/orders/offline', data);
     return response.data;
   },
 };

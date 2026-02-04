@@ -57,6 +57,23 @@ const isLoggedIn = (): boolean => {
   return !!localStorage.getItem('token');
 };
 
+// Helper to check if the logged-in user is a customer
+// Cart functionality should ONLY work for customers, not employees
+const isCustomerLoggedIn = (): boolean => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+
+  const storedUser = localStorage.getItem('currentUser');
+  if (!storedUser) return false;
+
+  try {
+    const user = JSON.parse(storedUser);
+    return user.role === 'customer';
+  } catch {
+    return false;
+  }
+};
+
 // Convert API cart item to unified format
 const apiCartItemToCartItem = (item: ApiCartItem): CartItem => ({
   id: item.id,
@@ -138,9 +155,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [cart]);
 
-  // Sync cart from API (for logged-in users)
+  // Sync cart from API (for logged-in CUSTOMERS only)
   const syncCartFromApi = useCallback(async () => {
-    if (!isLoggedIn()) return;
+    if (!isCustomerLoggedIn()) return;
 
     setIsLoading(true);
     try {
@@ -154,9 +171,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  // Merge local cart to server when user logs in
+  // Merge local cart to server when CUSTOMER logs in
   const mergeLocalCartToServer = useCallback(async () => {
-    if (!isLoggedIn()) return;
+    if (!isCustomerLoggedIn()) return;
 
     const localCart = sessionStorage.getItem('cart');
     if (!localCart) {
@@ -210,8 +227,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    if (isLoggedIn()) {
-      // Logged in: Use API
+    if (isCustomerLoggedIn()) {
+      // Customer logged in: Use API
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.addItem(product.id, 1);
@@ -246,7 +263,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const removeFromCart = async (itemId: string): Promise<void> => {
-    if (isLoggedIn()) {
+    if (isCustomerLoggedIn()) {
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.removeItem(itemId);
@@ -276,7 +293,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    if (isLoggedIn()) {
+    if (isCustomerLoggedIn()) {
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.updateItem(itemId, newQuantity);
@@ -309,7 +326,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const clearCart = async (): Promise<void> => {
-    if (isLoggedIn()) {
+    if (isCustomerLoggedIn()) {
       setIsLoading(true);
       try {
         await cartApi.clearCart();

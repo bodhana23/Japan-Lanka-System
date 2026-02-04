@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 
 interface CustomerOrder {
@@ -12,6 +12,10 @@ interface CustomerOrder {
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
+  // Offline sales fields
+  salesChannel?: 'online' | 'offline';
+  offlineCustomerName?: string;
+  offlineCustomerPhone?: string;
 }
 
 interface DashboardOrdersProps {
@@ -366,16 +370,24 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       ) : (
         <div className="orders-grid">
           {filteredOrders.map(order => (
-            <div key={order.id} className="order-card">
+            <div key={order.id} className={`order-card ${order.salesChannel === 'offline' ? 'offline-order' : ''}`}>
               <div className="order-header">
                 <div className="order-info">
-                  <h3 className="order-id">Order #{order.id}</h3>
+                  <div className="order-id-row">
+                    <h3 className="order-id">Order #{order.id.slice(0, 8)}</h3>
+                    {order.salesChannel === 'offline' && (
+                      <span className="offline-badge">
+                        <Store size={12} />
+                        Offline Sale
+                      </span>
+                    )}
+                  </div>
                   <p className="customer-name">{order.customerName}</p>
                   <p className="order-date">{formatDateTime(order.orderDate)}</p>
                 </div>
                 <div className="order-status">
-                  <select 
-                    value={order.status} 
+                  <select
+                    value={order.status}
                     onChange={(e) => onStatusUpdate(order.id, e.target.value as CustomerOrder['status'])}
                     className={`status-dropdown ${order.status}`}
                   >
@@ -386,7 +398,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   </select>
                 </div>
               </div>
-              
+
               <div className="order-items">
                 <h4>Items:</h4>
                 <ul className="items-list">
@@ -399,24 +411,47 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   ))}
                 </ul>
               </div>
-              
+
               <div className="order-details">
                 <div className="detail-row">
                   <span className="detail-label">Total Amount:</span>
                   <span className="detail-value total-amount">Rs. {order.totalAmount.toLocaleString()}</span>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">Contact:</span>
-                  <span className="detail-value">{order.contactNumber}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Email:</span>
-                  <span className="detail-value">{order.customerEmail}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Delivery:</span>
-                  <span className="detail-value">{order.deliveryAddress}</span>
-                </div>
+                {order.salesChannel === 'offline' ? (
+                  <>
+                    {order.offlineCustomerName && (
+                      <div className="detail-row">
+                        <span className="detail-label">Customer:</span>
+                        <span className="detail-value">{order.offlineCustomerName}</span>
+                      </div>
+                    )}
+                    {order.offlineCustomerPhone && (
+                      <div className="detail-row">
+                        <span className="detail-label">Phone:</span>
+                        <span className="detail-value">{order.offlineCustomerPhone}</span>
+                      </div>
+                    )}
+                    <div className="detail-row">
+                      <span className="detail-label">Type:</span>
+                      <span className="detail-value">Walk-in / Phone Order</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="detail-row">
+                      <span className="detail-label">Contact:</span>
+                      <span className="detail-value">{order.contactNumber || 'N/A'}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Email:</span>
+                      <span className="detail-value">{order.customerEmail || 'N/A'}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Delivery:</span>
+                      <span className="detail-value">{order.deliveryAddress || 'N/A'}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ))}

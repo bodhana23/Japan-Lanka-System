@@ -41,31 +41,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (storedToken) {
         if (isMounted) setToken(storedToken);
 
-        // Try to get fresh user data from API
-        try {
-          const userData = await authApi.getMe();
-          if (isMounted) {
-            setUser(userData);
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+        // Parse stored user to check role
+        let parsedStoredUser: User | null = null;
+        if (storedUser) {
+          try {
+            parsedStoredUser = JSON.parse(storedUser);
+          } catch {
+            // Invalid stored user JSON
+            parsedStoredUser = null;
           }
-        } catch (error) {
-          if (isMounted) {
-            // If token is invalid, use stored user data or clear auth
-            if (storedUser) {
-              try {
-                setUser(JSON.parse(storedUser));
-              } catch {
-                // Invalid stored user, clear everything
+        }
+
+        // Only fetch fresh customer data if user is a customer
+        // Employee sessions should not call customer APIs
+        const isCustomer = parsedStoredUser?.role === 'customer';
+
+        if (isCustomer) {
+          // Try to get fresh user data from API (customer only)
+          try {
+            const userData = await authApi.getMe();
+            if (isMounted) {
+              setUser(userData);
+              localStorage.setItem('currentUser', JSON.stringify(userData));
+            }
+          } catch (error) {
+            if (isMounted) {
+              // If token is invalid, use stored user data or clear auth
+              if (parsedStoredUser) {
+                setUser(parsedStoredUser);
+              } else {
+                // No stored user and API failed, clear token
                 localStorage.removeItem('token');
                 localStorage.removeItem('currentUser');
                 setToken(null);
                 setUser(null);
               }
-            } else {
-              // No stored user and API failed, clear token
-              localStorage.removeItem('token');
-              setToken(null);
             }
+          }
+        } else {
+          // For employees (manager, admin, auditor), just use stored user data
+          // Do NOT call /auth/customer/me for employees
+          if (isMounted && parsedStoredUser) {
+            setUser(parsedStoredUser);
+          } else if (isMounted) {
+            // No stored user for employee session, clear auth
+            localStorage.removeItem('token');
+            localStorage.removeItem('currentUser');
+            setToken(null);
+            setUser(null);
           }
         }
       }
