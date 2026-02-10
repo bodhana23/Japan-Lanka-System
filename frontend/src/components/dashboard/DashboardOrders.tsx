@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ordersApi, returnsApi, Order } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
-import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw, FileText, Loader2 } from 'lucide-react';
 import './DashboardOrders.css';
 
 type NavItemId = 'overview' | 'orders' | 'order-details' | 'returns' | 'cart' | 'profile' | 'change-password';
@@ -23,6 +23,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
 
   // Fetch orders from API
   useEffect(() => {
@@ -120,6 +121,24 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
 
   const canRequestReturn = (status: string) => {
     return status === 'delivered' || status === 'ready_to_pickup';
+  };
+
+  const canDownloadBill = (order: Order) => {
+    // Bills are available for non-cancelled orders
+    return order.status !== 'cancelled';
+  };
+
+  const handleDownloadBill = async (orderId: string) => {
+    try {
+      setDownloadingBillId(orderId);
+      await ordersApi.downloadBill(orderId);
+    } catch (err) {
+      console.error('Error downloading bill:', err);
+      setError('Failed to download bill. Please try again.');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setDownloadingBillId(null);
+    }
   };
 
   // Filter orders
@@ -276,14 +295,35 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
                     <span className="dord-total-label">Total:</span>
                     <span className="dord-total-amount">{formatCurrency(order.total_amount)}</span>
                   </div>
-                  {canRequestReturn(order.status) && (
-                    <button
-                      className="dord-return-btn"
-                      onClick={() => handleRequestReturn(order)}
-                    >
-                      Request Return
-                    </button>
-                  )}
+                  <div className="dord-order-actions">
+                    {canDownloadBill(order) && (
+                      <button
+                        className="dord-download-btn"
+                        onClick={() => handleDownloadBill(order.id)}
+                        disabled={downloadingBillId === order.id}
+                      >
+                        {downloadingBillId === order.id ? (
+                          <>
+                            <Loader2 size={14} className="dord-btn-icon spinning" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <FileText size={14} className="dord-btn-icon" />
+                            Download Bill (PDF)
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {canRequestReturn(order.status) && (
+                      <button
+                        className="dord-return-btn"
+                        onClick={() => handleRequestReturn(order)}
+                      >
+                        Request Return
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

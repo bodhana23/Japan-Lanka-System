@@ -343,6 +343,46 @@
   color: #28a745;
 }
 
+.dord-order-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dord-download-btn {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dord-download-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.35);
+}
+
+.dord-download-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.dord-btn-icon {
+  flex-shrink: 0;
+}
+
+.dord-btn-icon.spinning {
+  animation: dord-spin 1s linear infinite;
+}
+
 .dord-return-btn {
   background: linear-gradient(135deg, #9b59b6, #8e44ad);
   color: white;
@@ -560,9 +600,16 @@
     align-items: stretch;
   }
 
+  .dord-order-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .dord-download-btn,
   .dord-return-btn {
     width: 100%;
     text-align: center;
+    justify-content: center;
   }
 }
 
