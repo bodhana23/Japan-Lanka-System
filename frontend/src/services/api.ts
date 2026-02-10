@@ -114,6 +114,7 @@ export interface Order {
   items: OrderItem[];
   customer_name?: string;
   customer_email?: string;
+  is_billable?: boolean;
 }
 
 export interface OrderListResponse {
@@ -537,6 +538,34 @@ export const ordersApi = {
   createOfflineSale: async (data: CreateOfflineSaleRequest): Promise<OfflineSaleResponse> => {
     const response = await api.post<OfflineSaleResponse>('/orders/offline', data);
     return response.data;
+  },
+
+  downloadBill: async (orderId: string): Promise<void> => {
+    const response = await api.get(`/orders/${orderId}/bill`, {
+      responseType: 'blob',
+    });
+
+    // Create download link
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Extract filename from Content-Disposition header or use default
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `bill_${orderId.slice(0, 8).toUpperCase()}.pdf`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename=(.+)/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 };
 

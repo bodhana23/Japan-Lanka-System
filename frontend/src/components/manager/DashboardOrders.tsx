@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle, Store } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2 } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
+import { ordersApi } from '../../services/api';
 
 interface CustomerOrder {
   id: string;
@@ -16,6 +17,8 @@ interface CustomerOrder {
   salesChannel?: 'online' | 'offline';
   offlineCustomerName?: string;
   offlineCustomerPhone?: string;
+  // Bill generation
+  isBillable?: boolean;
 }
 
 interface DashboardOrdersProps {
@@ -38,6 +41,19 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const [dateTo, setDateTo] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
+  const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+
+  const handleDownloadBill = async (orderId: string) => {
+    setDownloadingBillId(orderId);
+    try {
+      await ordersApi.downloadBill(orderId);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to download bill';
+      alert(errorMessage);
+    } finally {
+      setDownloadingBillId(null);
+    }
+  };
 
   // Debounced search with filtering simulation
   useEffect(() => {
@@ -453,6 +469,28 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   </>
                 )}
               </div>
+
+              {order.isBillable && (
+                <div className="order-actions">
+                  <button
+                    className="download-bill-btn"
+                    onClick={() => handleDownloadBill(order.id)}
+                    disabled={downloadingBillId === order.id}
+                  >
+                    {downloadingBillId === order.id ? (
+                      <>
+                        <Loader2 size={14} className="spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={14} />
+                        Download Bill
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

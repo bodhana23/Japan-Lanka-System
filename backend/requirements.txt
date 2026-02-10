@@ -15,3 +15,6 @@ pytz
 python-jose[cryptography]
 bcrypt
 firebase-admin
+
+# PDF Generation
+reportlab

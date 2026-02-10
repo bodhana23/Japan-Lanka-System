@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ordersApi, returnsApi, Order } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../utils/dateUtils';
-import { Car, AlertTriangle, Inbox, Store, Truck } from 'lucide-react';
+import { Car, AlertTriangle, Inbox, Store, Truck, FileText, Loader2 } from 'lucide-react';
 import './MyOrders.css';
 
 const MyOrders: React.FC = () => {
@@ -18,6 +18,7 @@ const MyOrders: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
 
   // Fetch orders from API
   useEffect(() => {
@@ -127,6 +128,24 @@ const MyOrders: React.FC = () => {
     return status === 'delivered' || status === 'ready_to_pickup';
   };
 
+  const canDownloadBill = (order: Order) => {
+    // Bills are available for non-cancelled orders
+    return order.status !== 'cancelled';
+  };
+
+  const handleDownloadBill = async (orderId: string) => {
+    try {
+      setDownloadingBillId(orderId);
+      await ordersApi.downloadBill(orderId);
+    } catch (err) {
+      console.error('Error downloading bill:', err);
+      setError('Failed to download bill. Please try again.');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setDownloadingBillId(null);
+    }
+  };
+
   const firstName = user?.full_name?.split(' ')[0] || 'Customer';
 
   return (
@@ -184,6 +203,7 @@ const MyOrders: React.FC = () => {
           <div className="mo-orders-list">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status);
+              const showOrderActions = canDownloadBill(order) || canRequestReturn(order.status);
               return (
                 <div key={order.id} className="mo-order-card">
                   <div className="mo-order-header">
@@ -243,13 +263,36 @@ const MyOrders: React.FC = () => {
                       <span className="mo-total-label">Total:</span>
                       <span className="mo-total-amount">{formatCurrency(order.total_amount)}</span>
                     </div>
-                    {canRequestReturn(order.status) && (
-                      <button
-                        className="mo-return-btn"
-                        onClick={() => handleRequestReturn(order)}
-                      >
-                        Request Return
-                      </button>
+                    {showOrderActions && (
+                      <div className="mo-order-actions">
+                        {canDownloadBill(order) && (
+                          <button
+                            className="mo-download-btn"
+                            onClick={() => handleDownloadBill(order.id)}
+                            disabled={downloadingBillId === order.id}
+                          >
+                            {downloadingBillId === order.id ? (
+                              <>
+                                <Loader2 size={14} className="mo-btn-icon spinning" />
+                                Downloading...
+                              </>
+                            ) : (
+                              <>
+                                <FileText size={14} className="mo-btn-icon" />
+                                Download Bill (PDF)
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {canRequestReturn(order.status) && (
+                          <button
+                            className="mo-return-btn"
+                            onClick={() => handleRequestReturn(order)}
+                          >
+                            Request Return
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
