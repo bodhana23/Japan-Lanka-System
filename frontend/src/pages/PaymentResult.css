@@ -108,6 +108,41 @@
   outline-offset: 2px;
 }
 
+/* Payment Info Box */
+.payment-info-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #d4edda;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.payment-info-box .info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.payment-info-box .info-row svg {
+  color: #28a745;
+  flex-shrink: 0;
+}
+
+.payment-info-box .info-row:not(:last-child) {
+  border-bottom: 1px dashed #c3e6cb;
+}
+
+/* Redirect Notice */
+.redirect-notice {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .payment-result-container {

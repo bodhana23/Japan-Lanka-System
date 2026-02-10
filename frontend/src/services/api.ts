@@ -95,6 +95,8 @@ export interface OrderItem {
   created_at: string;
 }
 
+export type PaymentStatus = 'not_paid' | 'partially_paid' | 'paid';
+
 export interface Order {
   id: string;
   user_id: string;
@@ -102,12 +104,19 @@ export interface Order {
   delivery_method: 'pickup' | 'shipping';
   sales_channel?: 'online' | 'offline';
   total_amount: number;
+  subtotal?: number;
+  delivery_fee?: number;
+  paid_amount?: number;
+  remaining_amount?: number;
+  payment_status?: PaymentStatus;
+  shipping_district?: string;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
   offline_customer_name?: string;
   offline_customer_phone?: string;
   customer_phone: string;
+  payhere_payment_id?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -132,11 +141,75 @@ export interface CreateOrderItem {
 
 export interface CreateOrderRequest {
   delivery_method: 'pickup' | 'shipping';
+  shipping_district?: string;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
   notes?: string;
   items: CreateOrderItem[];
+  pay_full_amount?: boolean;
+}
+
+// Checkout types
+export interface District {
+  name: string;
+  delivery_fee: number;
+}
+
+export interface CheckoutCalculation {
+  subtotal: number;
+  delivery_fee: number;
+  total_amount: number;
+  minimum_payment: number;
+  full_payment: number;
+  delivery_method: 'pickup' | 'shipping';
+  district?: string;
+  requires_payment: boolean;
+}
+
+export interface InitiateCheckoutRequest {
+  delivery_method: 'pickup' | 'shipping';
+  shipping_district?: string;
+  shipping_address?: string;
+  shipping_city?: string;
+  shipping_postal_code?: string;
+  notes?: string;
+  items: CreateOrderItem[];
+  pay_full_amount: boolean;
+  skip_payment: boolean;
+}
+
+export interface PayHereFormData {
+  merchant_id: string;
+  return_url: string;
+  cancel_url: string;
+  notify_url: string;
+  order_id: string;
+  items: string;
+  currency: string;
+  amount: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  hash?: string;
+}
+
+export interface InitiateCheckoutResponse {
+  order_id: string;
+  subtotal: number;
+  delivery_fee: number;
+  total_amount: number;
+  pay_now_amount: number;
+  remaining_cod_amount: number;
+  payment_status: PaymentStatus;
+  delivery_method: 'pickup' | 'shipping';
+  requires_payment: boolean;
+  payhere_form_data?: PayHereFormData;
+  message: string;
 }
 
 // Offline Sales types
@@ -566,6 +639,22 @@ export const ordersApi = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  },
+
+  // Checkout endpoints
+  getDistricts: async (): Promise<{ districts: District[] }> => {
+    const response = await api.get<{ districts: District[] }>('/orders/checkout/districts');
+    return response.data;
+  },
+
+  calculateCheckout: async (data: InitiateCheckoutRequest): Promise<CheckoutCalculation> => {
+    const response = await api.post<CheckoutCalculation>('/orders/checkout/calculate', data);
+    return response.data;
+  },
+
+  initiateCheckout: async (data: InitiateCheckoutRequest): Promise<InitiateCheckoutResponse> => {
+    const response = await api.post<InitiateCheckoutResponse>('/orders/checkout/initiate', data);
+    return response.data;
   },
 };
 

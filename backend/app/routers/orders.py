@@ -1,5 +1,6 @@
 """Orders router for order management."""
 
+import os
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction
-from app.models.order import OrderStatus, DeliveryMethod, SalesChannel
+from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
 from app.models.inventory_transaction import TransactionType
 from app.services.audit_service import log_inventory_event
 from app.models.inventory_log import InventoryActionType, RelatedEntityType
@@ -24,6 +25,12 @@ from app.schemas.order import (
     OrderListResponse,
     OfflineSaleCreate,
     OfflineSaleResponse,
+    InitiateCheckoutRequest,
+    InitiateCheckoutResponse,
+    PayHereFormData,
+    CheckoutCalculation,
+    get_delivery_fee,
+    SRI_LANKA_DISTRICTS,
 )
 from app.schemas.order_status_history import (
     OrderStatusHistoryResponse,
@@ -32,6 +39,12 @@ from app.schemas.order_status_history import (
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, CurrentUser
 from app.models.audit_log import AuditLog
 from app.services.notification_service import notify_order_status_change
+
+# PayHere configuration
+PAYHERE_MERCHANT_ID = os.getenv("PAYHERE_MERCHANT_ID", "1233973")
+PAYHERE_SANDBOX = os.getenv("PAYHERE_SANDBOX", "true").lower() == "true"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -71,11 +84,18 @@ def order_to_response(order: Order) -> OrderResponse:
         delivery_method=order.delivery_method,
         sales_channel=order.sales_channel,
         total_amount=order.total_amount,
+        subtotal=order.subtotal,
+        delivery_fee=order.delivery_fee,
+        paid_amount=order.paid_amount,
+        remaining_amount=order.remaining_amount,
+        payment_status=order.payment_status,
+        shipping_district=order.shipping_district,
         shipping_address=order.shipping_address,
         shipping_city=order.shipping_city,
         shipping_postal_code=order.shipping_postal_code,
         offline_customer_name=order.offline_customer_name,
         offline_customer_phone=order.offline_customer_phone,
+        payhere_payment_id=order.payhere_payment_id,
         notes=order.notes,
         created_at=order.created_at,
         updated_at=order.updated_at,
@@ -633,4 +653,361 @@ async def get_order_bill(
         headers={
             "Content-Disposition": f"attachment; filename={filename}"
         }
+    )
+
+
+# ============ CHECKOUT & PAYMENT ENDPOINTS ============
+
+@router.post("/checkout/calculate", response_model=CheckoutCalculation)
+async def calculate_checkout(
+    checkout_data: InitiateCheckoutRequest,
+    current_customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """
+    Calculate checkout totals including delivery fee.
+    Returns breakdown of costs and payment options.
+    """
+    # Validate products and calculate subtotal
+    subtotal = Decimal("0")
+
+    for item_data in checkout_data.items:
+        product = db.query(Product).filter(
+            Product.id == item_data.product_id,
+            Product.is_active == True
+        ).first()
+
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Product {item_data.product_id} not found or inactive"
+            )
+
+        if product.quantity_available < item_data.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
+            )
+
+        subtotal += product.price * item_data.quantity
+
+    # Calculate delivery fee
+    delivery_fee = Decimal("0")
+    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        if not checkout_data.shipping_district:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="District is required for delivery orders"
+            )
+        delivery_fee = get_delivery_fee(checkout_data.shipping_district)
+
+    total_amount = subtotal + delivery_fee
+
+    # For delivery: minimum 30% payment required
+    # For pickup: payment is optional
+    minimum_payment = (total_amount * Decimal("0.30")).quantize(Decimal("0.01"))
+    requires_payment = checkout_data.delivery_method == DeliveryMethod.SHIPPING
+
+    return CheckoutCalculation(
+        subtotal=subtotal,
+        delivery_fee=delivery_fee,
+        total_amount=total_amount,
+        minimum_payment=minimum_payment,
+        full_payment=total_amount,
+        delivery_method=checkout_data.delivery_method,
+        district=checkout_data.shipping_district,
+        requires_payment=requires_payment
+    )
+
+
+@router.get("/checkout/districts")
+async def get_districts():
+    """Get list of Sri Lanka districts with delivery fees."""
+    districts = []
+    for district, fee in SRI_LANKA_DISTRICTS.items():
+        districts.append({
+            "name": district,
+            "delivery_fee": fee
+        })
+    return {"districts": districts}
+
+
+@router.post("/checkout/initiate", response_model=InitiateCheckoutResponse)
+async def initiate_checkout(
+    checkout_data: InitiateCheckoutRequest,
+    request: Request,
+    current_customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """
+    Initiate checkout process.
+
+    For DELIVERY orders:
+    - Payment is REQUIRED (minimum 30%)
+    - Creates a PENDING order and returns PayHere form data
+    - Order becomes CONFIRMED only after PayHere notification
+
+    For PICKUP orders:
+    - Payment is OPTIONAL
+    - If skip_payment=True: Creates order immediately as PENDING (NOT_PAID)
+    - If skip_payment=False: Returns PayHere form data for optional payment
+    """
+    # Validate delivery orders require district
+    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        if not checkout_data.shipping_district:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="District is required for delivery orders"
+            )
+        if not checkout_data.shipping_address:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Shipping address is required for delivery orders"
+            )
+
+    # Validate products and calculate totals
+    subtotal = Decimal("0")
+    order_items = []
+
+    for item_data in checkout_data.items:
+        product = db.query(Product).filter(
+            Product.id == item_data.product_id,
+            Product.is_active == True
+        ).first()
+
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Product {item_data.product_id} not found or inactive"
+            )
+
+        if product.quantity_available < item_data.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
+            )
+
+        item_total = product.price * item_data.quantity
+        subtotal += item_total
+
+        order_items.append({
+            "product": product,
+            "quantity": item_data.quantity,
+            "unit_price": product.price
+        })
+
+    # Calculate delivery fee
+    delivery_fee = Decimal("0")
+    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        delivery_fee = get_delivery_fee(checkout_data.shipping_district)
+
+    total_amount = subtotal + delivery_fee
+
+    # Determine payment amounts
+    is_pickup = checkout_data.delivery_method == DeliveryMethod.PICKUP
+    requires_payment = not is_pickup or not checkout_data.skip_payment
+
+    if checkout_data.pay_full_amount:
+        pay_now_amount = total_amount
+    else:
+        # 30% minimum for delivery, full amount if pickup with payment
+        if is_pickup:
+            pay_now_amount = total_amount
+        else:
+            pay_now_amount = (total_amount * Decimal("0.30")).quantize(Decimal("0.01"))
+
+    remaining_cod_amount = total_amount - pay_now_amount
+
+    # For pickup orders without payment, create order immediately
+    if is_pickup and checkout_data.skip_payment:
+        order = Order(
+            customer_id=current_customer.id,
+            status=OrderStatus.PENDING,
+            delivery_method=DeliveryMethod.PICKUP,
+            sales_channel=SalesChannel.ONLINE,
+            subtotal=subtotal,
+            delivery_fee=Decimal("0"),
+            total_amount=total_amount,
+            paid_amount=Decimal("0"),
+            remaining_amount=total_amount,
+            payment_status=PaymentStatus.NOT_PAID,
+            notes=checkout_data.notes
+        )
+        db.add(order)
+        db.flush()
+
+        # Create order items and reduce stock
+        for item_data in order_items:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item_data["product"].id,
+                quantity=item_data["quantity"],
+                unit_price=item_data["unit_price"]
+            )
+            db.add(order_item)
+
+            product = item_data["product"]
+            quantity_before = product.quantity_available
+            product.quantity_available -= item_data["quantity"]
+
+            inventory_transaction = InventoryTransaction(
+                product_id=product.id,
+                employee_id=None,
+                transaction_type=TransactionType.STOCK_OUT,
+                quantity_change=-item_data["quantity"],
+                quantity_before=quantity_before,
+                quantity_after=product.quantity_available,
+                reason=f"Order #{str(order.id)[:8]}",
+                reference_order_id=order.id
+            )
+            db.add(inventory_transaction)
+
+        # Create status history
+        status_history = OrderStatusHistory(
+            order_id=order.id,
+            old_status=None,
+            new_status=OrderStatus.PENDING,
+            changed_by_employee_id=None,
+            notes="Pickup order created without advance payment"
+        )
+        db.add(status_history)
+
+        log_inventory_event(
+            db=db,
+            action_type=InventoryActionType.ORDER_PLACED,
+            description=f"Pickup order placed by {current_customer.email} - Rs. {total_amount:.2f} (No advance payment)",
+            actor_customer_id=current_customer.id,
+            related_entity_type=RelatedEntityType.ORDER,
+            related_entity_id=order.id
+        )
+
+        db.commit()
+
+        return InitiateCheckoutResponse(
+            order_id=str(order.id),
+            subtotal=subtotal,
+            delivery_fee=Decimal("0"),
+            total_amount=total_amount,
+            pay_now_amount=Decimal("0"),
+            remaining_cod_amount=total_amount,
+            payment_status=PaymentStatus.NOT_PAID,
+            delivery_method=DeliveryMethod.PICKUP,
+            requires_payment=False,
+            payhere_form_data=None,
+            message="Order placed successfully. Pay when you pick up."
+        )
+
+    # For payment orders, create order in PENDING state
+    order = Order(
+        customer_id=current_customer.id,
+        status=OrderStatus.PENDING,
+        delivery_method=checkout_data.delivery_method,
+        sales_channel=SalesChannel.ONLINE,
+        subtotal=subtotal,
+        delivery_fee=delivery_fee,
+        total_amount=total_amount,
+        paid_amount=Decimal("0"),
+        remaining_amount=total_amount,
+        payment_status=PaymentStatus.NOT_PAID,
+        shipping_district=checkout_data.shipping_district,
+        shipping_address=checkout_data.shipping_address,
+        shipping_city=checkout_data.shipping_city,
+        shipping_postal_code=checkout_data.shipping_postal_code,
+        notes=checkout_data.notes
+    )
+    db.add(order)
+    db.flush()
+
+    # Create order items and reduce stock
+    for item_data in order_items:
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=item_data["product"].id,
+            quantity=item_data["quantity"],
+            unit_price=item_data["unit_price"]
+        )
+        db.add(order_item)
+
+        product = item_data["product"]
+        quantity_before = product.quantity_available
+        product.quantity_available -= item_data["quantity"]
+
+        inventory_transaction = InventoryTransaction(
+            product_id=product.id,
+            employee_id=None,
+            transaction_type=TransactionType.STOCK_OUT,
+            quantity_change=-item_data["quantity"],
+            quantity_before=quantity_before,
+            quantity_after=product.quantity_available,
+            reason=f"Order #{str(order.id)[:8]}",
+            reference_order_id=order.id
+        )
+        db.add(inventory_transaction)
+
+    # Create status history
+    status_history = OrderStatusHistory(
+        order_id=order.id,
+        old_status=None,
+        new_status=OrderStatus.PENDING,
+        changed_by_employee_id=None,
+        notes="Order created, awaiting payment"
+    )
+    db.add(status_history)
+
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_PLACED,
+        description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} (Awaiting payment)",
+        actor_customer_id=current_customer.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
+    )
+
+    db.commit()
+
+    # Generate PayHere form data
+    # Parse customer name into first/last
+    name_parts = current_customer.full_name.split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Build item description
+    item_descriptions = [f"{item['product'].name} x{item['quantity']}" for item in order_items]
+    items_str = ", ".join(item_descriptions)
+    if len(items_str) > 200:
+        items_str = items_str[:197] + "..."
+
+    payhere_form_data = PayHereFormData(
+        merchant_id=PAYHERE_MERCHANT_ID,
+        return_url=f"{FRONTEND_URL}/payment/success",
+        cancel_url=f"{FRONTEND_URL}/payment/cancel",
+        notify_url=f"{BACKEND_URL}/api/v1/payments/payhere/notify",
+        order_id=str(order.id),
+        items=items_str,
+        currency="LKR",
+        amount=str(pay_now_amount.quantize(Decimal("0.01"))),
+        first_name=first_name,
+        last_name=last_name,
+        email=current_customer.email,
+        phone=current_customer.phone_number or "",
+        address=checkout_data.shipping_address or "N/A",
+        city=checkout_data.shipping_city or "N/A",
+        country="Sri Lanka"
+    )
+
+    payment_type = "full" if checkout_data.pay_full_amount else "30% advance"
+    message = f"Order created. Complete {payment_type} payment of Rs. {pay_now_amount:.2f} to confirm."
+
+    return InitiateCheckoutResponse(
+        order_id=str(order.id),
+        subtotal=subtotal,
+        delivery_fee=delivery_fee,
+        total_amount=total_amount,
+        pay_now_amount=pay_now_amount,
+        remaining_cod_amount=remaining_cod_amount,
+        payment_status=PaymentStatus.NOT_PAID,
+        delivery_method=checkout_data.delivery_method,
+        requires_payment=True,
+        payhere_form_data=payhere_form_data,
+        message=message
     )

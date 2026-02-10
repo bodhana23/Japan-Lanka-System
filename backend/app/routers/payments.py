@@ -5,6 +5,7 @@ This module handles PayHere payment notifications for order payments.
 Currently configured for sandbox/demo mode only.
 """
 import logging
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -13,7 +14,7 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.order import Order, OrderStatus
+from app.models.order import Order, OrderStatus, PaymentStatus
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -88,29 +89,35 @@ async def payhere_notify(
             # Payment successful
             logger.info(f"Payment successful for order {order_id}")
 
-            # Check if full amount was paid
-            paid_amount = float(payhere_amount)
-            order_total = float(order.total_amount)
+            # Update paid amount
+            paid_now = Decimal(payhere_amount)
+            previous_paid = Decimal(str(order.paid_amount or 0))
+            order.paid_amount = previous_paid + paid_now
 
-            if paid_amount >= order_total:
-                # Full payment - mark as CONFIRMED (PAID)
-                order.status = OrderStatus.CONFIRMED
-                logger.info(f"Order {order_id} marked as CONFIRMED (fully paid)")
-            else:
-                # Partial payment - keep as PENDING but log it
-                # Note: In a real system, you'd have a separate payment_status field
-                logger.warning(
-                    f"Partial payment for order {order_id}: "
-                    f"paid {paid_amount}, total {order_total}"
+            # Calculate remaining amount
+            total = Decimal(str(order.total_amount))
+            order.remaining_amount = max(Decimal("0"), total - order.paid_amount)
+
+            # Update payment status
+            if order.paid_amount >= total:
+                order.payment_status = PaymentStatus.PAID
+                logger.info(f"Order {order_id} fully paid")
+            elif order.paid_amount > 0:
+                order.payment_status = PaymentStatus.PARTIALLY_PAID
+                logger.info(
+                    f"Order {order_id} partially paid: "
+                    f"paid {order.paid_amount}, remaining {order.remaining_amount}"
                 )
-                # Still mark as confirmed for partial payment in sandbox
-                order.status = OrderStatus.CONFIRMED
-
-            # Store payment reference in notes
-            if order.notes:
-                order.notes = f"{order.notes}\nPayHere Payment ID: {payment_id}"
             else:
-                order.notes = f"PayHere Payment ID: {payment_id}"
+                order.payment_status = PaymentStatus.NOT_PAID
+
+            # Mark order as confirmed once payment received
+            if order.status == OrderStatus.PENDING:
+                order.status = OrderStatus.CONFIRMED
+                logger.info(f"Order {order_id} marked as CONFIRMED")
+
+            # Store PayHere payment reference
+            order.payhere_payment_id = payment_id
 
             db.commit()
 
@@ -165,9 +172,14 @@ async def get_payment_status(
 
         return {
             "order_id": str(order.id),
-            "status": order.status.value,
+            "order_status": order.status.value,
+            "payment_status": order.payment_status.value,
             "total_amount": float(order.total_amount),
-            "is_paid": order.status == OrderStatus.CONFIRMED
+            "paid_amount": float(order.paid_amount or 0),
+            "remaining_amount": float(order.remaining_amount or 0),
+            "delivery_fee": float(order.delivery_fee or 0),
+            "is_fully_paid": order.payment_status == PaymentStatus.PAID,
+            "payhere_payment_id": order.payhere_payment_id
         }
 
     except ValueError:
