@@ -15,6 +15,8 @@ import OfflineSales from './pages/OfflineSales';
 import AdminDashboard from './pages/AdminDashboard';
 import AuditorDashboard from './pages/AuditorDashboard';
 import ManageUsers from './pages/ManageUsers';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancel from './pages/PaymentCancel';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -122,6 +124,9 @@ function App() {
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/browse-parts" element={<Shop />} /> {/* Window shopper route */}
                   <Route path="/checkout" element={<Checkout />} />
+                  {/* Payment result routes */}
+                  <Route path="/payment/success" element={<PaymentSuccess />} />
+                  <Route path="/payment/cancel" element={<PaymentCancel />} />
                   <Route path="/manager-dashboard" element={<Navigate to="/manager/inventory" replace />} />
                   <Route path="/manager" element={<Navigate to="/manager/inventory" replace />} />
                   <Route path="/manager/inventory" element={<ManagerDashboard />} />

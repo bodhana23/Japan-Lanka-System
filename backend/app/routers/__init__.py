@@ -9,6 +9,7 @@ from app.routers.cart import router as cart_router
 from app.routers.notifications import router as notifications_router
 from app.routers.inventory import router as inventory_router
 from app.routers.auditor import router as auditor_router
+from app.routers.payments import router as payments_router
 
 __all__ = [
     "auth_customer_router",
@@ -21,4 +22,5 @@ __all__ = [
     "notifications_router",
     "inventory_router",
     "auditor_router",
+    "payments_router",
 ]

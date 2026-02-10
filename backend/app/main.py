@@ -25,7 +25,7 @@ from app.models import (  # noqa: F401
 from app.routers import (
     auth_customer_router, auth_employee_router, products_router, orders_router,
     users_router, returns_router, cart_router, notifications_router, inventory_router,
-    auditor_router
+    auditor_router, payments_router
 )
 
 # Create database tables
@@ -139,6 +139,7 @@ app.include_router(cart_router, prefix=settings.API_V1_PREFIX)
 app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
 app.include_router(inventory_router, prefix=settings.API_V1_PREFIX)
 app.include_router(auditor_router, prefix=settings.API_V1_PREFIX)
+app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
