@@ -1,27 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, Truck, CreditCard } from 'lucide-react';
 import './PaymentResult.css';
 
 const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [countdown, setCountdown] = useState(5);
 
-  // Auto-redirect after 5 seconds
+  // Countdown timer - decrements every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          navigate('/customer');
-          return 0;
-        }
-        return prev - 1;
-      });
+    if (countdown <= 0) return;
+
+    const timer = setTimeout(() => {
+      setCountdown(prev => prev - 1);
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [navigate]);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  // Navigate when countdown reaches 0 (separate effect to avoid state update during render)
+  useEffect(() => {
+    if (countdown === 0) {
+      navigate('/customer');
+    }
+  }, [countdown, navigate]);
 
   return (
     <div className="payment-result-container">
