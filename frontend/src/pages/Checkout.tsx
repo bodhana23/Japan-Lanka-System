@@ -295,6 +295,9 @@ const Checkout: React.FC = () => {
           <input type="hidden" name="address" value={payhereFormData.address} />
           <input type="hidden" name="city" value={payhereFormData.city} />
           <input type="hidden" name="country" value={payhereFormData.country} />
+          {payhereFormData.hash && (
+            <input type="hidden" name="hash" value={payhereFormData.hash} />
+          )}
         </form>
       )}
 

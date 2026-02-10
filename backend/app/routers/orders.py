@@ -1,6 +1,7 @@
 """Orders router for order management."""
 
 import os
+import hashlib
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -40,11 +41,41 @@ from app.utils.deps import get_current_user, get_current_customer, require_manag
 from app.models.audit_log import AuditLog
 from app.services.notification_service import notify_order_status_change
 
-# PayHere configuration
-PAYHERE_MERCHANT_ID = os.getenv("PAYHERE_MERCHANT_ID", "1233973")
-PAYHERE_SANDBOX = os.getenv("PAYHERE_SANDBOX", "true").lower() == "true"
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+# PayHere configuration - loaded from settings
+from app.config import settings
+PAYHERE_MERCHANT_ID = settings.PAYHERE_MERCHANT_ID
+PAYHERE_MERCHANT_SECRET = settings.PAYHERE_MERCHANT_SECRET
+PAYHERE_SANDBOX = settings.PAYHERE_SANDBOX
+FRONTEND_URL = settings.FRONTEND_URL
+BACKEND_URL = settings.BACKEND_URL
+
+
+def generate_payhere_hash(merchant_id: str, order_id: str, amount: str, currency: str, merchant_secret: str) -> str:
+    """
+    Generate PayHere MD5 hash for payment authentication.
+
+    Hash formula: MD5(merchant_id + order_id + amount + currency + strtoupper(MD5(merchant_secret)))
+
+    Args:
+        merchant_id: PayHere merchant ID
+        order_id: Unique order identifier
+        amount: Payment amount (formatted to 2 decimal places)
+        currency: Currency code (e.g., LKR)
+        merchant_secret: PayHere merchant secret from dashboard
+
+    Returns:
+        Uppercase MD5 hash string
+    """
+    # First, hash the merchant secret and convert to uppercase
+    secret_hash = hashlib.md5(merchant_secret.encode()).hexdigest().upper()
+
+    # Concatenate all values
+    hash_string = merchant_id + order_id + amount + currency + secret_hash
+
+    # Generate final hash and convert to uppercase
+    final_hash = hashlib.md5(hash_string.encode()).hexdigest().upper()
+
+    return final_hash
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -977,6 +1008,18 @@ async def initiate_checkout(
     if len(items_str) > 200:
         items_str = items_str[:197] + "..."
 
+    # Format amount with exactly 2 decimal places (required by PayHere)
+    amount_str = str(pay_now_amount.quantize(Decimal("0.01")))
+
+    # Generate PayHere hash for authentication
+    payhere_hash = generate_payhere_hash(
+        merchant_id=PAYHERE_MERCHANT_ID,
+        order_id=str(order.id),
+        amount=amount_str,
+        currency="LKR",
+        merchant_secret=PAYHERE_MERCHANT_SECRET
+    )
+
     payhere_form_data = PayHereFormData(
         merchant_id=PAYHERE_MERCHANT_ID,
         return_url=f"{FRONTEND_URL}/payment/success",
@@ -985,14 +1028,15 @@ async def initiate_checkout(
         order_id=str(order.id),
         items=items_str,
         currency="LKR",
-        amount=str(pay_now_amount.quantize(Decimal("0.01"))),
+        amount=amount_str,
         first_name=first_name,
         last_name=last_name,
         email=current_customer.email,
         phone=current_customer.phone_number or "",
         address=checkout_data.shipping_address or "N/A",
         city=checkout_data.shipping_city or "N/A",
-        country="Sri Lanka"
+        country="Sri Lanka",
+        hash=payhere_hash
     )
 
     payment_type = "full" if checkout_data.pay_full_amount else "30% advance"
