@@ -7,6 +7,7 @@ from uuid import UUID
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -81,7 +82,8 @@ def order_to_response(order: Order) -> OrderResponse:
         items=items,
         customer_name=customer_name,
         customer_email=customer_email,
-        customer_phone=customer_phone
+        customer_phone=customer_phone,
+        is_billable=order.is_billable
     )
 
 
@@ -575,4 +577,60 @@ async def create_offline_sale(
         created_at=order.created_at,
         items=items_response,
         message=f"Offline sale created successfully. Order ID: {str(order.id)[:8].upper()}"
+    )
+
+
+@router.get("/{order_id}/bill")
+async def get_order_bill(
+    order_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate and download a PDF bill for an order.
+
+    Access:
+    - Customers can download bills for their own orders
+    - Managers/Admins can download bills for any order
+
+    Returns 403 if:
+    - Customer tries to access another customer's order
+    - Order is not eligible for bill generation (cancelled)
+    """
+    from app.services.bill_service import generate_bill_pdf
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+
+    # Access control: Customers can only download their own orders
+    if isinstance(current_user, Customer):
+        if order.customer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. You can only download bills for your own orders."
+            )
+
+    if not order.is_billable:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This order is not eligible for bill generation"
+        )
+
+    # Generate PDF
+    pdf_buffer = generate_bill_pdf(order)
+
+    # Return as downloadable PDF
+    order_id_short = str(order.id)[:8].upper()
+    filename = f"bill_{order_id_short}.pdf"
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
     )

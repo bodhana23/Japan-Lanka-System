@@ -66,5 +66,21 @@ class Order(Base):
     notifications = relationship("Notification", back_populates="related_order", lazy="dynamic")
     inventory_transactions = relationship("InventoryTransaction", back_populates="reference_order", lazy="dynamic")
 
+    @property
+    def is_billable(self) -> bool:
+        """Check if this order is eligible for bill generation.
+
+        Rules:
+        - Offline orders: Always billable once delivered (paid at point of sale)
+        - Online orders: Billable for any non-cancelled order
+          (shows Total Due until payment gateway is integrated)
+        """
+        if self.status == OrderStatus.CANCELLED:
+            return False
+        if self.sales_channel == SalesChannel.OFFLINE:
+            return self.status == OrderStatus.DELIVERED
+        # Online orders are billable (shows amount due)
+        return True
+
     def __repr__(self):
         return f"<Order {self.id} - {self.status.value}>"

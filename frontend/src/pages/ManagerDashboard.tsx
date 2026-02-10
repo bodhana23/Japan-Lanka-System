@@ -69,6 +69,8 @@ interface CustomerOrder {
   salesChannel?: 'online' | 'offline';
   offlineCustomerName?: string;
   offlineCustomerPhone?: string;
+  // Bill generation
+  isBillable?: boolean;
 }
 
 interface UserProfile {
@@ -244,6 +246,8 @@ const ManagerDashboard: React.FC = () => {
               salesChannel: o.sales_channel,
               offlineCustomerName: o.offline_customer_name,
               offlineCustomerPhone: o.offline_customer_phone,
+              // Bill generation
+              isBillable: o.is_billable,
             };
           });
           setCustomerOrders(transformedOrders);

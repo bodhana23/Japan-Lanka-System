@@ -2166,6 +2166,47 @@
   color: #00b894;
 }
 
+/* Order Actions */
+.order-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f5f5f5;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.download-bill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.25);
+}
+
+.download-bill-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.35);
+  background: linear-gradient(135deg, #00a085, #008f75);
+}
+
+.download-bill-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.download-bill-btn svg.spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Responsive Design for Orders */
 @media (max-width: 768px) {
   .orders-grid {

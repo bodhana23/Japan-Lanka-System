@@ -61,6 +61,7 @@ class OrderResponse(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None  # Fetched from user relationship
+    is_billable: bool = False  # Whether bill can be generated for this order
 
     class Config:
         from_attributes = True
