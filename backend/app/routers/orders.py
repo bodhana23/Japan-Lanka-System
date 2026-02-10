@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction
-from app.models.order import OrderStatus, DeliveryMethod
+from app.models.order import OrderStatus, DeliveryMethod, SalesChannel
 from app.models.inventory_transaction import TransactionType
 from app.services.audit_service import log_inventory_event
 from app.models.inventory_log import InventoryActionType, RelatedEntityType
@@ -21,12 +21,15 @@ from app.schemas.order import (
     OrderResponse,
     OrderItemResponse,
     OrderListResponse,
+    OfflineSaleCreate,
+    OfflineSaleResponse,
 )
 from app.schemas.order_status_history import (
     OrderStatusHistoryResponse,
     OrderStatusHistoryListResponse,
 )
-from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
+from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, CurrentUser
+from app.models.audit_log import AuditLog
 from app.services.notification_service import notify_order_status_change
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -46,22 +49,39 @@ def order_to_response(order: Order) -> OrderResponse:
         )
         items.append(item_response)
 
+    # Determine customer info (from customer relationship or offline fields)
+    customer_name = None
+    customer_email = None
+    customer_phone = None
+
+    if order.customer:
+        customer_name = order.customer.full_name
+        customer_email = order.customer.email
+        customer_phone = order.customer.phone_number
+    elif order.sales_channel == SalesChannel.OFFLINE:
+        # Use offline customer info for offline sales
+        customer_name = order.offline_customer_name
+        customer_phone = order.offline_customer_phone
+
     return OrderResponse(
         id=order.id,
         customer_id=order.customer_id,
         status=order.status,
         delivery_method=order.delivery_method,
+        sales_channel=order.sales_channel,
         total_amount=order.total_amount,
         shipping_address=order.shipping_address,
         shipping_city=order.shipping_city,
         shipping_postal_code=order.shipping_postal_code,
+        offline_customer_name=order.offline_customer_name,
+        offline_customer_phone=order.offline_customer_phone,
         notes=order.notes,
         created_at=order.created_at,
         updated_at=order.updated_at,
         items=items,
-        customer_name=order.customer.full_name if order.customer else None,
-        customer_email=order.customer.email if order.customer else None,
-        customer_phone=order.customer.phone_number if order.customer else None
+        customer_name=customer_name,
+        customer_email=customer_email,
+        customer_phone=customer_phone
     )
 
 
@@ -333,14 +353,15 @@ async def update_order_status(
                 )
                 db.add(inventory_transaction)
 
-    # Create notification for the customer
-    notify_order_status_change(
-        db=db,
-        customer_id=order.customer_id,
-        order_id=order.id,
-        old_status=old_status.value,
-        new_status=status_update.status.value
-    )
+    # Create notification for the customer (only if customer exists)
+    if order.customer_id:
+        notify_order_status_change(
+            db=db,
+            customer_id=order.customer_id,
+            order_id=order.id,
+            old_status=old_status.value,
+            new_status=status_update.status.value
+        )
 
     # Log inventory event for order status change
     log_inventory_event(
@@ -400,4 +421,158 @@ async def get_order_status_history(
     return OrderStatusHistoryListResponse(
         items=items,
         total=len(items)
+    )
+
+
+@router.post("/offline", response_model=OfflineSaleResponse, status_code=status.HTTP_201_CREATED)
+async def create_offline_sale(
+    sale_data: OfflineSaleCreate,
+    request: Request,
+    current_employee: Employee = Depends(require_manager),
+    db: Session = Depends(get_db)
+):
+    """Create an offline sale (Manager only).
+
+    Offline sales are for walk-in or phone orders that bypass the cart/checkout flow.
+    - Creates an Order with sales_channel=offline
+    - Status is set to 'delivered' and payment_status='paid' immediately
+    - Reduces inventory with proper audit trail
+    - Customer is optional (no customer_id required)
+    """
+    # Validate products and calculate total
+    total_amount = Decimal("0")
+    order_items_data = []
+
+    for item_data in sale_data.items:
+        product = db.query(Product).filter(
+            Product.id == item_data.product_id,
+            Product.is_active == True
+        ).first()
+
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Product {item_data.product_id} not found or inactive"
+            )
+
+        if product.quantity_available < item_data.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}, Requested: {item_data.quantity}"
+            )
+
+        # Calculate item total using provided unit_price
+        item_total = item_data.unit_price * item_data.quantity
+        total_amount += item_total
+
+        order_items_data.append({
+            "product": product,
+            "quantity": item_data.quantity,
+            "unit_price": item_data.unit_price
+        })
+
+    # Create order for offline sale
+    order = Order(
+        customer_id=None,  # No customer for offline sales
+        status=OrderStatus.DELIVERED,  # Offline sales are immediately delivered
+        delivery_method=DeliveryMethod.PICKUP,  # Offline = pickup
+        sales_channel=SalesChannel.OFFLINE,
+        total_amount=total_amount,
+        offline_customer_name=sale_data.customer_name,
+        offline_customer_phone=sale_data.customer_phone,
+        notes=sale_data.notes
+    )
+    db.add(order)
+    db.flush()  # Get order ID
+
+    # Create initial order status history
+    status_history = OrderStatusHistory(
+        order_id=order.id,
+        old_status=None,
+        new_status=OrderStatus.DELIVERED,
+        changed_by_employee_id=current_employee.id,
+        notes="Offline sale created"
+    )
+    db.add(status_history)
+
+    # Create order items and update product quantities with inventory tracking
+    for item_data in order_items_data:
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=item_data["product"].id,
+            quantity=item_data["quantity"],
+            unit_price=item_data["unit_price"]
+        )
+        db.add(order_item)
+
+        # Reduce product quantity and track inventory
+        product = item_data["product"]
+        quantity_before = product.quantity_available
+        product.quantity_available -= item_data["quantity"]
+
+        inventory_transaction = InventoryTransaction(
+            product_id=product.id,
+            employee_id=current_employee.id,
+            transaction_type=TransactionType.STOCK_OUT,
+            quantity_change=-item_data["quantity"],
+            quantity_before=quantity_before,
+            quantity_after=product.quantity_available,
+            reason=f"Offline Sale #{str(order.id)[:8]}",
+            reference_order_id=order.id
+        )
+        db.add(inventory_transaction)
+
+    # Log inventory event for offline sale
+    customer_info = sale_data.customer_name or "Walk-in customer"
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_PLACED,
+        description=f"Offline sale by {current_employee.email} for {customer_info} - Rs. {total_amount:.2f} ({len(order_items_data)} items)",
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
+    )
+
+    # Create audit log entry for the offline sale
+    audit_log = AuditLog(
+        employee_id=current_employee.id,
+        action="CREATE_OFFLINE_SALE",
+        entity_type="Order",
+        entity_id=str(order.id),
+        details={
+            "total_amount": str(total_amount),
+            "items_count": len(order_items_data),
+            "customer_name": sale_data.customer_name,
+            "customer_phone": sale_data.customer_phone
+        }
+    )
+    db.add(audit_log)
+
+    db.commit()
+    db.refresh(order)
+
+    # Build response
+    items_response = []
+    for item in order.items:
+        items_response.append(OrderItemResponse(
+            id=item.id,
+            product_id=item.product_id,
+            product_name=item.product.name if item.product else None,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            created_at=item.created_at
+        ))
+
+    return OfflineSaleResponse(
+        id=order.id,
+        status=order.status,
+        delivery_method=order.delivery_method,
+        sales_channel=order.sales_channel,
+        total_amount=order.total_amount,
+        offline_customer_name=order.offline_customer_name,
+        offline_customer_phone=order.offline_customer_phone,
+        notes=order.notes,
+        created_at=order.created_at,
+        items=items_response,
+        message=f"Offline sale created successfully. Order ID: {str(order.id)[:8].upper()}"
     )

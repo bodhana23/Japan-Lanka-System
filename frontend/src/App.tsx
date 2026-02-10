@@ -11,6 +11,7 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import Shop from './pages/Shop';
 import Checkout from './pages/Checkout';
 import ManagerDashboard from './pages/ManagerDashboard';
+import OfflineSales from './pages/OfflineSales';
 import AdminDashboard from './pages/AdminDashboard';
 import AuditorDashboard from './pages/AuditorDashboard';
 import ManageUsers from './pages/ManageUsers';
@@ -18,15 +19,30 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 // Component to sync cart when user authentication changes
+// Cart sync should ONLY run for customers, not employees (manager/admin/auditor)
 const CartSyncManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, setOnLoginSuccess } = useAuth();
+  const { isAuthenticated, user, setOnLoginSuccess } = useAuth();
   const { mergeLocalCartToServer, syncCartFromApi } = useCart();
   const hasInitialSynced = React.useRef(false);
 
-  // Set up the login callback to sync cart
+  // Check if current user is a customer
+  const isCustomer = user?.role === 'customer';
+
+  // Set up the login callback to sync cart (only for customers)
   useEffect(() => {
     setOnLoginSuccess(() => {
-      mergeLocalCartToServer();
+      // Check role at callback execution time
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.role === 'customer') {
+            mergeLocalCartToServer();
+          }
+        } catch {
+          // Invalid user data, don't sync
+        }
+      }
     });
 
     return () => {
@@ -34,9 +50,9 @@ const CartSyncManager: React.FC<{ children: React.ReactNode }> = ({ children }) 
     };
   }, [setOnLoginSuccess, mergeLocalCartToServer]);
 
-  // Sync cart when user is already authenticated on app load (only once)
+  // Sync cart when customer is already authenticated on app load (only once)
   useEffect(() => {
-    if (isAuthenticated && !hasInitialSynced.current) {
+    if (isAuthenticated && isCustomer && !hasInitialSynced.current) {
       hasInitialSynced.current = true;
       syncCartFromApi();
     }
@@ -44,7 +60,7 @@ const CartSyncManager: React.FC<{ children: React.ReactNode }> = ({ children }) 
     if (!isAuthenticated) {
       hasInitialSynced.current = false;
     }
-  }, [isAuthenticated, syncCartFromApi]);
+  }, [isAuthenticated, isCustomer, syncCartFromApi]);
 
   return <>{children}</>;
 };
@@ -106,7 +122,13 @@ function App() {
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/browse-parts" element={<Shop />} /> {/* Window shopper route */}
                   <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/manager-dashboard" element={<ManagerDashboard />} />
+                  <Route path="/manager-dashboard" element={<Navigate to="/manager/inventory" replace />} />
+                  <Route path="/manager" element={<Navigate to="/manager/inventory" replace />} />
+                  <Route path="/manager/inventory" element={<ManagerDashboard />} />
+                  <Route path="/manager/orders" element={<ManagerDashboard />} />
+                  <Route path="/manager/offline-sales" element={<OfflineSales />} />
+                  <Route path="/manager/returns" element={<ManagerDashboard />} />
+                  <Route path="/manager/profile" element={<ManagerDashboard />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
                   <Route path="/auditor-dashboard" element={<AuditorDashboard />} />
                   <Route path="/manage-users" element={<ManageUsers />} />
