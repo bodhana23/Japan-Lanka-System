@@ -382,9 +382,15 @@
   transition: all 0.3s ease;
 }
 
-.mo-return-btn:hover {
+.mo-return-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+}
+
+.mo-return-btn:disabled {
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 /* ================================================
@@ -502,6 +508,29 @@
 
 .mo-modal-textarea:disabled {
   background: #f8f9fa;
+}
+
+.mo-modal-select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.mo-modal-select:focus {
+  outline: none;
+  border-color: #28a745;
+}
+
+.mo-modal-select:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
 }
 
 .mo-modal-error {

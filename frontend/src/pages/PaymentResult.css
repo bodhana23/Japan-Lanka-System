@@ -1,0 +1,178 @@
+/* ================================================
+   PAYMENT RESULT PAGES - SUCCESS & CANCEL
+   Japan Lanka Enterprises
+   ================================================ */
+
+.payment-result-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  padding: 2rem;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.payment-result-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.payment-result-card.success {
+  border-top: 4px solid #28a745;
+}
+
+.payment-result-card.cancel {
+  border-top: 4px solid #dc3545;
+}
+
+.payment-result-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.payment-result-icon.success {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #28a745;
+}
+
+.payment-result-icon.cancel {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #dc3545;
+}
+
+.payment-result-icon svg {
+  stroke-width: 1.5;
+}
+
+.payment-result-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 0.75rem;
+}
+
+.payment-result-message {
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin: 0 0 2rem;
+  line-height: 1.6;
+}
+
+.payment-result-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.payment-result-button.primary {
+  background: linear-gradient(135deg, #28a745 0%, #00b894 100%);
+  color: #ffffff;
+}
+
+.payment-result-button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+}
+
+.payment-result-button.secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: #ffffff;
+}
+
+.payment-result-button.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.35);
+}
+
+.payment-result-button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Payment Info Box */
+.payment-info-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #d4edda;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.payment-info-box .info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.payment-info-box .info-row svg {
+  color: #28a745;
+  flex-shrink: 0;
+}
+
+.payment-info-box .info-row:not(:last-child) {
+  border-bottom: 1px dashed #c3e6cb;
+}
+
+/* Redirect Notice */
+.redirect-notice {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .payment-result-container {
+    padding: 1rem;
+  }
+
+  .payment-result-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .payment-result-icon {
+    width: 80px;
+    height: 80px;
+  }
+
+  .payment-result-icon svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .payment-result-title {
+    font-size: 1.5rem;
+  }
+
+  .payment-result-message {
+    font-size: 1rem;
+  }
+
+  .payment-result-button {
+    width: 100%;
+    padding: 1rem;
+  }
+}

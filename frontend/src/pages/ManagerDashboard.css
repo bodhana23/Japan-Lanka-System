@@ -3158,7 +3158,7 @@
 .return-detail-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 24px;
 }
 
 .return-info-section {
@@ -3166,6 +3166,7 @@
   border: 2px solid #e8e8e8;
   border-radius: 12px;
   padding: 1.25rem;
+  margin-bottom: 0;
 }
 
 .return-info-section h4 {
@@ -3180,13 +3181,13 @@
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 20px;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
 }
 
 .info-item.full-width {
@@ -3194,15 +3195,14 @@
 }
 
 .info-label {
-  font-size: 0.85rem;
+  font-size: 13px;
   font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #777;
+  margin-bottom: 4px;
 }
 
 .info-value {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 500;
   color: #333;
 }

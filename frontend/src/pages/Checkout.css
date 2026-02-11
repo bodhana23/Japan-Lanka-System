@@ -390,7 +390,8 @@
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   padding: 0.875rem 1rem;
   border: 2px solid var(--checkout-border);
   border-radius: var(--checkout-radius-sm);
@@ -400,17 +401,41 @@
   background: var(--checkout-card-bg);
 }
 
+.form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px;
+  padding-right: 2.5rem;
+}
+
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--checkout-primary);
   box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
 }
 
 .form-group input.error,
-.form-group textarea.error {
+.form-group textarea.error,
+.form-group select.error {
   border-color: var(--checkout-danger);
   box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.1);
+}
+
+.field-hint {
+  font-size: 0.85rem;
+  color: var(--checkout-primary);
+  font-weight: 600;
+}
+
+.optional {
+  color: var(--checkout-text-muted);
+  font-weight: 400;
+  font-size: 0.9rem;
 }
 
 .form-group input::placeholder,
@@ -611,6 +636,135 @@
   padding-top: 0.75rem;
   border-top: 2px solid var(--checkout-primary);
   margin-top: 0.5rem;
+}
+
+/* ================================================
+   PAYMENT OPTIONS
+   ================================================ */
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--checkout-border);
+  border-radius: var(--checkout-radius-md);
+  cursor: pointer;
+  transition: var(--checkout-transition);
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+}
+
+.payment-option:hover {
+  border-color: var(--checkout-primary);
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, #fff 100%);
+}
+
+.payment-option.selected {
+  border-color: var(--checkout-primary);
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.08) 0%, rgba(0, 184, 148, 0.12) 100%);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.payment-option .option-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--checkout-primary) 0%, var(--checkout-primary-light) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.payment-option .option-content {
+  flex: 1;
+}
+
+.payment-option .option-content h4 {
+  margin: 0 0 0.125rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--checkout-secondary);
+}
+
+.payment-option .option-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--checkout-text-muted);
+}
+
+.payment-option .option-radio {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--checkout-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: white;
+}
+
+.payment-option.selected .option-radio {
+  border-color: var(--checkout-primary);
+  background: var(--checkout-primary);
+}
+
+/* ================================================
+   PAYMENT BREAKDOWN
+   ================================================ */
+.payment-breakdown {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--checkout-border);
+}
+
+.payment-breakdown .total-row {
+  font-size: 0.9rem;
+}
+
+.payment-breakdown .total-row.pay-now {
+  color: var(--checkout-primary);
+  font-weight: 600;
+}
+
+.payment-breakdown .total-row.pay-now .highlight {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.payment-breakdown .total-row.cod {
+  color: var(--checkout-warning);
+}
+
+.payment-breakdown .total-row svg {
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
+
+/* Option Badge */
+.option-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--checkout-border);
+  color: var(--checkout-text-muted);
+  font-weight: 600;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.option-badge.free {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: var(--checkout-primary-dark);
 }
 
 /* ================================================

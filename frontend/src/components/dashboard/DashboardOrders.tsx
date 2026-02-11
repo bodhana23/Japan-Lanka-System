@@ -19,10 +19,20 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [returnDescription, setReturnDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+
+  // Valid return reasons matching backend validation
+  const RETURN_REASONS = [
+    'Damaged/Defective',
+    'Wrong Item Received',
+    'Item Not As Described',
+    'Changed My Mind',
+    'Other'
+  ];
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
 
   // Fetch orders from API
@@ -65,8 +75,8 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
   };
 
   const handleSubmitReturn = async () => {
-    if (!selectedOrder || returnReason.trim().length < 10) {
-      setSubmitError('Please provide a reason (at least 10 characters)');
+    if (!selectedOrder || !returnReason) {
+      setSubmitError('Please select a reason for return');
       return;
     }
 
@@ -79,7 +89,8 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
       }));
       await returnsApi.createReturn({
         order_id: selectedOrder.id,
-        reason: returnReason.trim(),
+        reason: returnReason,
+        description: returnDescription.trim() || undefined,
         items: returnItems
       });
       setSubmitSuccess('Return request submitted successfully!');
@@ -87,6 +98,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
         setShowReturnModal(false);
         setSelectedOrder(null);
         setReturnReason('');
+        setReturnDescription('');
         setSubmitSuccess(null);
       }, 2000);
     } catch (err: unknown) {
@@ -355,12 +367,27 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
 
               <label className="dord-modal-label">
                 Reason for return:
-                <textarea
-                  className="dord-modal-textarea"
+                <select
+                  className="dord-modal-select"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  placeholder="Please explain why you want to return this order (minimum 10 characters)..."
-                  rows={4}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select a reason...</option>
+                  {RETURN_REASONS.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="dord-modal-label">
+                Additional details (optional):
+                <textarea
+                  className="dord-modal-textarea"
+                  value={returnDescription}
+                  onChange={(e) => setReturnDescription(e.target.value)}
+                  placeholder="Provide any additional details about your return..."
+                  rows={3}
                   disabled={isSubmitting}
                 />
               </label>
@@ -383,7 +410,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
               <button
                 className="dord-modal-submit"
                 onClick={handleSubmitReturn}
-                disabled={isSubmitting || returnReason.trim().length < 10}
+                disabled={isSubmitting || !returnReason}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>

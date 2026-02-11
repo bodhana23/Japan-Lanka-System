@@ -1,6 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import Toast from '../components/Toast';
 import { cartApi, Cart as ApiCart, CartItem as ApiCartItem } from '../services/api';
+import { AxiosError } from 'axios';
+
+// Helper to check if error is a network/connection error
+const isNetworkError = (error: unknown): boolean => {
+  if (error instanceof AxiosError) {
+    // ERR_NETWORK, ERR_CONNECTION_REFUSED, ECONNREFUSED, timeout
+    return (
+      error.code === 'ERR_NETWORK' ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ECONNREFUSED' ||
+      error.message?.includes('Network Error') ||
+      error.response === undefined
+    );
+  }
+  return false;
+};
 
 // Local product type (for guest cart)
 export interface Product {
@@ -109,6 +125,40 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     type: 'info'
   });
 
+  // Track if backend is reachable to prevent repeated error spam
+  const backendAvailable = useRef<boolean>(true);
+  const lastNetworkErrorTime = useRef<number>(0);
+
+  // Throttle network error logs (max once per 30 seconds)
+  const logNetworkError = (context: string) => {
+    const now = Date.now();
+    if (now - lastNetworkErrorTime.current > 30000) {
+      console.warn(`[Cart] Backend unreachable during ${context}. Using local cart.`);
+      lastNetworkErrorTime.current = now;
+    }
+  };
+
+  // Helper to add product to local cart (used when backend is unreachable)
+  const addToLocalCart = (product: Product) => {
+    const existingItem = cart.find(item => item.productId === product.id);
+
+    if (existingItem) {
+      if (existingItem.quantity < product.quantityAvailable) {
+        setCart(cart.map(item =>
+          item.productId === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        ));
+        showToast(`${product.name} quantity updated! (offline mode)`, 'success');
+      } else {
+        showToast('Maximum quantity reached for this item', 'error');
+      }
+    } else {
+      setCart([...cart, productToCartItem(product, 1)]);
+      showToast(`${product.name} added to cart! (offline mode)`, 'success');
+    }
+  };
+
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ show: true, message, type });
   };
@@ -159,13 +209,43 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const syncCartFromApi = useCallback(async () => {
     if (!isCustomerLoggedIn()) return;
 
+    // Skip if backend was recently unreachable
+    if (!backendAvailable.current) {
+      // Load from sessionStorage fallback
+      try {
+        const savedCart = sessionStorage.getItem('cart');
+        if (savedCart) {
+          setCart(JSON.parse(savedCart));
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
       const apiCart = await cartApi.getCart();
       const cartItems = apiCart.items.map(apiCartItemToCartItem);
       setCart(cartItems);
+      backendAvailable.current = true; // Backend is responding
     } catch (error) {
-      console.error('Error syncing cart from API:', error);
+      if (isNetworkError(error)) {
+        backendAvailable.current = false;
+        logNetworkError('syncCartFromApi');
+        // Fallback to sessionStorage cart
+        try {
+          const savedCart = sessionStorage.getItem('cart');
+          if (savedCart) {
+            setCart(JSON.parse(savedCart));
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      } else {
+        // Non-network error, log it
+        console.error('Error syncing cart from API:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -174,6 +254,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Merge local cart to server when CUSTOMER logs in
   const mergeLocalCartToServer = useCallback(async () => {
     if (!isCustomerLoggedIn()) return;
+
+    // Skip if backend is known to be unavailable
+    if (!backendAvailable.current) {
+      logNetworkError('mergeLocalCartToServer');
+      // Keep using local cart
+      try {
+        const savedCart = sessionStorage.getItem('cart');
+        if (savedCart) {
+          setCart(JSON.parse(savedCart));
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+      return;
+    }
 
     const localCart = sessionStorage.getItem('cart');
     if (!localCart) {
@@ -197,20 +292,39 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const productId = item.productId || item.id;
           await cartApi.addItem(productId, item.quantity);
         } catch (error) {
+          if (isNetworkError(error)) {
+            backendAvailable.current = false;
+            logNetworkError('mergeLocalCartToServer item add');
+            // Keep local cart, don't clear it
+            setCart(localItems);
+            return;
+          }
           console.error(`Error adding item ${item.name} to server cart:`, error);
         }
       }
 
-      // Clear local cart after merge
+      // Clear local cart after successful merge
       sessionStorage.removeItem('cart');
 
       // Sync the merged cart from server
       await syncCartFromApi();
       showToast('Your cart has been synced!', 'success');
     } catch (error) {
-      console.error('Error merging local cart to server:', error);
-      // If merge fails, at least load server cart
-      await syncCartFromApi();
+      if (isNetworkError(error)) {
+        backendAvailable.current = false;
+        logNetworkError('mergeLocalCartToServer');
+      } else {
+        console.error('Error merging local cart to server:', error);
+      }
+      // If merge fails, keep using local cart
+      try {
+        const savedCart = sessionStorage.getItem('cart');
+        if (savedCart) {
+          setCart(JSON.parse(savedCart));
+        }
+      } catch {
+        // Ignore parsing errors
+      }
     } finally {
       setIsLoading(false);
     }
@@ -227,16 +341,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    if (isCustomerLoggedIn()) {
-      // Customer logged in: Use API
+    if (isCustomerLoggedIn() && backendAvailable.current) {
+      // Customer logged in and backend available: Use API
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.addItem(product.id, 1);
         setCart(updatedCart.items.map(apiCartItemToCartItem));
         showToast(`${product.name} added to cart!`, 'success');
+        backendAvailable.current = true;
       } catch (error: any) {
-        const message = error.response?.data?.detail || 'Failed to add item to cart';
-        showToast(message, 'error');
+        if (isNetworkError(error)) {
+          backendAvailable.current = false;
+          logNetworkError('addToCart');
+          // Fallback to local cart behavior
+          addToLocalCart(product);
+        } else {
+          const message = error.response?.data?.detail || 'Failed to add item to cart';
+          showToast(message, 'error');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -263,20 +385,29 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const removeFromCart = async (itemId: string): Promise<void> => {
-    if (isCustomerLoggedIn()) {
+    if (isCustomerLoggedIn() && backendAvailable.current) {
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.removeItem(itemId);
         setCart(updatedCart.items.map(apiCartItemToCartItem));
         showToast('Item removed from cart', 'info');
+        backendAvailable.current = true;
       } catch (error: any) {
-        const message = error.response?.data?.detail || 'Failed to remove item';
-        showToast(message, 'error');
+        if (isNetworkError(error)) {
+          backendAvailable.current = false;
+          logNetworkError('removeFromCart');
+          // Fallback to local removal
+          setCart(cart.filter(item => item.id !== itemId && item.productId !== itemId));
+          showToast('Item removed from cart (offline mode)', 'info');
+        } else {
+          const message = error.response?.data?.detail || 'Failed to remove item';
+          showToast(message, 'error');
+        }
       } finally {
         setIsLoading(false);
       }
     } else {
-      // Guest: Remove by productId (which is the id for guest cart)
+      // Guest or backend unavailable: Remove by productId (which is the id for guest cart)
       setCart(cart.filter(item => item.id !== itemId && item.productId !== itemId));
       showToast('Item removed from cart', 'info');
     }
@@ -293,46 +424,69 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    if (isCustomerLoggedIn()) {
+    if (isCustomerLoggedIn() && backendAvailable.current) {
       setIsLoading(true);
       try {
         const updatedCart = await cartApi.updateItem(itemId, newQuantity);
         setCart(updatedCart.items.map(apiCartItemToCartItem));
+        backendAvailable.current = true;
       } catch (error: any) {
-        const message = error.response?.data?.detail || 'Failed to update quantity';
-        showToast(message, 'error');
+        if (isNetworkError(error)) {
+          backendAvailable.current = false;
+          logNetworkError('updateQuantity');
+          // Fallback to local update
+          updateLocalQuantity(itemId, newQuantity);
+        } else {
+          const message = error.response?.data?.detail || 'Failed to update quantity';
+          showToast(message, 'error');
+        }
       } finally {
         setIsLoading(false);
       }
     } else {
-      // Guest: Update by productId
-      const item = cart.find(i => i.id === itemId || i.productId === itemId);
-      if (!item) {
-        showToast('Product not found in cart.', 'error');
-        return;
-      }
-
-      if (newQuantity > item.quantityAvailable) {
-        showToast('Cannot exceed available stock quantity.', 'error');
-        return;
-      }
-
-      setCart(cart.map(item =>
-        (item.id === itemId || item.productId === itemId)
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
+      // Guest or backend unavailable: Update locally
+      updateLocalQuantity(itemId, newQuantity);
     }
   };
 
+  // Helper to update quantity locally
+  const updateLocalQuantity = (itemId: string, newQuantity: number) => {
+    const item = cart.find(i => i.id === itemId || i.productId === itemId);
+    if (!item) {
+      showToast('Product not found in cart.', 'error');
+      return;
+    }
+
+    if (newQuantity > item.quantityAvailable) {
+      showToast('Cannot exceed available stock quantity.', 'error');
+      return;
+    }
+
+    setCart(cart.map(item =>
+      (item.id === itemId || item.productId === itemId)
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
+  };
+
   const clearCart = async (): Promise<void> => {
-    if (isCustomerLoggedIn()) {
+    if (isCustomerLoggedIn() && backendAvailable.current) {
       setIsLoading(true);
       try {
         await cartApi.clearCart();
         setCart([]);
+        sessionStorage.removeItem('cart');
+        backendAvailable.current = true;
       } catch (error) {
-        console.error('Error clearing cart:', error);
+        if (isNetworkError(error)) {
+          backendAvailable.current = false;
+          logNetworkError('clearCart');
+          // Clear locally anyway
+          setCart([]);
+          sessionStorage.removeItem('cart');
+        } else {
+          console.error('Error clearing cart:', error);
+        }
       } finally {
         setIsLoading(false);
       }

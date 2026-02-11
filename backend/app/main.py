@@ -25,7 +25,7 @@ from app.models import (  # noqa: F401
 from app.routers import (
     auth_customer_router, auth_employee_router, products_router, orders_router,
     users_router, returns_router, cart_router, notifications_router, inventory_router,
-    auditor_router
+    auditor_router, payments_router
 )
 
 # Create database tables
@@ -62,8 +62,11 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
     Handle Pydantic validation errors and return user-friendly messages.
-    
+
     """
+    # Log the full validation error for debugging
+    logger.error(f"Validation error on {request.method} {request.url.path}: {exc.errors()}")
+
     errors = []
     for error in exc.errors():
         field = ".".join(str(loc) for loc in error["loc"][1:])  # Skip 'body'
@@ -139,6 +142,7 @@ app.include_router(cart_router, prefix=settings.API_V1_PREFIX)
 app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
 app.include_router(inventory_router, prefix=settings.API_V1_PREFIX)
 app.include_router(auditor_router, prefix=settings.API_V1_PREFIX)
+app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")

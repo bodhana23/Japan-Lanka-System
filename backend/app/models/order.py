@@ -28,6 +28,12 @@ class SalesChannel(str, PyEnum):
     OFFLINE = "offline"
 
 
+class PaymentStatus(str, PyEnum):
+    NOT_PAID = "not_paid"
+    PARTIALLY_PAID = "partially_paid"
+    PAID = "paid"
+
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -48,12 +54,26 @@ class Order(Base):
         default=SalesChannel.ONLINE
     )
     total_amount = Column(Numeric(12, 2), nullable=False)
+    # Payment tracking fields
+    subtotal = Column(Numeric(12, 2), nullable=True)  # Order subtotal before delivery fee
+    delivery_fee = Column(Numeric(10, 2), nullable=True, default=0)  # Delivery fee based on district
+    paid_amount = Column(Numeric(12, 2), nullable=True, default=0)  # Amount paid via PayHere
+    remaining_amount = Column(Numeric(12, 2), nullable=True, default=0)  # Amount to be paid COD
+    payment_status = Column(
+        Enum(PaymentStatus, name="payment_status", create_type=True),
+        nullable=False,
+        default=PaymentStatus.NOT_PAID
+    )
+    # District for delivery fee calculation
+    shipping_district = Column(String(100), nullable=True)
     shipping_address = Column(String(500), nullable=True)
     shipping_city = Column(String(100), nullable=True)
     shipping_postal_code = Column(String(20), nullable=True)
     # Offline sale customer info (when customer_id is null)
     offline_customer_name = Column(String(200), nullable=True)
     offline_customer_phone = Column(String(20), nullable=True)
+    # PayHere payment reference
+    payhere_payment_id = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
@@ -73,14 +93,26 @@ class Order(Base):
         Rules:
         - Offline orders: Always billable once delivered (paid at point of sale)
         - Online orders: Billable for any non-cancelled order
-          (shows Total Due until payment gateway is integrated)
         """
         if self.status == OrderStatus.CANCELLED:
             return False
         if self.sales_channel == SalesChannel.OFFLINE:
             return self.status == OrderStatus.DELIVERED
-        # Online orders are billable (shows amount due)
+        # Online orders are billable
         return True
+
+    def update_payment_status(self):
+        """Update payment status based on paid and total amounts."""
+        from decimal import Decimal
+        paid = Decimal(str(self.paid_amount or 0))
+        total = Decimal(str(self.total_amount or 0))
+
+        if paid <= 0:
+            self.payment_status = PaymentStatus.NOT_PAID
+        elif paid >= total:
+            self.payment_status = PaymentStatus.PAID
+        else:
+            self.payment_status = PaymentStatus.PARTIALLY_PAID
 
     def __repr__(self):
         return f"<Order {self.id} - {self.status.value}>"

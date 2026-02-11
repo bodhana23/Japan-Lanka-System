@@ -174,7 +174,15 @@ const RequestReturn: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       console.error('Error submitting return request:', err);
-      setError(err.response?.data?.detail || 'Failed to submit return request');
+      // Handle validation errors with detailed messages
+      const responseData = err.response?.data;
+      if (responseData?.errors && Array.isArray(responseData.errors)) {
+        // Show first validation error message
+        const firstError = responseData.errors[0];
+        setError(firstError?.message || responseData.detail || 'Failed to submit return request');
+      } else {
+        setError(responseData?.detail || 'Failed to submit return request');
+      }
     } finally {
       setIsSubmitting(false);
     }

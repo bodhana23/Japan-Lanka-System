@@ -6,7 +6,46 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.order import OrderStatus, DeliveryMethod, SalesChannel
+from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
+
+
+# Sri Lanka Districts with delivery fees
+SRI_LANKA_DISTRICTS = {
+    # Colombo - Rs. 500
+    "Colombo": 500,
+    # Western Province (excluding Colombo) - Rs. 700
+    "Gampaha": 700,
+    "Kalutara": 700,
+    # All other districts - Rs. 1000
+    "Kandy": 1000,
+    "Matale": 1000,
+    "Nuwara Eliya": 1000,
+    "Galle": 1000,
+    "Matara": 1000,
+    "Hambantota": 1000,
+    "Jaffna": 1000,
+    "Kilinochchi": 1000,
+    "Mannar": 1000,
+    "Mullaitivu": 1000,
+    "Vavuniya": 1000,
+    "Trincomalee": 1000,
+    "Batticaloa": 1000,
+    "Ampara": 1000,
+    "Kurunegala": 1000,
+    "Puttalam": 1000,
+    "Anuradhapura": 1000,
+    "Polonnaruwa": 1000,
+    "Badulla": 1000,
+    "Monaragala": 1000,
+    "Ratnapura": 1000,
+    "Kegalle": 1000,
+}
+
+
+def get_delivery_fee(district: str) -> Decimal:
+    """Get delivery fee based on district."""
+    fee = SRI_LANKA_DISTRICTS.get(district, 1000)
+    return Decimal(str(fee))
 
 
 # Order Item schemas
@@ -30,11 +69,22 @@ class OrderItemResponse(BaseModel):
 # Order schemas
 class OrderCreate(BaseModel):
     delivery_method: DeliveryMethod
+    shipping_district: Optional[str] = Field(None, max_length=100)
     shipping_address: Optional[str] = Field(None, max_length=500)
     shipping_city: Optional[str] = Field(None, max_length=100)
     shipping_postal_code: Optional[str] = Field(None, max_length=20)
     notes: Optional[str] = None
     items: List[OrderItemCreate] = Field(..., min_length=1)
+    # Payment options for online checkout
+    pay_full_amount: bool = Field(True, description="If True, pay 100%. If False, pay minimum 30% for delivery orders.")
+
+    @field_validator('shipping_district')
+    @classmethod
+    def validate_district(cls, v: Optional[str]) -> Optional[str]:
+        """Validate that district is in Sri Lanka districts list."""
+        if v is not None and v not in SRI_LANKA_DISTRICTS:
+            raise ValueError(f'Invalid district. Must be one of: {", ".join(SRI_LANKA_DISTRICTS.keys())}')
+        return v
 
 
 class OrderStatusUpdate(BaseModel):
@@ -49,11 +99,18 @@ class OrderResponse(BaseModel):
     delivery_method: DeliveryMethod
     sales_channel: SalesChannel = SalesChannel.ONLINE
     total_amount: Decimal
+    subtotal: Optional[Decimal] = None
+    delivery_fee: Optional[Decimal] = None
+    paid_amount: Optional[Decimal] = None
+    remaining_amount: Optional[Decimal] = None
+    payment_status: PaymentStatus = PaymentStatus.NOT_PAID
+    shipping_district: Optional[str] = None
     shipping_address: Optional[str] = None
     shipping_city: Optional[str] = None
     shipping_postal_code: Optional[str] = None
     offline_customer_name: Optional[str] = None  # For offline sales
     offline_customer_phone: Optional[str] = None  # For offline sales
+    payhere_payment_id: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -62,6 +119,7 @@ class OrderResponse(BaseModel):
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None  # Fetched from user relationship
     is_billable: bool = False  # Whether bill can be generated for this order
+    has_return_request: bool = False  # Whether a return request exists for this order
 
     class Config:
         from_attributes = True
@@ -130,3 +188,95 @@ class OfflineSaleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============ PAYHERE CHECKOUT SCHEMAS ============
+
+class CheckoutCalculation(BaseModel):
+    """Response for checkout calculation (preview before payment)."""
+    subtotal: Decimal
+    delivery_fee: Decimal
+    total_amount: Decimal
+    minimum_payment: Decimal  # 30% of total for delivery
+    full_payment: Decimal  # 100% of total
+    delivery_method: DeliveryMethod
+    district: Optional[str] = None
+    requires_payment: bool  # True for delivery, False for pickup (optional payment)
+
+
+class InitiateCheckoutRequest(BaseModel):
+    """Request to initiate checkout and get PayHere form data."""
+    delivery_method: DeliveryMethod
+    shipping_district: Optional[str] = Field(None, max_length=100)
+    shipping_address: Optional[str] = Field(None, max_length=500)
+    shipping_city: Optional[str] = Field(None, max_length=100)
+    shipping_postal_code: Optional[str] = Field(None, max_length=20)
+    notes: Optional[str] = None
+    items: List[OrderItemCreate] = Field(..., min_length=1)
+    pay_full_amount: bool = Field(True, description="True = pay 100%, False = pay 30% minimum")
+    skip_payment: bool = Field(False, description="For pickup orders: skip payment entirely")
+
+    @field_validator('shipping_district')
+    @classmethod
+    def validate_district(cls, v: Optional[str]) -> Optional[str]:
+        """Validate that district is in Sri Lanka districts list."""
+        if v is not None and v not in SRI_LANKA_DISTRICTS:
+            raise ValueError(f'Invalid district. Must be one of: {", ".join(SRI_LANKA_DISTRICTS.keys())}')
+        return v
+
+
+class PayHereFormData(BaseModel):
+    """Data required to submit PayHere checkout form."""
+    merchant_id: str
+    return_url: str
+    cancel_url: str
+    notify_url: str
+    order_id: str
+    items: str  # Item description
+    currency: str = "LKR"
+    amount: str  # Amount to pay now
+    first_name: str
+    last_name: str
+    email: str
+    phone: str
+    address: str
+    city: str
+    country: str = "Sri Lanka"
+    # Optional hash for production
+    hash: Optional[str] = None
+
+
+class InitiateCheckoutResponse(BaseModel):
+    """Response with order details and PayHere form data."""
+    order_id: str
+    subtotal: Decimal
+    delivery_fee: Decimal
+    total_amount: Decimal
+    pay_now_amount: Decimal
+    remaining_cod_amount: Decimal
+    payment_status: PaymentStatus
+    delivery_method: DeliveryMethod
+    requires_payment: bool
+    payhere_form_data: Optional[PayHereFormData] = None
+    message: str
+
+
+class PickupOrderCreate(BaseModel):
+    """Request to create a pickup order (optionally without payment)."""
+    items: List[OrderItemCreate] = Field(..., min_length=1)
+    notes: Optional[str] = None
+    pay_now: bool = Field(False, description="If True, customer wants to pay via PayHere")
+    pay_full_amount: bool = Field(True, description="If pay_now=True: pay 100% or not")
+
+
+class PickupOrderResponse(BaseModel):
+    """Response for pickup order creation."""
+    order_id: str
+    status: OrderStatus
+    payment_status: PaymentStatus
+    total_amount: Decimal
+    paid_amount: Decimal
+    remaining_amount: Decimal
+    requires_payment: bool
+    payhere_form_data: Optional[PayHereFormData] = None
+    message: str

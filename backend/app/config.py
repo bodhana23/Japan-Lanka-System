@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     FIREBASE_CREDENTIALS_PATH: str = ""
     FIREBASE_CLOCK_SKEW_SECONDS: int = 10
 
+    # PayHere Payment Gateway settings
+    PAYHERE_MERCHANT_ID: str = "1233973"
+    PAYHERE_MERCHANT_SECRET: str = ""
+    PAYHERE_SANDBOX: bool = True
+    FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

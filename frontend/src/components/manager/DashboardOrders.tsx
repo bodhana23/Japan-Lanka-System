@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2 } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 import { ordersApi } from '../../services/api';
+import ConfirmModal from '../ConfirmModal';
 
 interface CustomerOrder {
   id: string;
@@ -43,6 +44,12 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const [isFiltering, setIsFiltering] = useState(false);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
 
+  // Status change confirmation state
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    orderId: string;
+    newStatus: CustomerOrder['status'];
+  } | null>(null);
+
   const handleDownloadBill = async (orderId: string) => {
     setDownloadingBillId(orderId);
     try {
@@ -53,6 +60,34 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
     } finally {
       setDownloadingBillId(null);
     }
+  };
+
+  // Handle status change click - opens confirmation modal
+  const handleStatusClick = (orderId: string, newStatus: CustomerOrder['status']) => {
+    setPendingStatusChange({ orderId, newStatus });
+  };
+
+  // Confirm status change - calls the API
+  const confirmStatusChange = () => {
+    if (!pendingStatusChange) return;
+    onStatusUpdate(pendingStatusChange.orderId, pendingStatusChange.newStatus);
+    setPendingStatusChange(null);
+  };
+
+  // Cancel status change - closes the modal
+  const cancelStatusChange = () => {
+    setPendingStatusChange(null);
+  };
+
+  // Get display name for status
+  const getStatusDisplayName = (status: CustomerOrder['status']): string => {
+    const statusNames: Record<CustomerOrder['status'], string> = {
+      'pending': 'Pending',
+      'in_progress': 'In Progress',
+      'ready_to_pickup': 'Ready to Pickup',
+      'delivered': 'Delivered'
+    };
+    return statusNames[status] || status;
   };
 
   // Debounced search with filtering simulation
@@ -404,7 +439,14 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                 <div className="order-status">
                   <select
                     value={order.status}
-                    onChange={(e) => onStatusUpdate(order.id, e.target.value as CustomerOrder['status'])}
+                    onChange={(e) => {
+                      const newStatus = e.target.value as CustomerOrder['status'];
+                      if (newStatus !== order.status) {
+                        handleStatusClick(order.id, newStatus);
+                        // Reset dropdown to current status (will update after confirmation)
+                        e.target.value = order.status;
+                      }
+                    }}
                     className={`status-dropdown ${order.status}`}
                   >
                     <option value="pending">Pending</option>
@@ -495,6 +537,18 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
           ))}
         </div>
       )}
+
+      {/* Status Change Confirmation Modal */}
+      <ConfirmModal
+        isOpen={pendingStatusChange !== null}
+        title="Confirm Status Update"
+        message={`Are you sure you want to change the order status to "${pendingStatusChange ? getStatusDisplayName(pendingStatusChange.newStatus) : ''}"?`}
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        confirmVariant="primary"
+        onConfirm={confirmStatusChange}
+        onCancel={cancelStatusChange}
+      />
     </div>
   );
 };

@@ -86,12 +86,19 @@ async def get_unread_count(
 
 
 @router.put("/{notification_id}/read", response_model=NotificationResponse)
+@router.patch("/{notification_id}/read", response_model=NotificationResponse)
 async def mark_as_read(
     notification_id: UUID,
     current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark a notification as read."""
+    """Mark a notification as read.
+
+    Security:
+    - Only the notification owner can mark it as read
+    - Customers can only access their notifications
+    - Employees can only access their notifications
+    """
     user_filter = get_user_notification_filter(current_user)
     notification = db.query(Notification).filter(
         Notification.id == notification_id,
@@ -112,11 +119,16 @@ async def mark_as_read(
 
 
 @router.put("/read-all")
+@router.patch("/read-all")
 async def mark_all_as_read(
     current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark all notifications as read."""
+    """Mark all notifications as read for the current user.
+
+    Security:
+    - Only marks notifications belonging to the current user
+    """
     user_filter = get_user_notification_filter(current_user)
     updated_count = db.query(Notification).filter(
         user_filter,
