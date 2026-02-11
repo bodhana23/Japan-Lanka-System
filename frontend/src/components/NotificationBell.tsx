@@ -96,9 +96,9 @@ const NotificationBell: React.FC = () => {
     // Navigate based on notification type
     setIsOpen(false);
     if (notification.related_order_id) {
-      navigate('/dashboard');
+      navigate('/customer?section=orders');
     } else if (notification.related_return_id) {
-      navigate('/dashboard');
+      navigate('/customer?section=returns');
     }
   };
 
@@ -195,7 +195,7 @@ const NotificationBell: React.FC = () => {
                 className="view-all-btn"
                 onClick={() => {
                   setIsOpen(false);
-                  navigate('/dashboard');
+                  navigate('/customer');
                 }}
               >
                 View all notifications

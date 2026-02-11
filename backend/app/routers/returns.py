@@ -25,6 +25,7 @@ from app.schemas.return_request import (
     EligibleOrdersListResponse,
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
+from app.services.notification_service import notify_return_status_change
 
 router = APIRouter(prefix="/returns", tags=["Return Requests"])
 
@@ -386,6 +387,14 @@ async def update_return_request_status(
         actor_employee_id=current_employee.id,
         related_entity_type=RelatedEntityType.RETURN_REQUEST,
         related_entity_id=return_request.id
+    )
+
+    # Create notification for the customer about return status change
+    notify_return_status_change(
+        db=db,
+        customer_id=return_request.customer_id,
+        return_id=return_request.id,
+        new_status=status_update.status.value
     )
 
     db.commit()
