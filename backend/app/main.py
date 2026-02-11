@@ -62,8 +62,11 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
     Handle Pydantic validation errors and return user-friendly messages.
-    
+
     """
+    # Log the full validation error for debugging
+    logger.error(f"Validation error on {request.method} {request.url.path}: {exc.errors()}")
+
     errors = []
     for error in exc.errors():
         field = ".".join(str(loc) for loc in error["loc"][1:])  # Skip 'body'

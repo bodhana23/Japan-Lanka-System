@@ -150,19 +150,109 @@ def notify_order_status_change(
     )
 
 
+def notify_managers_new_order(db: Session, order) -> None:
+    """Send notifications to all managers when a new order is placed.
+
+    This function is transaction-safe: it only calls db.add() and does NOT commit.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db: Database session
+        order: The newly created Order object
+    """
+    from app.models.employee import Employee, EmployeeRole
+
+    service = NotificationService(db)
+
+    # Get all active managers
+    managers = db.query(Employee).filter(
+        Employee.role == EmployeeRole.MANAGER,
+        Employee.is_active == True
+    ).all()
+
+    # Create order display ID (first 8 chars of UUID)
+    order_id_short = str(order.id)[:8].upper()
+
+    for manager in managers:
+        service.create_employee_notification(
+            employee_id=manager.id,
+            title="New Order Placed",
+            message=f"Order #{order_id_short} has been placed. Total: Rs. {order.total_amount:.2f}",
+            notification_type=NotificationType.ORDER_UPDATE,
+            related_order_id=order.id
+        )
+
+
+def notify_managers_new_return(db: Session, return_request) -> None:
+    """Send notifications to all managers when a new return request is submitted.
+
+    This function is transaction-safe: it only calls db.add() and does NOT commit.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db: Database session
+        return_request: The newly created ReturnRequest object
+    """
+    from app.models.employee import Employee, EmployeeRole
+
+    service = NotificationService(db)
+
+    # Get all active managers
+    managers = db.query(Employee).filter(
+        Employee.role == EmployeeRole.MANAGER,
+        Employee.is_active == True
+    ).all()
+
+    # Create order display ID from related order
+    order_id_short = str(return_request.order_id)[:8].upper()
+
+    for manager in managers:
+        service.create_employee_notification(
+            employee_id=manager.id,
+            title="New Return Request",
+            message=f"A return request has been submitted for Order #{order_id_short}.",
+            notification_type=NotificationType.RETURN_UPDATE,
+            related_return_id=return_request.id,
+            related_order_id=return_request.order_id
+        )
+
+
 def notify_return_status_change(
     db: Session,
     customer_id: UUID,
     return_id: UUID,
     new_status: str
 ) -> Notification:
-    """Send notification to customer when return request status changes."""
+    """Send notification to customer when return request status changes.
+
+    This function is transaction-safe: it only calls db.add() and does NOT commit.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db: Database session
+        customer_id: The customer to notify
+        return_id: The related return request ID
+        new_status: The new status value (pending, approved, rejected, completed)
+
+    Returns:
+        The created Notification object (not yet committed)
+    """
     service = NotificationService(db)
 
+    # Status → Message mapping for return request notifications
     status_messages = {
-        "approved": "Your return request has been approved. Please follow the return instructions.",
-        "rejected": "Your return request has been rejected. Please contact support for more information.",
-        "completed": "Your return has been processed and refund has been initiated."
+        "pending": "Your return request is under review.",
+        "approved": "Your return request has been approved.",
+        "rejected": "Your return request has been rejected.",
+        "completed": "Your refund has been processed successfully."
+    }
+
+    # Status → Title mapping for cleaner titles
+    status_titles = {
+        "pending": "Return Status: Pending",
+        "approved": "Return Status: Approved",
+        "rejected": "Return Status: Rejected",
+        "completed": "Return Status: Completed"
     }
 
     message = status_messages.get(
@@ -170,9 +260,14 @@ def notify_return_status_change(
         f"Your return request status has been updated to {new_status}."
     )
 
+    title = status_titles.get(
+        new_status,
+        f"Return Status: {new_status.replace('_', ' ').title()}"
+    )
+
     return service.create_return_notification_for_customer(
         customer_id=customer_id,
         return_id=return_id,
-        title=f"Return Request: {new_status.title()}",
+        title=title,
         message=message
     )

@@ -124,6 +124,7 @@ export interface Order {
   customer_name?: string;
   customer_email?: string;
   is_billable?: boolean;
+  has_return_request?: boolean;  // Whether a return request exists for this order
 }
 
 export interface OrderListResponse {

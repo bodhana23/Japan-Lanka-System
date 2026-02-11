@@ -226,12 +226,14 @@ function DashboardLayout<T extends string = string>({
                     }
                   </p>
                 </div>
-                <div className="dl-header-user">
+                <div className="dl-header-actions">
                   <NotificationBell />
-                  <div className="dl-user-avatar">{firstName.charAt(0).toUpperCase()}</div>
-                  <div className="dl-user-info">
-                    <span className="dl-user-name">{displayName}</span>
-                    <span className="dl-user-role">{user?.role || roleConfig.role}</span>
+                  <div className="dl-header-user">
+                    <div className="dl-user-avatar">{firstName.charAt(0).toUpperCase()}</div>
+                    <div className="dl-user-info">
+                      <span className="dl-user-name">{displayName}</span>
+                      <span className="dl-user-role">{user?.role || roleConfig.role}</span>
+                    </div>
                   </div>
                 </div>
               </>

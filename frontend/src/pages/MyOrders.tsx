@@ -16,7 +16,17 @@ const MyOrders: React.FC = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [returnDescription, setReturnDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Valid return reasons matching backend validation
+  const RETURN_REASONS = [
+    'Damaged/Defective',
+    'Wrong Item Received',
+    'Item Not As Described',
+    'Changed My Mind',
+    'Other'
+  ];
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
@@ -83,8 +93,8 @@ const MyOrders: React.FC = () => {
   };
 
   const handleSubmitReturn = async () => {
-    if (!selectedOrder || returnReason.trim().length < 10) {
-      setSubmitError('Please provide a reason (at least 10 characters)');
+    if (!selectedOrder || !returnReason) {
+      setSubmitError('Please select a reason for return');
       return;
     }
 
@@ -98,14 +108,26 @@ const MyOrders: React.FC = () => {
       }));
       await returnsApi.createReturn({
         order_id: selectedOrder.id,
-        reason: returnReason.trim(),
+        reason: returnReason,
+        description: returnDescription.trim() || undefined,
         items: returnItems
       });
       setSubmitSuccess('Return request submitted successfully!');
+
+      // Update the local order state to reflect the return request
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === selectedOrder.id
+            ? { ...order, has_return_request: true }
+            : order
+        )
+      );
+
       setTimeout(() => {
         setShowReturnModal(false);
         setSelectedOrder(null);
         setReturnReason('');
+        setReturnDescription('');
         setSubmitSuccess(null);
       }, 2000);
     } catch (err: unknown) {
@@ -302,8 +324,9 @@ const MyOrders: React.FC = () => {
                           <button
                             className="mo-return-btn"
                             onClick={() => handleRequestReturn(order)}
+                            disabled={order.has_return_request}
                           >
-                            Request Return
+                            {order.has_return_request ? 'Return Requested' : 'Request Return'}
                           </button>
                         )}
                       </div>
@@ -340,12 +363,27 @@ const MyOrders: React.FC = () => {
 
               <label className="mo-modal-label">
                 Reason for return:
-                <textarea
-                  className="mo-modal-textarea"
+                <select
+                  className="mo-modal-select"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  placeholder="Please explain why you want to return this order (minimum 10 characters)..."
-                  rows={4}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select a reason...</option>
+                  {RETURN_REASONS.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="mo-modal-label">
+                Additional details (optional):
+                <textarea
+                  className="mo-modal-textarea"
+                  value={returnDescription}
+                  onChange={(e) => setReturnDescription(e.target.value)}
+                  placeholder="Provide any additional details about your return..."
+                  rows={3}
                   disabled={isSubmitting}
                 />
               </label>
@@ -368,7 +406,7 @@ const MyOrders: React.FC = () => {
               <button
                 className="mo-modal-submit"
                 onClick={handleSubmitReturn}
-                disabled={isSubmitting || returnReason.trim().length < 10}
+                disabled={isSubmitting || !returnReason}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>

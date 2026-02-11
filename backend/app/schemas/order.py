@@ -119,6 +119,7 @@ class OrderResponse(BaseModel):
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None  # Fetched from user relationship
     is_billable: bool = False  # Whether bill can be generated for this order
+    has_return_request: bool = False  # Whether a return request exists for this order
 
     class Config:
         from_attributes = True

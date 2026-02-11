@@ -495,6 +495,25 @@
   border-color: #28a745;
 }
 
+.dord-modal-select {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.dord-modal-select:focus {
+  outline: none;
+  border-color: #28a745;
+}
+
 .dord-modal-error {
   padding: 12px 15px;
   background: #fdedec;

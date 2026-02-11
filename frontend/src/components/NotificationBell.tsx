@@ -8,12 +8,30 @@ import './NotificationBell.css';
 
 const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: authContextAuthenticated, user: authContextUser } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check authentication from both AuthContext and localStorage (for employee sessions)
+  // Employee login bypasses AuthContext, so we need to check localStorage directly
+  const token = localStorage.getItem('token');
+  const storedUserStr = localStorage.getItem('currentUser');
+  let storedUser = null;
+  try {
+    storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+  } catch {
+    storedUser = null;
+  }
+
+  // Use AuthContext user if available, otherwise fall back to localStorage
+  const user = authContextUser || storedUser;
+  const isAuthenticated = authContextAuthenticated || (!!token && !!storedUser);
+
+  // Determine if user is an employee (manager, admin, auditor)
+  const isEmployee = user?.role && ['manager', 'admin', 'auditor', 'MANAGER', 'ADMIN', 'AUDITOR'].includes(user.role);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -93,12 +111,27 @@ const NotificationBell: React.FC = () => {
       }
     }
 
-    // Navigate based on notification type
+    // Navigate based on notification type and user role
     setIsOpen(false);
-    if (notification.related_order_id) {
-      navigate('/customer?section=orders');
-    } else if (notification.related_return_id) {
-      navigate('/customer?section=returns');
+
+    if (isEmployee) {
+      // Employee navigation (manager, admin, auditor)
+      const basePath = user?.role?.toLowerCase() === 'manager' ? '/manager' :
+                       user?.role?.toLowerCase() === 'admin' ? '/admin' :
+                       user?.role?.toLowerCase() === 'auditor' ? '/auditor' : '/manager';
+
+      if (notification.related_order_id) {
+        navigate(`${basePath}/orders`);
+      } else if (notification.related_return_id) {
+        navigate(`${basePath}/returns`);
+      }
+    } else {
+      // Customer navigation
+      if (notification.related_order_id) {
+        navigate('/customer?section=orders');
+      } else if (notification.related_return_id) {
+        navigate('/customer?section=returns');
+      }
     }
   };
 
@@ -195,7 +228,15 @@ const NotificationBell: React.FC = () => {
                 className="view-all-btn"
                 onClick={() => {
                   setIsOpen(false);
-                  navigate('/customer');
+                  // Navigate to appropriate dashboard based on user role
+                  if (isEmployee) {
+                    const basePath = user?.role?.toLowerCase() === 'manager' ? '/manager' :
+                                     user?.role?.toLowerCase() === 'admin' ? '/admin' :
+                                     user?.role?.toLowerCase() === 'auditor' ? '/auditor' : '/manager';
+                    navigate(`${basePath}/orders`);
+                  } else {
+                    navigate('/customer');
+                  }
                 }}
               >
                 View all notifications

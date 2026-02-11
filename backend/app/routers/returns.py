@@ -25,7 +25,7 @@ from app.schemas.return_request import (
     EligibleOrdersListResponse,
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
-from app.services.notification_service import notify_return_status_change
+from app.services.notification_service import notify_return_status_change, notify_managers_new_return
 
 router = APIRouter(prefix="/returns", tags=["Return Requests"])
 
@@ -171,6 +171,20 @@ async def create_return_request(
     db: Session = Depends(get_db)
 ):
     """Create a new return request for an order with specific items."""
+    # Debug logging
+    print(f"[DEBUG] Return request data: order_id={return_data.order_id}, reason={return_data.reason}, items={len(return_data.items)}")
+
+    # Check if a return request already exists for this order (prevent duplicates)
+    existing_return = db.query(ReturnRequest).filter(
+        ReturnRequest.order_id == return_data.order_id
+    ).first()
+
+    if existing_return:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A return request already exists for this order."
+        )
+
     # Get the order
     order = db.query(Order).filter(Order.id == return_data.order_id).first()
 
@@ -252,6 +266,9 @@ async def create_return_request(
         related_entity_type=RelatedEntityType.RETURN_REQUEST,
         related_entity_id=return_request.id
     )
+
+    # Notify managers about the new return request
+    notify_managers_new_return(db=db, return_request=return_request)
 
     db.commit()
     db.refresh(return_request)
@@ -390,12 +407,14 @@ async def update_return_request_status(
     )
 
     # Create notification for the customer about return status change
-    notify_return_status_change(
-        db=db,
-        customer_id=return_request.customer_id,
-        return_id=return_request.id,
-        new_status=status_update.status.value
-    )
+    # Only notify if status actually changed (duplicate guard)
+    if old_status != status_update.status and return_request.customer_id:
+        notify_return_status_change(
+            db=db,
+            customer_id=return_request.customer_id,
+            return_id=return_request.id,
+            new_status=status_update.status.value
+        )
 
     db.commit()
     db.refresh(return_request)

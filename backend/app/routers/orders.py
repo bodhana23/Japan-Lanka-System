@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction
+from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction, ReturnRequest
 from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
 from app.models.inventory_transaction import TransactionType
 from app.services.audit_service import log_inventory_event
@@ -39,7 +39,7 @@ from app.schemas.order_status_history import (
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, CurrentUser
 from app.models.audit_log import AuditLog
-from app.services.notification_service import notify_order_status_change
+from app.services.notification_service import notify_order_status_change, notify_managers_new_order
 
 # PayHere configuration - loaded from settings
 from app.config import settings
@@ -80,7 +80,7 @@ def generate_payhere_hash(merchant_id: str, order_id: str, amount: str, currency
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-def order_to_response(order: Order) -> OrderResponse:
+def order_to_response(order: Order, db: Session = None) -> OrderResponse:
     """Convert Order model to OrderResponse with related data."""
     items = []
     for item in order.items:
@@ -108,6 +108,13 @@ def order_to_response(order: Order) -> OrderResponse:
         customer_name = order.offline_customer_name
         customer_phone = order.offline_customer_phone
 
+    # Check if a return request exists for this order
+    has_return_request = False
+    if db is not None:
+        has_return_request = db.query(ReturnRequest).filter(
+            ReturnRequest.order_id == order.id
+        ).first() is not None
+
     return OrderResponse(
         id=order.id,
         customer_id=order.customer_id,
@@ -134,7 +141,8 @@ def order_to_response(order: Order) -> OrderResponse:
         customer_name=customer_name,
         customer_email=customer_email,
         customer_phone=customer_phone,
-        is_billable=order.is_billable
+        is_billable=order.is_billable,
+        has_return_request=has_return_request
     )
 
 
@@ -180,7 +188,7 @@ async def list_orders(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
 
     return OrderListResponse(
-        items=[order_to_response(o) for o in orders],
+        items=[order_to_response(o, db) for o in orders],
         total=total,
         page=page,
         page_size=page_size,
@@ -208,7 +216,7 @@ async def get_my_orders(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
 
     return OrderListResponse(
-        items=[order_to_response(o) for o in orders],
+        items=[order_to_response(o, db) for o in orders],
         total=total,
         page=page,
         page_size=page_size,
@@ -238,7 +246,7 @@ async def get_order(
             detail="Access denied"
         )
 
-    return order_to_response(order)
+    return order_to_response(order, db)
 
 
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -350,10 +358,13 @@ async def create_order(
         related_entity_id=order.id
     )
 
+    # Notify managers about the new order
+    notify_managers_new_order(db=db, order=order)
+
     db.commit()
     db.refresh(order)
 
-    return order_to_response(order)
+    return order_to_response(order, db)
 
 
 @router.put("/{order_id}/status", response_model=OrderResponse)
@@ -429,7 +440,7 @@ async def update_order_status(
     db.commit()
     db.refresh(order)
 
-    return order_to_response(order)
+    return order_to_response(order, db)
 
 
 @router.get("/{order_id}/history", response_model=OrderStatusHistoryListResponse)
@@ -912,6 +923,9 @@ async def initiate_checkout(
             related_entity_id=order.id
         )
 
+        # Notify managers about the new order
+        notify_managers_new_order(db=db, order=order)
+
         db.commit()
 
         return InitiateCheckoutResponse(
@@ -993,6 +1007,9 @@ async def initiate_checkout(
         related_entity_type=RelatedEntityType.ORDER,
         related_entity_id=order.id
     )
+
+    # Notify managers about the new order
+    notify_managers_new_order(db=db, order=order)
 
     db.commit()
 
