@@ -376,12 +376,16 @@ export interface ApiError {
   detail: string;
 }
 
+// API base URL from environment variable (with fallback for development)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Request interceptor to attach JWT token

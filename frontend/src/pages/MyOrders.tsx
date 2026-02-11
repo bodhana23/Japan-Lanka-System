@@ -4,6 +4,7 @@ import { ordersApi, returnsApi, Order } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../utils/dateUtils';
 import { Car, AlertTriangle, Inbox, Store, Truck, FileText, Loader2 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 import './MyOrders.css';
 
 const MyOrders: React.FC = () => {
@@ -19,6 +20,7 @@ const MyOrders: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Fetch orders from API
   useEffect(() => {
@@ -51,9 +53,21 @@ const MyOrders: React.FC = () => {
     };
   }, []);
 
-  const handleLogout = () => {
+  // Handle logout click - show confirmation modal
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  // Handle confirmed logout
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/');
+  };
+
+  // Handle cancel logout
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
   };
 
   const handleBackToDashboard = () => {
@@ -164,7 +178,7 @@ const MyOrders: React.FC = () => {
           </div>
           <div className="mo-header-actions">
             <span className="mo-user-name">Hi, {firstName}</span>
-            <button onClick={handleLogout} className="mo-logout-btn">
+            <button onClick={handleLogoutClick} className="mo-logout-btn">
               Logout
             </button>
           </div>
@@ -362,6 +376,18 @@ const MyOrders: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Confirm Logout"
+        message="Are you sure you want to log out?"
+        confirmLabel="Logout"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+      />
     </div>
   );
 };

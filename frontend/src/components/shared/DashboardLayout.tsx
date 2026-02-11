@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Car, LogOut, ChevronRight, LucideIcon } from 'lucide-react';
 import ProfileModal from '../ProfileModal';
+import ConfirmModal from '../ConfirmModal';
 import './DashboardLayout.css';
 
 // Generic navigation item type
@@ -87,6 +88,7 @@ function DashboardLayout<T extends string = string>({
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Use provided user or fall back to auth context
   const user = userProp || authUser;
@@ -98,10 +100,21 @@ function DashboardLayout<T extends string = string>({
   // Get current page title
   const currentTitle = pageTitle || navItems.find(item => item.id === activeNav)?.label || 'Dashboard';
 
-  // Handle logout
-  const handleLogout = () => {
+  // Handle logout click - show confirmation modal
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  // Handle confirmed logout
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/');
+  };
+
+  // Handle cancel logout
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
   };
 
   // Handle navigation click
@@ -165,7 +178,7 @@ function DashboardLayout<T extends string = string>({
         </nav>
 
         <div className="dl-sidebar-footer">
-          <button className="dl-logout-btn" onClick={handleLogout}>
+          <button className="dl-logout-btn" onClick={handleLogoutClick}>
             <LogOut size={20} />
             <span>Logout</span>
           </button>
@@ -243,6 +256,18 @@ function DashboardLayout<T extends string = string>({
           roleLabel={roleConfig.role.charAt(0).toUpperCase() + roleConfig.role.slice(1)}
         />
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Confirm Logout"
+        message="Are you sure you want to log out?"
+        confirmLabel="Logout"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+      />
     </div>
   );
 }
