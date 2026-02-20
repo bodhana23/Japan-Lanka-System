@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   BarChart2, DollarSign, TrendingUp, TrendingDown,
-  ShoppingCart, Package
+  ShoppingCart, Package, RotateCcw, AlertCircle, Monitor, Store
 } from 'lucide-react';
+import type { ReturnAnalyticsResponse, SalesChannelComparisonResponse } from '../../services/api';
 import './DashboardAnalytics.css';
 
 interface SalesData {
@@ -27,7 +28,11 @@ interface DashboardAnalyticsProps {
   yearlyRevenue: number;
   dateRange: '3months' | '6months' | 'year';
   onDateRangeChange: (range: '3months' | '6months' | 'year') => void;
+  returnAnalytics?: ReturnAnalyticsResponse | null;
+  channelComparison?: SalesChannelComparisonResponse | null;
 }
+
+const REASON_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
   salesData,
@@ -36,6 +41,8 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
   yearlyRevenue,
   dateRange,
   onDateRangeChange,
+  returnAnalytics,
+  channelComparison,
 }) => {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
@@ -244,6 +251,211 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
           })}
         </div>
       </div>
+
+      {/* Return Analytics Section */}
+      {returnAnalytics && (
+        <div className="admin-return-section">
+          <h3>
+            <RotateCcw size={20} className="admin-return-title-icon" />
+            Return Analytics
+          </h3>
+
+          {/* Return Summary Row */}
+          <div className="admin-return-summary">
+            <div className="admin-return-stat">
+              <span className="admin-return-stat-label">Return Rate</span>
+              <span className={`admin-return-rate-badge ${returnAnalytics.returnRate > 10 ? 'admin-return-rate-high' : returnAnalytics.returnRate > 5 ? 'admin-return-rate-medium' : 'admin-return-rate-low'}`}>
+                {returnAnalytics.returnRate}%
+              </span>
+            </div>
+            <div className="admin-return-stat">
+              <span className="admin-return-stat-label">Total Returns</span>
+              <span className="admin-return-stat-value">{returnAnalytics.totalReturns}</span>
+            </div>
+            <div className="admin-return-stat">
+              <span className="admin-return-stat-label">Total Orders</span>
+              <span className="admin-return-stat-value">{returnAnalytics.totalOrders}</span>
+            </div>
+          </div>
+
+          {/* Monthly Returns */}
+          {returnAnalytics.monthlyReturns.length > 0 && (
+            <div className="admin-return-monthly">
+              <h4>Returns by Month</h4>
+              <div className="admin-return-monthly-chart">
+                {returnAnalytics.monthlyReturns.map((month) => {
+                  const maxReturns = Math.max(...returnAnalytics.monthlyReturns.map(m => m.returns), 1);
+                  const barWidth = (month.returns / maxReturns) * 100;
+                  return (
+                    <div key={month.month} className="admin-return-month-row">
+                      <span className="admin-return-month-label">{month.month}</span>
+                      <div className="admin-return-month-bar-wrapper">
+                        <div
+                          className="admin-return-month-bar"
+                          style={{ width: `${barWidth}%` }}
+                        >
+                          <span className="admin-return-month-bar-label">
+                            {month.returns} returns - Rs. {month.refundValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="admin-return-details-grid">
+            {/* Top Returned Products */}
+            {returnAnalytics.topReturnedProducts.length > 0 && (
+              <div className="admin-return-top-products">
+                <h4>
+                  <AlertCircle size={16} />
+                  Top Returned Products
+                </h4>
+                <ul>
+                  {returnAnalytics.topReturnedProducts.map((product, idx) => (
+                    <li key={idx}>
+                      <span className="admin-return-product-rank">#{idx + 1}</span>
+                      <span className="admin-return-product-name">{product.name}</span>
+                      <strong>{product.returns} units</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Reason Breakdown */}
+            {returnAnalytics.reasonBreakdown.length > 0 && (
+              <div className="admin-return-reasons">
+                <h4>Return Reasons</h4>
+                <div className="admin-return-reasons-chart">
+                  {returnAnalytics.reasonBreakdown.map((reason, idx) => {
+                    const maxCount = Math.max(...returnAnalytics.reasonBreakdown.map(r => r.count), 1);
+                    const barWidth = (reason.count / maxCount) * 100;
+                    const color = REASON_COLORS[idx % REASON_COLORS.length];
+                    return (
+                      <div key={reason.reason} className="admin-return-reason-row">
+                        <span className="admin-return-reason-label">{reason.reason}</span>
+                        <div className="admin-return-reason-bar-wrapper">
+                          <div
+                            className="admin-return-reason-bar"
+                            style={{ width: `${barWidth}%`, backgroundColor: color }}
+                          />
+                        </div>
+                        <span className="admin-return-reason-count">{reason.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {returnAnalytics.totalReturns === 0 && (
+            <div className="admin-return-empty">
+              <RotateCcw size={32} />
+              <p>No return data available for the selected period</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Online vs Offline Sales Comparison */}
+      {channelComparison && (
+        <div className="admin-channel-section">
+          <h3>
+            <Monitor size={20} className="admin-channel-title-icon" />
+            Online vs Offline Sales
+          </h3>
+
+          {/* Channel Summary Cards */}
+          <div className="admin-channel-cards">
+            {channelComparison.channels.map((channel) => {
+              const isOnline = channel.channel === 'online';
+              return (
+                <div key={channel.channel} className={`admin-channel-card ${isOnline ? 'admin-channel-online' : 'admin-channel-offline'}`}>
+                  <div className="admin-channel-card-header">
+                    {isOnline ? <Monitor size={24} /> : <Store size={24} />}
+                    <h4>{isOnline ? 'Online Sales' : 'Offline Sales'}</h4>
+                  </div>
+                  <div className="admin-channel-card-stats">
+                    <div className="admin-channel-stat">
+                      <span className="admin-channel-stat-label">Revenue</span>
+                      <span className="admin-channel-stat-value">Rs. {channel.revenue.toLocaleString()}</span>
+                    </div>
+                    <div className="admin-channel-stat">
+                      <span className="admin-channel-stat-label">Orders</span>
+                      <span className="admin-channel-stat-value">{channel.orders}</span>
+                    </div>
+                    <div className="admin-channel-stat">
+                      <span className="admin-channel-stat-label">Avg Order</span>
+                      <span className="admin-channel-stat-value">Rs. {channel.avgOrderValue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Monthly Channel Comparison */}
+          {channelComparison.monthlyBreakdown.length > 0 && (
+            <div className="admin-channel-monthly">
+              <h4>Monthly Revenue by Channel</h4>
+              <div className="admin-channel-monthly-chart">
+                {channelComparison.monthlyBreakdown.map((month) => {
+                  const totalRevenue = month.onlineRevenue + month.offlineRevenue;
+                  const maxRevenue = Math.max(...channelComparison.monthlyBreakdown.map(m => m.onlineRevenue + m.offlineRevenue), 1);
+                  const onlineWidth = maxRevenue > 0 ? (month.onlineRevenue / maxRevenue) * 100 : 0;
+                  const offlineWidth = maxRevenue > 0 ? (month.offlineRevenue / maxRevenue) * 100 : 0;
+                  return (
+                    <div key={month.month} className="admin-channel-month-row">
+                      <span className="admin-channel-month-label">{month.month}</span>
+                      <div className="admin-channel-month-bars">
+                        <div className="admin-channel-stacked-bar">
+                          {onlineWidth > 0 && (
+                            <div
+                              className="admin-channel-bar-online"
+                              style={{ width: `${onlineWidth}%` }}
+                              title={`Online: Rs. ${month.onlineRevenue.toLocaleString()}`}
+                            />
+                          )}
+                          {offlineWidth > 0 && (
+                            <div
+                              className="admin-channel-bar-offline"
+                              style={{ width: `${offlineWidth}%` }}
+                              title={`Offline: Rs. ${month.offlineRevenue.toLocaleString()}`}
+                            />
+                          )}
+                        </div>
+                        <span className="admin-channel-month-total">
+                          Rs. {totalRevenue.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="admin-channel-legend">
+                  <span className="admin-channel-legend-online">
+                    <span className="admin-channel-legend-dot admin-channel-dot-online" /> Online
+                  </span>
+                  <span className="admin-channel-legend-offline">
+                    <span className="admin-channel-legend-dot admin-channel-dot-offline" /> Offline
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {channelComparison.channels.every(c => c.orders === 0) && (
+            <div className="admin-channel-empty">
+              <Monitor size={32} />
+              <p>No sales channel data available for the selected period</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { employeeAuthApi } from '../../services/api';
 import { Lock, Key, CheckCircle, Eye, EyeOff, Shield } from 'lucide-react';
 import './DashboardChangePassword.css';
 
-type AdminNavId = 'overview' | 'users' | 'low-stock' | 'analytics' | 'profile' | 'change-password';
+type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password';
 
 interface DashboardChangePasswordProps {
   onNavigate: (section: AdminNavId) => void;

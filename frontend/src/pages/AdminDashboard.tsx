@@ -4,23 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import { DashboardLayout, roleConfigs } from '../components/shared';
 import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
 import {
-  DashboardOverview,
   DashboardUsers,
   DashboardLowStock,
   DashboardAnalytics,
   DashboardProfile,
-  DashboardChangePassword
+  DashboardChangePassword,
+  DashboardOrderPipeline
 } from '../components/admin';
 import ProfileModal from '../components/ProfileModal';
-import { usersApi, productsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
+import { usersApi, productsApi, analyticsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
+import type { SalesData, BrandSales, ReturnAnalyticsResponse, OrderPipelineResponse, SalesChannelComparisonResponse } from '../services/api';
 import {
   Plus, CheckCircle, Clock, AlertTriangle, Trash2,
-  LayoutDashboard, Users, BarChart2, User, Shield, Pencil, Lock
+  Users, BarChart2, User, Shield, Pencil, Lock, GitBranch
 } from 'lucide-react';
 import './AdminDashboard.css';
 
 // Navigation item IDs for Admin Dashboard
-type AdminNavId = 'overview' | 'users' | 'low-stock' | 'analytics' | 'profile' | 'change-password';
+type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password';
 
 interface LowStockProduct {
   id: string;
@@ -34,21 +35,6 @@ interface LowStockProduct {
   category: string;
   imageUrl?: string;
   description?: string;
-}
-
-interface SalesData {
-  month: string;
-  sales: number;
-  orders: number;
-  topSellingParts: { name: string; units: number }[];
-  revenueByCategory: { category: string; revenue: number }[];
-  dailyTrend: number[];
-}
-
-interface BrandSales {
-  brand: string;
-  sales: number;
-  units: number;
 }
 
 interface UserProfile {
@@ -88,7 +74,7 @@ interface EditUserForm {
 
 const AdminDashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeNav, setActiveNav] = useState<AdminNavId>('overview');
+  const [activeNav, setActiveNav] = useState<AdminNavId>('analytics');
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -117,10 +103,10 @@ const AdminDashboard: React.FC = () => {
 
   // Navigation items for Admin Dashboard
   const navItems: NavItem<AdminNavId>[] = useMemo(() => [
-    { id: 'overview', label: 'Dashboard Overview', icon: <LayoutDashboard size={20} /> },
+    { id: 'analytics', label: 'Financial Analytics', icon: <BarChart2 size={20} /> },
+    { id: 'order-pipeline', label: 'Order Pipeline', icon: <GitBranch size={20} /> },
     { id: 'users', label: 'Manage Users', icon: <Users size={20} /> },
     { id: 'low-stock', label: 'Low Stock Alerts', icon: <AlertTriangle size={20} /> },
-    { id: 'analytics', label: 'Financial Analytics', icon: <BarChart2 size={20} /> },
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
     { id: 'change-password', label: 'Change Password', icon: <Lock size={20} /> },
   ], []);
@@ -151,69 +137,20 @@ const AdminDashboard: React.FC = () => {
     return undefined;
   }, [authUser, user]);
 
-  // Sales data (placeholder - TODO: Replace with API call)
-  const [allSalesData] = useState<SalesData[]>([
-    {
-      month: 'November 2024',
-      sales: 1050000,
-      orders: 128,
-      topSellingParts: [
-        { name: 'Brake Pads Set', units: 38 },
-        { name: 'Engine Oil Filter', units: 35 },
-        { name: 'Air Filter', units: 30 }
-      ],
-      revenueByCategory: [
-        { category: 'Brake System', revenue: 380000 },
-        { category: 'Engine Parts', revenue: 350000 },
-        { category: 'Lighting', revenue: 220000 },
-        { category: 'Other', revenue: 100000 }
-      ],
-      dailyTrend: [32000, 38000, 35000, 40000, 37000, 35000, 39000]
-    },
-    {
-      month: 'December 2024',
-      sales: 1380000,
-      orders: 172,
-      topSellingParts: [
-        { name: 'LED Headlight Bulbs', units: 48 },
-        { name: 'Brake Pads Set', units: 42 },
-        { name: 'Spark Plugs Set', units: 38 }
-      ],
-      revenueByCategory: [
-        { category: 'Lighting', revenue: 480000 },
-        { category: 'Brake System', revenue: 420000 },
-        { category: 'Engine Parts', revenue: 350000 },
-        { category: 'Other', revenue: 130000 }
-      ],
-      dailyTrend: [42000, 48000, 45000, 52000, 48000, 46000, 50000]
-    },
-    {
-      month: 'January 2025',
-      sales: 1120000,
-      orders: 142,
-      topSellingParts: [
-        { name: 'Engine Oil Filter', units: 40 },
-        { name: 'Air Filter', units: 36 },
-        { name: 'Brake Pads Set', units: 33 }
-      ],
-      revenueByCategory: [
-        { category: 'Engine Parts', revenue: 450000 },
-        { category: 'Brake System', revenue: 380000 },
-        { category: 'Lighting', revenue: 210000 },
-        { category: 'Other', revenue: 80000 }
-      ],
-      dailyTrend: [35000, 40000, 38000, 43000, 39000, 37000, 41000]
-    }
-  ]);
+  // Analytics data - fetched from API
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [brandSales, setBrandSales] = useState<BrandSales[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [yearlyRevenue, setYearlyRevenue] = useState(0);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [returnAnalytics, setReturnAnalytics] = useState<ReturnAnalyticsResponse | null>(null);
+  const [channelComparison, setChannelComparison] = useState<SalesChannelComparisonResponse | null>(null);
 
-  // Brand sales data
-  const [brandSales] = useState<BrandSales[]>([
-    { brand: 'Toyota', sales: 1450000, units: 234 },
-    { brand: 'Honda', sales: 980000, units: 187 },
-    { brand: 'BMW', sales: 750000, units: 98 },
-    { brand: 'Ford', sales: 620000, units: 145 },
-    { brand: 'Nissan', sales: 480000, units: 112 }
-  ]);
+  // Order Pipeline data
+  const [pipelineData, setPipelineData] = useState<OrderPipelineResponse | null>(null);
+  const [isLoadingPipeline, setIsLoadingPipeline] = useState(false);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   // Users data
   const [users, setUsers] = useState<UserDisplay[]>([]);
@@ -321,37 +258,50 @@ const AdminDashboard: React.FC = () => {
     fetchLowStockProducts();
   }, [fetchAllUsers, fetchLowStockProducts]);
 
-  // Filter sales data based on date range
-  const salesData = useMemo(() => {
-    const rangeMap = { '3months': 3, '6months': 6, 'year': 12 };
-    const count = rangeMap[dateRange];
-    return allSalesData.slice(-count);
-  }, [dateRange, allSalesData]);
+  // Fetch analytics data from API
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      setIsLoadingAnalytics(true);
+      setAnalyticsError(null);
+      const rangeMap = { '3months': 3, '6months': 6, 'year': 12 } as const;
+      const months = rangeMap[dateRange];
+      const [data, returnData, channelData] = await Promise.all([
+        analyticsApi.getFinancialSummary(months),
+        analyticsApi.getReturnAnalytics(months).catch(() => null),
+        analyticsApi.getSalesChannelComparison(months).catch(() => null),
+      ]);
+      setSalesData(data.salesData);
+      setBrandSales(data.brandSales);
+      setMonthlyRevenue(data.monthlyRevenue);
+      setYearlyRevenue(data.yearlyRevenue);
+      setReturnAnalytics(returnData);
+      setChannelComparison(channelData);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setAnalyticsError('Failed to load analytics data.');
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  }, [dateRange]);
 
-  // Calculate revenue
-  const monthlyRevenue = salesData[salesData.length - 1]?.sales || 0;
-  const yearlyRevenue = salesData.length > 0
-    ? (() => {
-        const totalSales = salesData.reduce((total: number, month) => total + month.sales, 0);
-        if (salesData.length === 0 || !isFinite(totalSales)) return 0;
-        const projectedYearly = totalSales * (12 / salesData.length);
-        return isFinite(projectedYearly) ? projectedYearly : 0;
-      })()
-    : 0;
+  // Fetch order pipeline data
+  const fetchPipeline = useCallback(async () => {
+    try {
+      setIsLoadingPipeline(true);
+      setPipelineError(null);
+      const data = await analyticsApi.getOrderPipeline();
+      setPipelineData(data);
+    } catch (error) {
+      console.error('Error fetching pipeline:', error);
+      setPipelineError('Failed to load order pipeline data.');
+    } finally {
+      setIsLoadingPipeline(false);
+    }
+  }, []);
 
-  // User statistics
-  const userStats = useMemo(() => {
-    const managers = users.filter(u => u.role === 'manager').length;
-    const auditors = users.filter(u => u.role === 'auditor').length;
-    const customers = users.filter(u => u.role === 'customer').length;
-    const admins = users.filter(u => u.role === 'admin').length;
-    return { total: users.length, managers, auditors, customers, admins };
-  }, [users]);
-
-  // Total orders from sales data
-  const totalOrders = useMemo(() => {
-    return salesData.reduce((sum, data) => sum + data.orders, 0);
-  }, [salesData]);
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   // Toast notification
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -643,25 +593,16 @@ const AdminDashboard: React.FC = () => {
   // Navigation handler
   const handleNavigation = (navId: AdminNavId) => {
     setActiveNav(navId);
+    // Scroll content area to top when switching sections
+    const contentEl = document.querySelector('.dl-content');
+    if (contentEl) {
+      contentEl.scrollTo({ top: 0 });
+    }
   };
 
   // Render content based on active navigation
   const renderContent = () => {
     switch (activeNav) {
-      case 'overview':
-        return (
-          <DashboardOverview
-            userStats={userStats}
-            monthlyRevenue={monthlyRevenue}
-            lowStockCount={lowStockProducts.length}
-            totalOrders={totalOrders}
-            totalProducts={totalProducts}
-            onNavigateToUsers={() => setActiveNav('users')}
-            onNavigateToLowStock={() => setActiveNav('low-stock')}
-            onNavigateToAnalytics={() => setActiveNav('analytics')}
-          />
-        );
-
       case 'users':
         return (
           <DashboardUsers
@@ -692,6 +633,27 @@ const AdminDashboard: React.FC = () => {
         );
 
       case 'analytics':
+        if (isLoadingAnalytics) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 20px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className="admin-spinner" />
+                <p style={{ marginTop: '16px', color: '#6b7280' }}>Loading financial analytics...</p>
+              </div>
+            </div>
+          );
+        }
+        if (analyticsError) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 20px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <AlertTriangle size={48} style={{ color: '#ef4444', marginBottom: '16px' }} />
+                <p style={{ color: '#ef4444', marginBottom: '16px' }}>{analyticsError}</p>
+                <button onClick={fetchAnalytics} className="admin-btn admin-btn-primary">Retry</button>
+              </div>
+            </div>
+          );
+        }
         return (
           <DashboardAnalytics
             salesData={salesData}
@@ -700,8 +662,46 @@ const AdminDashboard: React.FC = () => {
             yearlyRevenue={yearlyRevenue}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
+            returnAnalytics={returnAnalytics}
+            channelComparison={channelComparison}
           />
         );
+
+      case 'order-pipeline':
+        if (isLoadingPipeline) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 20px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className="admin-spinner" />
+                <p style={{ marginTop: '16px', color: '#6b7280' }}>Loading order pipeline...</p>
+              </div>
+            </div>
+          );
+        }
+        if (pipelineError) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 20px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <AlertTriangle size={48} style={{ color: '#ef4444', marginBottom: '16px' }} />
+                <p style={{ color: '#ef4444', marginBottom: '16px' }}>{pipelineError}</p>
+                <button onClick={fetchPipeline} className="admin-btn admin-btn-primary">Retry</button>
+              </div>
+            </div>
+          );
+        }
+        if (!pipelineData) {
+          // Trigger fetch on first visit
+          fetchPipeline();
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 20px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className="admin-spinner" />
+                <p style={{ marginTop: '16px', color: '#6b7280' }}>Loading order pipeline...</p>
+              </div>
+            </div>
+          );
+        }
+        return <DashboardOrderPipeline data={pipelineData} />;
 
       case 'profile':
         return (

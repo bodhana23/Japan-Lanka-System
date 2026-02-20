@@ -1,0 +1,540 @@
+/* Order Pipeline Styles */
+
+.admin-pipeline-container {
+  animation: adminFadeIn 0.5s ease-out;
+  padding-top: 0.25rem;
+}
+
+.admin-pipeline-header {
+  margin-bottom: 2rem;
+}
+
+.admin-pipeline-title-section {
+  flex: 1;
+}
+
+.admin-pipeline-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-pipeline-icon {
+  color: #8B5CF6;
+}
+
+.admin-pipeline-subtitle {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+/* Summary Cards */
+.admin-pipeline-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding-top: 0.25rem;
+}
+
+.admin-pipeline-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-pipeline-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.admin-pipeline-card-active::before {
+  background: linear-gradient(90deg, #3B82F6, #60a5fa);
+}
+
+.admin-pipeline-card-completed::before {
+  background: linear-gradient(90deg, #10B981, #34d399);
+}
+
+.admin-pipeline-card-cancelled::before {
+  background: linear-gradient(90deg, #EF4444, #f87171);
+}
+
+.admin-pipeline-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.admin-pipeline-card-icon {
+  margin-bottom: 0.75rem;
+}
+
+.admin-pipeline-card-active .admin-pipeline-card-icon {
+  color: #3B82F6;
+}
+
+.admin-pipeline-card-completed .admin-pipeline-card-icon {
+  color: #10B981;
+}
+
+.admin-pipeline-card-cancelled .admin-pipeline-card-icon {
+  color: #EF4444;
+}
+
+.admin-pipeline-card h4 {
+  color: #6B7280;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-pipeline-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-pipeline-card-active .admin-pipeline-card-value {
+  color: #3B82F6;
+}
+
+.admin-pipeline-card-completed .admin-pipeline-card-value {
+  color: #10B981;
+}
+
+.admin-pipeline-card-cancelled .admin-pipeline-card-value {
+  color: #EF4444;
+}
+
+/* Pipeline Flow */
+.admin-pipeline-flow-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.admin-pipeline-flow-section h3 {
+  font-size: 1.25rem;
+  color: #2d3436;
+  margin: 0 0 1.5rem 0;
+  font-weight: 600;
+}
+
+.admin-pipeline-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9CA3AF;
+}
+
+.admin-pipeline-empty p {
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+
+.admin-pipeline-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-top: 0.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.admin-pipeline-stage {
+  flex: 1;
+  min-width: 130px;
+}
+
+.admin-pipeline-stage-bar {
+  position: relative;
+  border: 2px solid;
+  border-radius: 12px;
+  height: 70px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.admin-pipeline-stage-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-pipeline-stage-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  opacity: 0.2;
+  border-radius: 10px;
+  transition: width 0.8s ease;
+}
+
+.admin-pipeline-stage-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0.5rem;
+}
+
+.admin-pipeline-stage-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4B5563;
+  text-align: center;
+}
+
+.admin-pipeline-stage-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.admin-pipeline-stage-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.admin-pipeline-percentage {
+  font-size: 0.8rem;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+.admin-pipeline-channel-split {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.admin-pipeline-channel-online {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #3B82F6;
+  font-weight: 500;
+}
+
+.admin-pipeline-channel-offline {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #F59E0B;
+  font-weight: 500;
+}
+
+.admin-pipeline-arrow {
+  color: #D1D5DB;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Cancelled Section */
+.admin-pipeline-cancelled-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.admin-pipeline-cancelled-section h3 {
+  font-size: 1.25rem;
+  color: #2d3436;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.admin-pipeline-cancelled-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: rgba(239, 68, 68, 0.05);
+  border: 2px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+}
+
+.admin-pipeline-cancelled-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #EF4444;
+  font-weight: 600;
+}
+
+.admin-pipeline-cancelled-info .admin-pipeline-percentage {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+/* Selected Stage */
+.admin-pipeline-stage {
+  cursor: pointer;
+}
+
+.admin-pipeline-stage-selected .admin-pipeline-stage-bar {
+  transform: translateY(-3px);
+}
+
+/* Cancelled Selected */
+.admin-pipeline-cancelled-selected {
+  border: 2px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Orders Section */
+.admin-pipeline-orders-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-top: 1.5rem;
+  animation: adminFadeIn 0.3s ease-out;
+}
+
+.admin-pipeline-orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-pipeline-orders-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-pipeline-orders-status-badge {
+  color: white;
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-pipeline-orders-count {
+  font-size: 0.9rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.admin-pipeline-orders-date-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+.admin-pipeline-orders-close {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #F3F4F6;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #6B7280;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-pipeline-orders-close:hover {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+/* Orders Table */
+.admin-pipeline-orders-table {
+  overflow-x: auto;
+}
+
+.admin-pipeline-orders-table-header {
+  display: grid;
+  grid-template-columns: 110px 1.5fr 1fr 100px 100px 100px;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #F9FAFB;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.admin-pipeline-order-row {
+  display: grid;
+  grid-template-columns: 110px 1.5fr 1fr 100px 100px 100px;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #F3F4F6;
+  align-items: center;
+  font-size: 0.88rem;
+  transition: background 0.15s ease;
+}
+
+.admin-pipeline-order-row:last-child {
+  border-bottom: none;
+}
+
+.admin-pipeline-order-row:hover {
+  background: #F9FAFB;
+}
+
+.admin-pipeline-order-id {
+  font-weight: 700;
+  color: #3B82F6;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+}
+
+.admin-pipeline-customer-name {
+  display: block;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.admin-pipeline-customer-email {
+  display: block;
+  font-size: 0.78rem;
+  color: #9CA3AF;
+  margin-top: 0.15rem;
+}
+
+.admin-pipeline-col-amount {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+/* Channel & Delivery Badges */
+.admin-pipeline-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.admin-pipeline-badge-online {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+
+.admin-pipeline-badge-offline {
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+}
+
+.admin-pipeline-delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+/* Loading / Empty / Error States */
+.admin-pipeline-orders-loading {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #9CA3AF;
+}
+
+.admin-pipeline-orders-loading p {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.admin-pipeline-orders-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #9CA3AF;
+}
+
+.admin-pipeline-orders-empty p {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.admin-pipeline-orders-error {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #EF4444;
+}
+
+.admin-pipeline-orders-error p {
+  margin-bottom: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-pipeline-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pipeline-flow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-pipeline-arrow {
+    transform: rotate(90deg);
+    justify-content: center;
+  }
+
+  .admin-pipeline-cancelled-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .admin-pipeline-orders-table-header {
+    display: none;
+  }
+
+  .admin-pipeline-order-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #F3F4F6;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+  }
+
+  .admin-pipeline-col-customer {
+    grid-column: 1 / -1;
+  }
+}

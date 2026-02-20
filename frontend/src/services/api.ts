@@ -1006,4 +1006,127 @@ export const auditorApi = {
   },
 };
 
+// Analytics types
+export interface TopSellingPart {
+  name: string;
+  units: number;
+}
+
+export interface RevenueByCategory {
+  category: string;
+  revenue: number;
+}
+
+export interface SalesData {
+  month: string;
+  sales: number;
+  orders: number;
+  topSellingParts: TopSellingPart[];
+  revenueByCategory: RevenueByCategory[];
+  dailyTrend: number[];
+}
+
+export interface BrandSales {
+  brand: string;
+  sales: number;
+  units: number;
+}
+
+export interface FinancialSummaryResponse {
+  salesData: SalesData[];
+  brandSales: BrandSales[];
+  monthlyRevenue: number;
+  yearlyRevenue: number;
+}
+
+// Return Analytics types
+export interface MonthlyReturnData {
+  month: string;
+  returns: number;
+  refundValue: number;
+}
+
+export interface TopReturnedProduct {
+  name: string;
+  returns: number;
+}
+
+export interface ReturnReasonBreakdown {
+  reason: string;
+  count: number;
+}
+
+export interface ReturnAnalyticsResponse {
+  returnRate: number;
+  totalReturns: number;
+  totalOrders: number;
+  monthlyReturns: MonthlyReturnData[];
+  topReturnedProducts: TopReturnedProduct[];
+  reasonBreakdown: ReturnReasonBreakdown[];
+}
+
+// Order Pipeline types
+export interface StatusCount {
+  status: string;
+  count: number;
+  onlineCount: number;
+  offlineCount: number;
+}
+
+export interface OrderPipelineResponse {
+  pipeline: StatusCount[];
+  totalActive: number;
+  totalCompleted: number;
+  totalCancelled: number;
+}
+
+// Sales Channel Comparison types
+export interface ChannelStats {
+  channel: string;
+  revenue: number;
+  orders: number;
+  avgOrderValue: number;
+}
+
+export interface MonthlyChannelData {
+  month: string;
+  onlineRevenue: number;
+  offlineRevenue: number;
+  onlineOrders: number;
+  offlineOrders: number;
+}
+
+export interface SalesChannelComparisonResponse {
+  channels: ChannelStats[];
+  monthlyBreakdown: MonthlyChannelData[];
+}
+
+export const analyticsApi = {
+  getFinancialSummary: async (months: number = 3): Promise<FinancialSummaryResponse> => {
+    const response = await api.get<FinancialSummaryResponse>('/analytics/financial-summary', {
+      params: { months },
+    });
+    return response.data;
+  },
+
+  getReturnAnalytics: async (months: number = 3): Promise<ReturnAnalyticsResponse> => {
+    const response = await api.get<ReturnAnalyticsResponse>('/analytics/return-analytics', {
+      params: { months },
+    });
+    return response.data;
+  },
+
+  getOrderPipeline: async (): Promise<OrderPipelineResponse> => {
+    const response = await api.get<OrderPipelineResponse>('/analytics/order-pipeline');
+    return response.data;
+  },
+
+  getSalesChannelComparison: async (months: number = 3): Promise<SalesChannelComparisonResponse> => {
+    const response = await api.get<SalesChannelComparisonResponse>('/analytics/sales-channel-comparison', {
+      params: { months },
+    });
+    return response.data;
+  },
+};
+
 export default api;
