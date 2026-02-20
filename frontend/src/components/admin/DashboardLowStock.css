@@ -43,8 +43,7 @@
   flex-wrap: wrap;
 }
 
-.admin-refresh-btn,
-.admin-restock-btn {
+.admin-refresh-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -72,17 +71,6 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
-}
-
-.admin-restock-btn {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.admin-restock-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 /* Loading, Error, Empty States */
@@ -255,8 +243,7 @@
   gap: 0.5rem;
 }
 
-.admin-order-btn,
-.admin-notify-btn {
+.admin-order-btn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -269,28 +256,14 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
-}
-
-.admin-order-btn {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .admin-order-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
-}
-
-.admin-notify-btn {
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.admin-notify-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 /* Inventory Summary */
@@ -354,8 +327,7 @@
     flex-direction: column;
   }
 
-  .admin-refresh-btn,
-  .admin-restock-btn {
+  .admin-refresh-btn {
     width: 100%;
     justify-content: center;
   }

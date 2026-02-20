@@ -148,8 +148,8 @@
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   background: linear-gradient(135deg, var(--home-primary) 0%, var(--home-primary-dark) 100%);
   border-radius: var(--home-radius);
   display: flex;
@@ -165,7 +165,7 @@
 }
 
 .company-name {
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--home-text);
   margin: 0;
@@ -173,7 +173,7 @@
 }
 
 .tagline {
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   color: var(--home-text-muted);
   margin: 0;
   font-weight: 500;
@@ -189,8 +189,8 @@
 .nav-link {
   color: var(--home-text-muted);
   text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 1.1rem;
   transition: var(--home-transition);
   position: relative;
 }
@@ -293,7 +293,7 @@
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 4.5rem;
   font-weight: 800;
   line-height: 1.1;
   color: var(--home-text);
@@ -302,7 +302,7 @@
 }
 
 .hero-description {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   color: var(--home-text-muted);
   line-height: 1.7;
   margin: 0;
@@ -1251,6 +1251,10 @@
     align-items: center;
   }
 
+  .hero-title {
+    font-size: 3.75rem;
+  }
+
   .hero-description {
     max-width: 100%;
   }
@@ -1324,7 +1328,7 @@
   }
 
   .hero-title {
-    font-size: 2.5rem;
+    font-size: 3rem;
   }
 
   .section-title {
@@ -1399,11 +1403,11 @@
 
 @media (max-width: 480px) {
   .hero-title {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
 
   .hero-description {
-    font-size: 1rem;
+    font-size: 1.125rem;
   }
 
   .cta-primary,

@@ -217,6 +217,37 @@ def notify_managers_new_return(db: Session, return_request) -> None:
         )
 
 
+LOW_STOCK_THRESHOLD = 3
+
+
+def notify_admins_low_stock(db: Session, product_name: str, current_qty: int) -> None:
+    """Send low stock alert to all active admin employees when stock drops to threshold.
+
+    This function is transaction-safe: it only calls db.add() and does NOT commit.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db: Database session
+        product_name: The name of the product that is low on stock
+        current_qty: The current quantity remaining after the deduction
+    """
+    from app.models.employee import Employee, EmployeeRole
+
+    service = NotificationService(db)
+
+    admins = db.query(Employee).filter(
+        Employee.role == EmployeeRole.ADMIN,
+        Employee.is_active == True
+    ).all()
+
+    for admin in admins:
+        service.create_system_notification_for_employee(
+            employee_id=admin.id,
+            title="Low Stock Alert",
+            message=f"'{product_name}' is running low. Only {current_qty} unit(s) remaining."
+        )
+
+
 def notify_return_status_change(
     db: Session,
     customer_id: UUID,

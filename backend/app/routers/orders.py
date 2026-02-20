@@ -39,7 +39,7 @@ from app.schemas.order_status_history import (
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, CurrentUser
 from app.models.audit_log import AuditLog
-from app.services.notification_service import notify_order_status_change, notify_managers_new_order
+from app.services.notification_service import notify_order_status_change, notify_managers_new_order, notify_admins_low_stock, LOW_STOCK_THRESHOLD
 
 # PayHere configuration - loaded from settings
 from app.config import settings
@@ -348,6 +348,10 @@ async def create_order(
         )
         db.add(inventory_transaction)
 
+        # Notify admins if stock has just dropped to or below the low stock threshold
+        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+            notify_admins_low_stock(db, product.name, product.quantity_available)
+
     # Log inventory event for order placement
     log_inventory_event(
         db=db,
@@ -585,6 +589,10 @@ async def create_offline_sale(
             reference_order_id=order.id
         )
         db.add(inventory_transaction)
+
+        # Notify admins if stock has just dropped to or below the low stock threshold
+        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+            notify_admins_low_stock(db, product.name, product.quantity_available)
 
     # Log inventory event for offline sale
     customer_info = sale_data.customer_name or "Walk-in customer"
@@ -904,6 +912,10 @@ async def initiate_checkout(
             )
             db.add(inventory_transaction)
 
+            # Notify admins if stock has just dropped to or below the low stock threshold
+            if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+                notify_admins_low_stock(db, product.name, product.quantity_available)
+
         # Create status history
         status_history = OrderStatusHistory(
             order_id=order.id,
@@ -988,6 +1000,10 @@ async def initiate_checkout(
             reference_order_id=order.id
         )
         db.add(inventory_transaction)
+
+        # Notify admins if stock has just dropped to or below the low stock threshold
+        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+            notify_admins_low_stock(db, product.name, product.quantity_available)
 
     # Create status history
     status_history = OrderStatusHistory(

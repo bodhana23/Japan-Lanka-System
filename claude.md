@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: February 4, 2026*
+*Last updated: February 20, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -687,6 +687,42 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Wishlist functionality
 
 ## Recent Changes (January-February 2026)
+
+### UI/UX Accessibility & Notification Improvements (Feb 20, 2026)
+
+**Low Stock Notification System (Backend):**
+- Added `LOW_STOCK_THRESHOLD = 3` constant and `notify_admins_low_stock()` function to `backend/app/services/notification_service.py`
+- Sends a `SYSTEM` type notification to all active admin employees when product stock first crosses from above 3 to ≤ 3 units
+- Threshold check added after every inventory deduction in `backend/app/routers/orders.py` (4 locations: regular order, offline sale, checkout pickup, checkout payment flow)
+- Threshold check also added after manual adjustment in `backend/app/routers/inventory.py`
+- Fires only on threshold crossing (quantity_before > 3 AND quantity_after ≤ 3) to avoid duplicate alerts
+
+**Admin Dashboard Low Stock Alerts UI:**
+- Removed "Restock All" header button from `frontend/src/components/admin/DashboardLowStock.tsx`
+- Removed "Notify Manager" per-item button from `frontend/src/components/admin/DashboardLowStock.tsx`
+- Removed `onRestockAll` and `onNotifyManager` props from both component interface and `AdminDashboard.tsx` usage
+- "Order More" button color changed to theme green (`#10B981 → #059669`) in `frontend/src/components/admin/DashboardLowStock.css`
+- Cleaned up unused `.admin-notify-btn` and `.admin-restock-btn` CSS blocks
+
+**Landing Page Accessibility (larger text for 40s–50s target audience):**
+- Hero headline (`frontend/src/pages/Home.css`): desktop 3.5rem → **4.5rem**, tablet ≤1024px added **3.75rem** override, mobile ≤768px 2.5rem → **3rem**, small ≤480px 2rem → **2.5rem**
+- Hero description: desktop 1.125rem → **1.25rem**, small ≤480px 1rem → **1.125rem**
+- Header brand logo icon box: 48px → **58px**; Car icon: 28px → **34px**
+- Company name (`.company-name`): 1.25rem → **1.6rem**
+- Tagline (`.tagline`): 0.75rem → **0.95rem**
+- Nav links (`.nav-link`): 0.9rem → **1.1rem**, font-weight 500 → **600**
+
+**Key files modified:**
+- `frontend/src/pages/Home.css` — all sizing changes
+- `frontend/src/pages/Home.tsx` — Car icon size
+- `frontend/src/components/admin/DashboardLowStock.tsx` — button removal, prop cleanup
+- `frontend/src/components/admin/DashboardLowStock.css` — button color + unused CSS removal
+- `frontend/src/pages/AdminDashboard.tsx` — removed unused prop calls
+- `backend/app/services/notification_service.py` — `notify_admins_low_stock()` + `LOW_STOCK_THRESHOLD`
+- `backend/app/routers/orders.py` — 4 low-stock checks
+- `backend/app/routers/inventory.py` — 1 low-stock check
+
+---
 
 ### Offline Sales Feature (Feb 4, 2026)
 **Backend Changes:**

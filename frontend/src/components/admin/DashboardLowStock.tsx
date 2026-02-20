@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  AlertTriangle, RefreshCw, Package, Bell, Clock, CheckCircle, ImageOff
+  AlertTriangle, RefreshCw, Package, Clock, CheckCircle, ImageOff
 } from 'lucide-react';
 import './DashboardLowStock.css';
 
@@ -24,9 +24,7 @@ interface DashboardLowStockProps {
   isLoading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onRestockAll: () => void;
   onOrderMore: (productId: string) => void;
-  onNotifyManager: (productName: string) => void;
   onRetry: () => void;
 }
 
@@ -36,9 +34,7 @@ const DashboardLowStock: React.FC<DashboardLowStockProps> = ({
   isLoading,
   error,
   onRefresh,
-  onRestockAll,
   onOrderMore,
-  onNotifyManager,
   onRetry,
 }) => {
   return (
@@ -60,12 +56,6 @@ const DashboardLowStock: React.FC<DashboardLowStockProps> = ({
             {isLoading ? <Clock size={16} /> : <RefreshCw size={16} />}
             Refresh Data
           </button>
-          {products.length > 0 && (
-            <button className="admin-restock-btn" onClick={onRestockAll}>
-              <Package size={16} />
-              Restock All ({products.length})
-            </button>
-          )}
         </div>
       </div>
 
@@ -131,12 +121,6 @@ const DashboardLowStock: React.FC<DashboardLowStockProps> = ({
                   className="admin-order-btn"
                 >
                   <Package size={16} /> Order More
-                </button>
-                <button
-                  onClick={() => onNotifyManager(item.name)}
-                  className="admin-notify-btn"
-                >
-                  <Bell size={16} /> Notify Manager
                 </button>
               </div>
             </div>

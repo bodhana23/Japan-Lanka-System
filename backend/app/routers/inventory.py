@@ -17,6 +17,7 @@ from app.schemas.inventory_transaction import (
     InventoryTransactionListResponse,
 )
 from app.utils.deps import require_manager_or_admin
+from app.services.notification_service import notify_admins_low_stock, LOW_STOCK_THRESHOLD
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -180,6 +181,10 @@ async def create_adjustment(
         ip_address=get_client_ip(request)
     )
     db.add(audit_log)
+
+    # Notify admins if adjustment caused stock to drop to or below the low stock threshold
+    if quantity_before > LOW_STOCK_THRESHOLD and new_quantity <= LOW_STOCK_THRESHOLD:
+        notify_admins_low_stock(db, product.name, new_quantity)
 
     db.commit()
     db.refresh(transaction)

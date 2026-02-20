@@ -131,7 +131,7 @@ const Home: React.FC = () => {
         <div className="header-container">
           <div className="logo-section">
             <div className="logo-icon">
-              <Car size={28} />
+              <Car size={34} />
             </div>
             <div className="logo-text">
               <h1 className="company-name">Japan Lanka</h1>
