@@ -10,7 +10,7 @@ interface CustomerOrder {
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered';
+  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
@@ -37,7 +37,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
 }) => {
   // Order filtering state
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'return_approved'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
@@ -85,7 +85,8 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       'pending': 'Pending',
       'in_progress': 'In Progress',
       'ready_to_pickup': 'Ready to Pickup',
-      'delivered': 'Delivered'
+      'delivered': 'Delivered',
+      'return_approved': 'Return Approved'
     };
     return statusNames[status] || status;
   };
@@ -164,7 +165,8 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       pending: orders.filter(o => o.status === 'pending').length,
       in_progress: orders.filter(o => o.status === 'in_progress').length,
       ready_to_pickup: orders.filter(o => o.status === 'ready_to_pickup').length,
-      delivered: orders.filter(o => o.status === 'delivered').length
+      delivered: orders.filter(o => o.status === 'delivered').length,
+      return_approved: orders.filter(o => o.status === 'return_approved').length
     };
   }, [orders]);
 
@@ -273,6 +275,15 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
             Delivered
             <span className="chip-badge">{statusCounts.delivered}</span>
           </button>
+          {statusCounts.return_approved > 0 && (
+            <button
+              className={`filter-chip ${statusFilter === 'return_approved' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('return_approved')}
+            >
+              Return Approved
+              <span className="chip-badge">{statusCounts.return_approved}</span>
+            </button>
+          )}
         </div>
 
         {/* Date and Sort Filters */}
@@ -437,23 +448,29 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   <p className="order-date">{formatDateTime(order.orderDate)}</p>
                 </div>
                 <div className="order-status">
-                  <select
-                    value={order.status}
-                    onChange={(e) => {
-                      const newStatus = e.target.value as CustomerOrder['status'];
-                      if (newStatus !== order.status) {
-                        handleStatusClick(order.id, newStatus);
-                        // Reset dropdown to current status (will update after confirmation)
-                        e.target.value = order.status;
-                      }
-                    }}
-                    className={`status-dropdown ${order.status}`}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="ready_to_pickup">Ready to Pickup</option>
-                    <option value="delivered">Delivered</option>
-                  </select>
+                  {order.status === 'return_approved' ? (
+                    <span className={`status-dropdown return_approved`} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                      Return Approved
+                    </span>
+                  ) : (
+                    <select
+                      value={order.status}
+                      onChange={(e) => {
+                        const newStatus = e.target.value as CustomerOrder['status'];
+                        if (newStatus !== order.status) {
+                          handleStatusClick(order.id, newStatus);
+                          // Reset dropdown to current status (will update after confirmation)
+                          e.target.value = order.status;
+                        }
+                      }}
+                      className={`status-dropdown ${order.status}`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="ready_to_pickup">Ready to Pickup</option>
+                      <option value="delivered">Delivered</option>
+                    </select>
+                  )}
                 </div>
               </div>
 

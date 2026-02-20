@@ -1,5 +1,6 @@
 """Returns router for return request management."""
 
+from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 import math
@@ -9,9 +10,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import Customer, Employee, Order, ReturnRequest, OrderItem, ReturnItem
+from app.models import Customer, Employee, Order, ReturnRequest, OrderItem, ReturnItem, OrderStatusHistory
 from app.models.return_request import ReturnStatus
 from app.models.order import OrderStatus
+from app.utils.timezone import get_current_time
+
+RETURN_WINDOW_DAYS = 7
 from app.services.audit_service import log_inventory_event
 from app.models.inventory_log import InventoryActionType, RelatedEntityType
 from app.schemas.return_request import (
@@ -115,11 +119,31 @@ async def get_eligible_orders(
 
     result_orders = []
     for order in orders:
-        # Check if there's a pending/approved return request for this order
-        pending_return = db.query(ReturnRequest).filter(
-            ReturnRequest.order_id == order.id,
-            ReturnRequest.status.in_([ReturnStatus.PENDING, ReturnStatus.APPROVED])
+        # Check 7-day return window: find when order reached delivered/ready_to_pickup status
+        delivery_history = db.query(OrderStatusHistory).filter(
+            OrderStatusHistory.order_id == order.id,
+            OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP])
+        ).order_by(OrderStatusHistory.created_at.desc()).first()
+
+        if delivery_history:
+            days_since_delivery = (get_current_time() - delivery_history.created_at).days
+            if days_since_delivery > RETURN_WINDOW_DAYS:
+                continue  # Return window expired — exclude from eligible list
+
+        return_deadline = (
+            delivery_history.created_at + timedelta(days=RETURN_WINDOW_DAYS)
+            if delivery_history else None
+        )
+
+        # Check if ANY return request exists for this order (any status)
+        # Business rule: one return request per order ever (no re-submission after rejection)
+        existing_return = db.query(ReturnRequest).filter(
+            ReturnRequest.order_id == order.id
         ).first()
+
+        # Exclude orders that already have any return request
+        if existing_return:
+            continue
 
         order_items = []
         for item in order.items:
@@ -143,10 +167,10 @@ async def get_eligible_orders(
                 returnable_quantity=returnable_qty
             ))
 
-        # Only include order if it has items that can still be returned
+        # Only include order if it has returnable items
         has_returnable_items = any(item.returnable_quantity > 0 for item in order_items)
 
-        if has_returnable_items or not pending_return:
+        if has_returnable_items:
             result_orders.append(EligibleOrderResponse(
                 id=order.id,
                 created_at=order.created_at,
@@ -154,7 +178,8 @@ async def get_eligible_orders(
                 status=order.status.value,
                 delivery_method=order.delivery_method.value,
                 items=order_items,
-                has_pending_return=bool(pending_return)
+                has_pending_return=False,
+                return_deadline=return_deadline
             ))
 
     return EligibleOrdersListResponse(
@@ -208,6 +233,20 @@ async def create_return_request(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order must be delivered or ready for pickup to request a return. Current status: {order.status.value}"
         )
+
+    # Enforce 7-day return window
+    delivery_history = db.query(OrderStatusHistory).filter(
+        OrderStatusHistory.order_id == order.id,
+        OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP])
+    ).order_by(OrderStatusHistory.created_at.desc()).first()
+
+    if delivery_history:
+        days_since_delivery = (get_current_time() - delivery_history.created_at).days
+        if days_since_delivery > RETURN_WINDOW_DAYS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Return window has expired. Returns must be requested within {RETURN_WINDOW_DAYS} days of delivery."
+            )
 
     # Validate items
     order_item_ids = {str(item.id) for item in order.items}
@@ -381,6 +420,12 @@ async def update_return_request_status(
 
     if status_update.admin_notes:
         return_request.admin_notes = status_update.admin_notes
+
+    # When approved, update the associated order status to return_approved
+    if status_update.status == ReturnStatus.APPROVED:
+        order = db.query(Order).filter(Order.id == return_request.order_id).first()
+        if order:
+            order.status = OrderStatus.RETURN_APPROVED
 
     # Determine action type based on new status
     if status_update.status == ReturnStatus.APPROVED:

@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { returnsApi, EligibleOrder, EligibleOrderItem } from '../../services/api';
+import { returnsApi, EligibleOrder, EligibleOrderItem, ReturnRequest } from '../../services/api';
 import { formatDateTime, formatDate } from '../../utils/dateUtils';
-import { CheckCircle, RefreshCw, AlertTriangle, Package, Calendar, Inbox, RotateCcw } from 'lucide-react';
+import {
+  CheckCircle, RefreshCw, AlertTriangle, Package, Calendar,
+  Inbox, RotateCcw, Clock, XCircle, CheckCircle2
+} from 'lucide-react';
 import './DashboardReturns.css';
 
-// Return reason options
 const RETURN_REASONS = [
   { value: 'Damaged/Defective', label: 'Damaged/Defective' },
   { value: 'Wrong Item Received', label: 'Wrong Item Received' },
@@ -13,6 +15,13 @@ const RETURN_REASONS = [
   { value: 'Changed My Mind', label: 'Changed My Mind' },
   { value: 'Other', label: 'Other' },
 ];
+
+const STATUS_CONFIG: Record<string, { label: string; cssClass: string; icon: React.ReactNode }> = {
+  pending:   { label: 'Pending Review', cssClass: 'dret-status-pending',   icon: <Clock size={13} /> },
+  approved:  { label: 'Approved',       cssClass: 'dret-status-approved',  icon: <CheckCircle size={13} /> },
+  rejected:  { label: 'Rejected',       cssClass: 'dret-status-rejected',  icon: <XCircle size={13} /> },
+  completed: { label: 'Completed',      cssClass: 'dret-status-completed', icon: <CheckCircle2 size={13} /> },
+};
 
 interface SelectedItem {
   order_item_id: string;
@@ -23,6 +32,7 @@ interface SelectedItem {
 }
 
 type NavItemId = 'overview' | 'orders' | 'order-details' | 'returns' | 'cart' | 'profile' | 'change-password';
+type ActiveTab = 'history' | 'request';
 
 interface DashboardReturnsProps {
   onNavigate: (section: NavItemId) => void;
@@ -31,49 +41,76 @@ interface DashboardReturnsProps {
 const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
   const navigate = useNavigate();
 
-  // State
+  // Tab state — default to request so customers see eligible orders first
+  const [activeTab, setActiveTab] = useState<ActiveTab>('request');
+
+  // Return history state
+  const [myReturns, setMyReturns] = useState<ReturnRequest[]>([]);
+  const [returnsLoading, setReturnsLoading] = useState(true);
+
+  // Eligible orders state
   const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+
+  // Return form state
   const [selectedOrder, setSelectedOrder] = useState<EligibleOrder | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  const [reason, setReason] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [reason, setReason] = useState('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const isLoading = returnsLoading || ordersLoading;
+
+  // Fetch return history
+  const fetchMyReturns = useCallback(async () => {
+    try {
+      setReturnsLoading(true);
+      const res = await returnsApi.getMyReturns();
+      setMyReturns(res.items);
+    } catch (err) {
+      console.error('Failed to load return history:', err);
+    } finally {
+      setReturnsLoading(false);
+    }
+  }, []);
+
   // Fetch eligible orders
+  const fetchEligibleOrders = useCallback(async () => {
+    try {
+      setOrdersLoading(true);
+      const res = await returnsApi.getEligibleOrders();
+      setEligibleOrders(res.items);
+    } catch (err) {
+      console.error('Failed to load eligible orders:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  // Load both in parallel on mount
   useEffect(() => {
     let isMounted = true;
 
-    const fetchEligibleOrders = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await returnsApi.getEligibleOrders();
-        if (isMounted) {
-          setEligibleOrders(response.items);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          console.error('Error fetching eligible orders:', err);
-          setError(err.response?.data?.detail || 'Failed to load eligible orders');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    const fetchAll = async () => {
+      const [returnsRes, ordersRes] = await Promise.allSettled([
+        returnsApi.getMyReturns(),
+        returnsApi.getEligibleOrders(),
+      ]);
+      if (!isMounted) return;
+      if (returnsRes.status === 'fulfilled') setMyReturns(returnsRes.value.items);
+      if (ordersRes.status === 'fulfilled') setEligibleOrders(ordersRes.value.items);
+      setReturnsLoading(false);
+      setOrdersLoading(false);
     };
 
-    fetchEligibleOrders();
-
-    return () => {
-      isMounted = false;
-    };
+    fetchAll();
+    return () => { isMounted = false; };
   }, []);
 
-  // Handle order selection
+  // ── Form handlers ─────────────────────────────────────────
+
   const handleSelectOrder = (order: EligibleOrder) => {
     setSelectedOrder(order);
     setSelectedItems([]);
@@ -82,29 +119,20 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
     setError(null);
   };
 
-  // Handle item checkbox toggle
   const handleItemToggle = (item: EligibleOrderItem) => {
-    const existingIndex = selectedItems.findIndex(
-      si => si.order_item_id === item.id
-    );
-
-    if (existingIndex >= 0) {
-      setSelectedItems(prev => prev.filter(si => si.order_item_id !== item.id));
-    } else {
-      setSelectedItems(prev => [
-        ...prev,
-        {
-          order_item_id: item.id,
-          quantity: item.returnable_quantity,
-          maxQuantity: item.returnable_quantity,
-          productName: item.product_name,
-          unitPrice: item.unit_price,
-        },
-      ]);
-    }
+    setSelectedItems(prev => {
+      const exists = prev.findIndex(si => si.order_item_id === item.id) >= 0;
+      if (exists) return prev.filter(si => si.order_item_id !== item.id);
+      return [...prev, {
+        order_item_id: item.id,
+        quantity: item.returnable_quantity,
+        maxQuantity: item.returnable_quantity,
+        productName: item.product_name,
+        unitPrice: item.unit_price,
+      }];
+    });
   };
 
-  // Handle item quantity change
   const handleQuantityChange = (orderItemId: string, quantity: number) => {
     setSelectedItems(prev =>
       prev.map(si =>
@@ -115,37 +143,18 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
     );
   };
 
-  // Calculate return total
-  const returnTotal = useMemo(() => {
-    return selectedItems.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0
-    );
-  }, [selectedItems]);
+  const returnTotal = useMemo(
+    () => selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [selectedItems]
+  );
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedOrder) {
-      setError('Please select an order');
-      return;
-    }
-
-    if (selectedItems.length === 0) {
-      setError('Please select at least one item to return');
-      return;
-    }
-
-    if (!reason) {
-      setError('Please select a reason for return');
-      return;
-    }
+    if (!selectedOrder || selectedItems.length === 0 || !reason) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
-
       await returnsApi.createReturn({
         order_id: selectedOrder.id,
         reason,
@@ -156,63 +165,53 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
         })),
       });
 
+      // Refresh history and switch tab so customer immediately sees their new request
+      await fetchMyReturns();
+      await fetchEligibleOrders();
+      setSelectedOrder(null);
+      setSelectedItems([]);
+      setReason('');
+      setDescription('');
       setSuccessMessage('Return request submitted successfully!');
+      setActiveTab('history');
 
-      setTimeout(() => {
-        setSuccessMessage(null);
-        setSelectedOrder(null);
-        setSelectedItems([]);
-        setReason('');
-        setDescription('');
-        onNavigate('overview');
-      }, 2000);
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      console.error('Error submitting return request:', err);
-      setError(err.response?.data?.detail || 'Failed to submit return request');
+      const responseData = err.response?.data;
+      if (responseData?.errors && Array.isArray(responseData.errors)) {
+        setError(responseData.errors[0]?.message || responseData.detail || 'Failed to submit return request');
+      } else {
+        setError(responseData?.detail || 'Failed to submit return request');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle back navigation
   const handleBack = () => {
-    if (selectedOrder) {
-      setSelectedOrder(null);
-      setSelectedItems([]);
-      setReason('');
-      setDescription('');
-    }
+    setSelectedOrder(null);
+    setSelectedItems([]);
+    setReason('');
+    setDescription('');
+    setError(null);
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return `Rs. ${amount.toLocaleString()}`;
-  };
+  const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString()}`;
 
-  // Render loading state
+  // ── Loading ───────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <div className="dret-container">
         <div className="dret-loading">
-          <div className="dret-loading-spinner"></div>
-          <p>Loading eligible orders...</p>
+          <div className="dret-loading-spinner" />
+          <p>Loading returns...</p>
         </div>
       </div>
     );
   }
 
-  // Render success message
-  if (successMessage) {
-    return (
-      <div className="dret-container">
-        <div className="dret-success">
-          <CheckCircle size={48} className="dret-success-icon" />
-          <h2>{successMessage}</h2>
-          <p>Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // ── Render ────────────────────────────────────────────────
 
   return (
     <div className="dret-container">
@@ -226,8 +225,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
           <p className="dret-page-subtitle">
             {selectedOrder
               ? `Requesting return for Order #${selectedOrder.id.slice(-8).toUpperCase()}`
-              : 'Select an order to request a return'
-            }
+              : 'Manage and track your return requests'}
           </p>
         </div>
         {selectedOrder && (
@@ -237,36 +235,180 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* Error Message */}
+      {/* Success Banner */}
+      {successMessage && (
+        <div className="dret-success-banner">
+          <CheckCircle size={18} />
+          <p>{successMessage}</p>
+        </div>
+      )}
+
+      {/* Error Banner */}
       {error && (
         <div className="dret-error-banner">
           <AlertTriangle size={20} className="dret-error-icon" />
           <p>{error}</p>
-          <button onClick={() => setError(null)}>x</button>
+          <button onClick={() => setError(null)}>×</button>
         </div>
       )}
 
-      {/* Order Selection View */}
+      {/* ── Tab Bar (only when not in form view) ── */}
       {!selectedOrder && (
+        <div className="dret-tabs">
+          <button
+            className={`dret-tab ${activeTab === 'history' ? 'dret-tab-active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            My Returns
+            {myReturns.length > 0 && (
+              <span className="dret-tab-count">{myReturns.length}</span>
+            )}
+          </button>
+          <button
+            className={`dret-tab ${activeTab === 'request' ? 'dret-tab-active' : ''}`}
+            onClick={() => setActiveTab('request')}
+          >
+            Request a Return
+            {eligibleOrders.filter(o => !o.has_pending_return && o.items.some(i => i.returnable_quantity > 0)).length > 0 && (
+              <span className="dret-tab-count dret-tab-count-eligible">
+                {eligibleOrders.filter(o => !o.has_pending_return && o.items.some(i => i.returnable_quantity > 0)).length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          TAB: MY RETURNS (history)
+          ══════════════════════════════════════════════════════ */}
+      {!selectedOrder && activeTab === 'history' && (
+        <section className="dret-history-section">
+          {myReturns.length === 0 ? (
+            <div className="dret-empty">
+              <Inbox size={48} className="dret-empty-icon" />
+              <h3>No Return Requests Yet</h3>
+              <p>You haven't submitted any return requests. Eligible delivered orders can be returned within 7 days.</p>
+              <button className="dret-shop-btn" onClick={() => setActiveTab('request')}>
+                Request a Return
+              </button>
+            </div>
+          ) : (
+            <div className="dret-history-list">
+              {myReturns.map(ret => {
+                const statusCfg = STATUS_CONFIG[ret.status] ?? STATUS_CONFIG.pending;
+                return (
+                  <div key={ret.id} className={`dret-history-card dret-history-card-${ret.status}`}>
+                    {/* Card Header */}
+                    <div className="dret-history-card-header">
+                      <div className="dret-history-card-title">
+                        <Package size={16} className="dret-history-pkg-icon" />
+                        <span className="dret-history-order-id">
+                          Order #{ret.order_id.slice(-8).toUpperCase()}
+                        </span>
+                      </div>
+                      <span className={`dret-status-badge ${statusCfg.cssClass}`}>
+                        {statusCfg.icon}
+                        {statusCfg.label}
+                      </span>
+                    </div>
+
+                    {/* Meta */}
+                    <div className="dret-history-meta">
+                      <span className="dret-history-meta-item">
+                        <Calendar size={13} />
+                        Submitted {formatDate(ret.created_at)}
+                      </span>
+                      {ret.order_total !== undefined && (
+                        <span className="dret-history-meta-item">
+                          Order total: {formatCurrency(ret.order_total)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Reason */}
+                    <div className="dret-history-reason">
+                      <span className="dret-history-label">Reason:</span>
+                      <span>{ret.reason}</span>
+                    </div>
+
+                    {/* Items */}
+                    {ret.items && ret.items.length > 0 && (
+                      <div className="dret-history-items">
+                        <span className="dret-history-label">Items returned:</span>
+                        <ul className="dret-history-items-list">
+                          {ret.items.map(item => (
+                            <li key={item.id}>
+                              {item.product_name ?? 'Unknown product'} × {item.quantity}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {ret.description && (
+                      <div className="dret-history-description">
+                        <span className="dret-history-label">Details:</span>
+                        <span className="dret-history-description-text">{ret.description}</span>
+                      </div>
+                    )}
+
+                    {/* Admin Notes (rejection reason) */}
+                    {ret.admin_notes && (
+                      <div className="dret-admin-notes">
+                        <AlertTriangle size={14} />
+                        <div>
+                          <span className="dret-admin-notes-label">
+                            {ret.status === 'rejected' ? 'Rejection reason:' : 'Manager notes:'}
+                          </span>
+                          <p>{ret.admin_notes}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="dret-history-card-footer">
+                      <span className="dret-history-updated">
+                        Last updated {formatDateTime(ret.updated_at)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          TAB: REQUEST A RETURN — Order Selection
+          ══════════════════════════════════════════════════════ */}
+      {!selectedOrder && activeTab === 'request' && (
         <section className="dret-orders-section">
           <div className="dret-section-info">
-            <p>Only delivered or ready for pickup orders are eligible for return requests</p>
+            <p>Only delivered or ready for pickup orders within the 7-day return window are eligible.</p>
           </div>
 
-          {eligibleOrders.length === 0 ? (
+          {/* Exclude orders that already have an active return — those are shown in My Returns */}
+          {(() => {
+            const requestableOrders = eligibleOrders.filter(o => !o.has_pending_return);
+            return requestableOrders.length === 0 ? (
             <div className="dret-empty">
               <Inbox size={48} className="dret-empty-icon" />
               <h3>No Eligible Orders</h3>
-              <p>You don't have any delivered or ready for pickup orders eligible for return.</p>
+              <p>You don't have any orders eligible for return. Returns must be requested within 7 days of delivery.</p>
               <button className="dret-shop-btn" onClick={() => navigate('/shop')}>
                 Continue Shopping
               </button>
             </div>
           ) : (
             <div className="dret-orders-grid">
-              {eligibleOrders.map(order => {
+              {requestableOrders.map(order => {
                 const hasReturnable = order.items.some(item => item.returnable_quantity > 0);
-                const isDisabled = order.has_pending_return || !hasReturnable;
+                const isExpired = order.return_deadline
+                  ? new Date(order.return_deadline) < new Date()
+                  : false;
+                const isDisabled = !hasReturnable || isExpired;
 
                 return (
                   <div
@@ -275,20 +417,27 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                   >
                     <div className="dret-order-header">
                       <span className="dret-order-id">#{order.id.slice(-8).toUpperCase()}</span>
-                      {order.has_pending_return && (
-                        <span className="dret-pending-badge">Pending Return</span>
-                      )}
-                      {!order.has_pending_return && !hasReturnable && (
-                        <span className="dret-no-returnable-badge">All Items Returned</span>
-                      )}
+                      <div className="dret-order-badges">
+                        {isExpired && (
+                          <span className="dret-expired-badge">Return Window Expired</span>
+                        )}
+                        {!isExpired && !hasReturnable && (
+                          <span className="dret-no-returnable-badge">All Items Returned</span>
+                        )}
+                      </div>
                     </div>
                     <div className="dret-order-body">
                       <div className="dret-order-date">
                         <Calendar size={14} className="dret-date-icon" />
                         {formatDateTime(order.created_at)}
                       </div>
+                      {order.return_deadline && !isExpired && (
+                        <div className="dret-deadline-text">
+                          Return by: {formatDate(order.return_deadline)}
+                        </div>
+                      )}
                       <div className="dret-order-items-count">
-                        {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                       </div>
                       <div className="dret-order-items-preview">
                         {order.items.slice(0, 2).map(item => (
@@ -321,7 +470,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                         </button>
                       ) : (
                         <span className="dret-disabled-text">
-                          {order.has_pending_return ? 'Return in Progress' : 'Not Available'}
+                          {isExpired ? 'Window Expired' : 'Not Available'}
                         </span>
                       )}
                     </div>
@@ -329,11 +478,14 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                 );
               })}
             </div>
-          )}
+          );
+          })()}
         </section>
       )}
 
-      {/* Return Form View */}
+      {/* ══════════════════════════════════════════════════════
+          RETURN FORM (shown when an order is selected)
+          ══════════════════════════════════════════════════════ */}
       {selectedOrder && (
         <form className="dret-form" onSubmit={handleSubmit}>
           {/* Order Summary */}
@@ -362,12 +514,8 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
 
             <div className="dret-items-list">
               {selectedOrder.items.map(item => {
-                const isSelected = selectedItems.some(
-                  si => si.order_item_id === item.id
-                );
-                const selectedItem = selectedItems.find(
-                  si => si.order_item_id === item.id
-                );
+                const isSelected = selectedItems.some(si => si.order_item_id === item.id);
+                const selectedItem = selectedItems.find(si => si.order_item_id === item.id);
                 const isDisabled = item.returnable_quantity === 0;
 
                 return (
@@ -383,12 +531,12 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                         disabled={isDisabled}
                         id={`item-${item.id}`}
                       />
-                      <label htmlFor={`item-${item.id}`}></label>
+                      <label htmlFor={`item-${item.id}`} />
                     </div>
                     <div className="dret-item-info">
                       <span className="dret-item-name">{item.product_name}</span>
                       <span className="dret-item-price">
-                        {formatCurrency(item.unit_price)} x {item.quantity}
+                        {formatCurrency(item.unit_price)} × {item.quantity}
                       </span>
                       {item.already_returned_quantity > 0 && (
                         <span className="dret-item-returned">
@@ -396,9 +544,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                         </span>
                       )}
                       {isDisabled && (
-                        <span className="dret-item-unavailable">
-                          No items available for return
-                        </span>
+                        <span className="dret-item-unavailable">No items available for return</span>
                       )}
                     </div>
                     {isSelected && !isDisabled && (
@@ -408,10 +554,8 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                           type="number"
                           min={1}
                           max={item.returnable_quantity}
-                          value={selectedItem?.quantity || 1}
-                          onChange={e =>
-                            handleQuantityChange(item.id, parseInt(e.target.value) || 1)
-                          }
+                          value={selectedItem?.quantity ?? 1}
+                          onChange={e => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
                         />
                         <span className="dret-max-qty">/ {item.returnable_quantity}</span>
                       </div>
@@ -470,7 +614,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
             </div>
           </section>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <div className="dret-submit-section">
             <button
               type="button"
@@ -487,7 +631,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
             >
               {isSubmitting ? (
                 <>
-                  <span className="dret-btn-spinner"></span>
+                  <span className="dret-btn-spinner" />
                   Submitting...
                 </>
               ) : (

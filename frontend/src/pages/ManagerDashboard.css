@@ -2088,6 +2088,13 @@
   background: #e8f5f2;
 }
 
+.status-dropdown.return_approved {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: #dcfce7;
+  cursor: default;
+}
+
 .order-items {
   margin-bottom: 1.5rem;
 }

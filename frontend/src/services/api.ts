@@ -100,7 +100,7 @@ export type PaymentStatus = 'not_paid' | 'partially_paid' | 'paid';
 export interface Order {
   id: string;
   user_id: string;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved';
   delivery_method: 'pickup' | 'shipping';
   sales_channel?: 'online' | 'offline';
   total_amount: number;
@@ -365,6 +365,7 @@ export interface EligibleOrder {
   delivery_method: string;
   items: EligibleOrderItem[];
   has_pending_return: boolean;
+  return_deadline: string | null;
 }
 
 export interface EligibleOrdersResponse {

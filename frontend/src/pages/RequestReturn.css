@@ -341,6 +341,12 @@
   font-size: 0.9rem;
 }
 
+.rr-return-deadline {
+  font-size: 0.8rem;
+  color: #d97706;
+  font-weight: 500;
+}
+
 .rr-order-items-count {
   font-size: 0.9rem;
   color: #495057;

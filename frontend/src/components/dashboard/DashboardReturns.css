@@ -729,3 +729,334 @@
 .dret-order-card:nth-child(1) { animation-delay: 0.05s; }
 .dret-order-card:nth-child(2) { animation-delay: 0.1s; }
 .dret-order-card:nth-child(3) { animation-delay: 0.15s; }
+
+/* ================================================
+   SUCCESS BANNER
+   ================================================ */
+.dret-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #e9f7ef;
+  border: 1px solid #27ae60;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  color: #1e8449;
+  font-weight: 500;
+}
+
+.dret-success-banner p {
+  margin: 0;
+  flex: 1;
+}
+
+/* ================================================
+   TAB BAR — underline style
+   ================================================ */
+.dret-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 25px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.dret-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 0;
+  background: transparent;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.dret-tab:hover {
+  color: #9b59b6;
+  background: transparent;
+}
+
+.dret-tab-active {
+  color: #9b59b6;
+  border-bottom-color: #9b59b6;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dret-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #9b59b6;
+  color: white;
+}
+
+.dret-tab-count-eligible {
+  background: #27ae60;
+}
+
+/* ================================================
+   ORDER BADGES WRAPPER
+   ================================================ */
+.dret-order-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ================================================
+   DEADLINE & EXPIRED STYLES
+   ================================================ */
+.dret-deadline-text {
+  font-size: 0.8rem;
+  color: #d97706;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.dret-expired-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f0f0f0;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+/* ================================================
+   RETURN HISTORY LIST
+   ================================================ */
+.dret-history-section {
+  /* inherits container width */
+}
+
+.dret-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dret-history-card {
+  background: white;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+  border-left: 4px solid #dee2e6;
+  animation: dretFadeIn 0.3s ease-out;
+  transition: box-shadow 0.2s ease;
+}
+
+.dret-history-card:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.11);
+}
+
+.dret-history-card-pending   { border-left-color: #f39c12; }
+.dret-history-card-approved  { border-left-color: #27ae60; }
+.dret-history-card-rejected  { border-left-color: #e74c3c; }
+.dret-history-card-completed { border-left-color: #3498db; }
+
+/* Card Header */
+.dret-history-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dret-history-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dret-history-pkg-icon {
+  color: #9b59b6;
+}
+
+.dret-history-order-id {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2d3436;
+}
+
+/* Status Badge */
+.dret-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.dret-status-pending {
+  background: #fef9e7;
+  color: #d4860b;
+  border: 1px solid #f5cba7;
+}
+
+.dret-status-approved {
+  background: #e9f7ef;
+  color: #1e8449;
+  border: 1px solid #a9dfbf;
+}
+
+.dret-status-rejected {
+  background: #fdedec;
+  color: #c0392b;
+  border: 1px solid #f5b7b1;
+}
+
+.dret-status-completed {
+  background: #ebf5fb;
+  color: #1a5276;
+  border: 1px solid #a9cce3;
+}
+
+/* Meta Row */
+.dret-history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.dret-history-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: #6c757d;
+}
+
+/* Reason */
+.dret-history-reason {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #2d3436;
+}
+
+.dret-history-label {
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+}
+
+/* Items List */
+.dret-history-items {
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+
+.dret-history-items-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+  color: #495057;
+}
+
+.dret-history-items-list li {
+  margin-bottom: 3px;
+}
+
+/* Description */
+.dret-history-description {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+
+.dret-history-description-text {
+  color: #495057;
+  font-style: italic;
+}
+
+/* Admin Notes */
+.dret-admin-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fdedec;
+  border: 1px solid #f5b7b1;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  color: #c0392b;
+}
+
+.dret-history-card-approved .dret-admin-notes {
+  background: #e9f7ef;
+  border-color: #a9dfbf;
+  color: #1e8449;
+}
+
+.dret-admin-notes-label {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.82rem;
+}
+
+.dret-admin-notes p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Card Footer */
+.dret-history-card-footer {
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 4px;
+}
+
+.dret-history-updated {
+  font-size: 0.78rem;
+  color: #adb5bd;
+}
+
+/* ================================================
+   HISTORY RESPONSIVE
+   ================================================ */
+@media (max-width: 600px) {
+  .dret-history-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dret-tab {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .dret-history-reason,
+  .dret-history-description {
+    flex-direction: column;
+    gap: 2px;
+  }
+}

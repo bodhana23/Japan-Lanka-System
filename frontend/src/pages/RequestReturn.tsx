@@ -270,14 +270,14 @@ const RequestReturn: React.FC = () => {
                 <span className="rr-section-icon"><Package size={20} /></span>
                 Select Order for Return
               </h2>
-              <p>Only delivered or ready for pickup orders are eligible for return requests</p>
+              <p>Only delivered or ready for pickup orders within the 7-day return window are eligible</p>
             </div>
 
             {eligibleOrders.length === 0 ? (
               <div className="rr-empty">
                 <span className="rr-empty-icon"><Inbox size={48} /></span>
                 <h3>No Eligible Orders</h3>
-                <p>You don't have any delivered or ready for pickup orders eligible for return.</p>
+                <p>You don't have any orders eligible for return. Returns must be requested within 7 days of delivery.</p>
                 <button className="rr-shop-btn" onClick={() => navigate('/shop')}>
                   Continue Shopping
                 </button>
@@ -307,6 +307,11 @@ const RequestReturn: React.FC = () => {
                           <span className="rr-date-icon"><Calendar size={14} /></span>
                           {formatDateTime(order.created_at)}
                         </div>
+                        {order.return_deadline && (
+                          <div className="rr-return-deadline">
+                            Return by: {formatDate(order.return_deadline)}
+                          </div>
+                        )}
                         <div className="rr-order-items-count">
                           {order.items.length} item{order.items.length > 1 ? 's' : ''}
                         </div>

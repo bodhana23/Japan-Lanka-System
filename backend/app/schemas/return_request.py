@@ -113,6 +113,7 @@ class EligibleOrderResponse(BaseModel):
     delivery_method: str
     items: List[EligibleOrderItemResponse]
     has_pending_return: bool = False
+    return_deadline: Optional[datetime] = None
 
     class Config:
         from_attributes = True

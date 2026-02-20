@@ -11,6 +11,7 @@ const MyOrders: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [eligibleOrderIds, setEligibleOrderIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -32,7 +33,7 @@ const MyOrders: React.FC = () => {
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Fetch orders from API
+  // Fetch orders and eligible return orders in parallel
   useEffect(() => {
     let isMounted = true;
 
@@ -40,9 +41,19 @@ const MyOrders: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await ordersApi.getMyOrders();
+        const [ordersRes, eligibleRes] = await Promise.allSettled([
+          ordersApi.getMyOrders(),
+          returnsApi.getEligibleOrders(),
+        ]);
         if (isMounted) {
-          setOrders(response.items);
+          if (ordersRes.status === 'fulfilled') {
+            setOrders(ordersRes.value.items);
+          } else {
+            setError('Failed to load orders');
+          }
+          if (eligibleRes.status === 'fulfilled') {
+            setEligibleOrderIds(new Set(eligibleRes.value.items.map((o: { id: string }) => o.id)));
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -93,6 +104,7 @@ const MyOrders: React.FC = () => {
   };
 
   const handleSubmitReturn = async () => {
+    if (isSubmitting) return;
     if (!selectedOrder || !returnReason) {
       setSubmitError('Please select a reason for return');
       return;
@@ -114,14 +126,20 @@ const MyOrders: React.FC = () => {
       });
       setSubmitSuccess('Return request submitted successfully!');
 
-      // Update the local order state to reflect the return request
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === selectedOrder.id
-            ? { ...order, has_return_request: true }
-            : order
-        )
-      );
+      // Immediately remove from eligible set so the button disappears
+      setEligibleOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(selectedOrder.id);
+        return next;
+      });
+
+      // Re-sync eligible orders from backend to stay consistent with server rule engine
+      try {
+        const freshEligible = await returnsApi.getEligibleOrders();
+        setEligibleOrderIds(new Set(freshEligible.items.map((o: { id: string }) => o.id)));
+      } catch {
+        // Non-fatal: optimistic update above already hid the button
+      }
 
       setTimeout(() => {
         setShowReturnModal(false);
@@ -130,15 +148,8 @@ const MyOrders: React.FC = () => {
         setReturnDescription('');
         setSubmitSuccess(null);
       }, 2000);
-    } catch (err: unknown) {
-      console.error('Error submitting return request:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit return request';
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axiosError = err as { response?: { data?: { detail?: string } } };
-        setSubmitError(axiosError.response?.data?.detail || errorMessage);
-      } else {
-        setSubmitError(errorMessage);
-      }
+    } catch (error: any) {
+      setSubmitError(error.response?.data?.detail || "Failed to submit return.");
     } finally {
       setIsSubmitting(false);
     }
@@ -152,6 +163,7 @@ const MyOrders: React.FC = () => {
       'ready_to_pickup': { text: 'Ready for Pickup', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
       'cancelled': { text: 'Cancelled', color: '#e74c3c', bgColor: '#fdedec' },
+      'return_approved': { text: 'Return Approved', color: '#16a34a', bgColor: '#dcfce7' },
     };
     return statusMap[status] || { text: status, color: '#7f8c8d', bgColor: '#f8f9fa' };
   };
@@ -160,9 +172,9 @@ const MyOrders: React.FC = () => {
     return `Rs. ${Number(amount).toLocaleString()}`;
   };
 
-  const canRequestReturn = (status: string) => {
-    return status === 'delivered' || status === 'ready_to_pickup';
-  };
+  // Backend eligible-orders API is the single authority: it excludes orders with
+  // existing returns, expired 7-day windows, and non-returnable statuses.
+  const canShowReturnButton = (orderId: string) => eligibleOrderIds.has(orderId);
 
   const canDownloadBill = (order: Order) => {
     // Bills are available for non-cancelled orders
@@ -239,7 +251,7 @@ const MyOrders: React.FC = () => {
           <div className="mo-orders-list">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status);
-              const showOrderActions = canDownloadBill(order) || canRequestReturn(order.status);
+              const showOrderActions = canDownloadBill(order) || canShowReturnButton(order.id);
               return (
                 <div key={order.id} className="mo-order-card">
                   <div className="mo-order-header">
@@ -320,13 +332,12 @@ const MyOrders: React.FC = () => {
                             )}
                           </button>
                         )}
-                        {canRequestReturn(order.status) && (
+                        {canShowReturnButton(order.id) && (
                           <button
                             className="mo-return-btn"
                             onClick={() => handleRequestReturn(order)}
-                            disabled={order.has_return_request}
                           >
-                            {order.has_return_request ? 'Return Requested' : 'Request Return'}
+                            Request Return
                           </button>
                         )}
                       </div>

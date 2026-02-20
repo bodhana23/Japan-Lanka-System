@@ -14,6 +14,7 @@ interface DashboardOrdersProps {
 const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [eligibleOrderIds, setEligibleOrderIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -43,9 +44,19 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await ordersApi.getMyOrders();
+        const [ordersRes, eligibleRes] = await Promise.allSettled([
+          ordersApi.getMyOrders(),
+          returnsApi.getEligibleOrders(),
+        ]);
         if (isMounted) {
-          setOrders(response.items);
+          if (ordersRes.status === 'fulfilled') {
+            setOrders(ordersRes.value.items);
+          } else {
+            setError('Failed to load orders');
+          }
+          if (eligibleRes.status === 'fulfilled') {
+            setEligibleOrderIds(new Set(eligibleRes.value.items.map((o: { id: string }) => o.id)));
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -75,6 +86,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
   };
 
   const handleSubmitReturn = async () => {
+    if (isSubmitting) return;
     if (!selectedOrder || !returnReason) {
       setSubmitError('Please select a reason for return');
       return;
@@ -94,6 +106,22 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
         items: returnItems
       });
       setSubmitSuccess('Return request submitted successfully!');
+
+      // Immediately remove from eligible set so button disappears
+      setEligibleOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(selectedOrder.id);
+        return next;
+      });
+
+      // Re-sync from backend
+      try {
+        const freshEligible = await returnsApi.getEligibleOrders();
+        setEligibleOrderIds(new Set(freshEligible.items.map((o: { id: string }) => o.id)));
+      } catch {
+        // Non-fatal: optimistic update above already hid the button
+      }
+
       setTimeout(() => {
         setShowReturnModal(false);
         setSelectedOrder(null);
@@ -101,15 +129,8 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
         setReturnDescription('');
         setSubmitSuccess(null);
       }, 2000);
-    } catch (err: unknown) {
-      console.error('Error submitting return request:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit return request';
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axiosError = err as { response?: { data?: { detail?: string } } };
-        setSubmitError(axiosError.response?.data?.detail || errorMessage);
-      } else {
-        setSubmitError(errorMessage);
-      }
+    } catch (error: any) {
+      setSubmitError(error.response?.data?.detail || "Failed to submit return.");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,9 +152,9 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
     return `Rs. ${Number(amount).toLocaleString()}`;
   };
 
-  const canRequestReturn = (status: string) => {
-    return status === 'delivered' || status === 'ready_to_pickup';
-  };
+  // Backend eligible-orders API is the single authority: it excludes orders with
+  // existing returns, expired 7-day windows, and non-returnable statuses.
+  const canShowReturnButton = (orderId: string) => eligibleOrderIds.has(orderId);
 
   const canDownloadBill = (order: Order) => {
     // Bills are available for non-cancelled orders
@@ -327,7 +348,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
                         )}
                       </button>
                     )}
-                    {canRequestReturn(order.status) && (
+                    {canShowReturnButton(order.id) && (
                       <button
                         className="dord-return-btn"
                         onClick={() => handleRequestReturn(order)}

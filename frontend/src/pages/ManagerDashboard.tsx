@@ -61,7 +61,7 @@ interface CustomerOrder {
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered';
+  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;

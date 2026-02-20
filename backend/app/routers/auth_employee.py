@@ -23,7 +23,7 @@ from app.schemas.employee import (
     MessageResponse,
 )
 from app.utils.security import verify_password, create_access_token, get_password_hash
-from app.utils.deps import get_current_employee
+from app.utils.deps import get_current_employee, require_admin
 from app.utils.rate_limiter import auth_rate_limiter
 from app.utils.firebase import (
     verify_firebase_token,
@@ -425,7 +425,7 @@ async def update_profile(
 async def change_password(
     password_data: EmployeeChangePasswordRequest,
     request: Request,
-    current_employee: Employee = Depends(get_current_employee),
+    current_employee: Employee = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Change the current employee's password.

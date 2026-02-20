@@ -393,6 +393,19 @@
   opacity: 0.8;
 }
 
+.mo-return-requested-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
 /* ================================================
    RETURN REQUEST MODAL
    ================================================ */
