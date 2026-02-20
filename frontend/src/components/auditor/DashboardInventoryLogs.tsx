@@ -6,7 +6,7 @@ import {
   InventoryLogListResponse
 } from '../../services/api';
 import {
-  RefreshCw, ChevronLeft, ChevronRight, Filter
+  RefreshCw, ChevronLeft, ChevronRight, Filter, Search, Download
 } from 'lucide-react';
 import './DashboardInventoryLogs.css';
 
@@ -28,22 +28,44 @@ const PAGE_SIZE = 20;
 const DashboardInventoryLogs: React.FC = () => {
   const [inventoryLogs, setInventoryLogs] = useState<InventoryLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [actionFilter, setActionFilter] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
+
+  // Client-side search applied on top of server-side filters
+  const filteredLogs = search
+    ? inventoryLogs.filter(log => {
+        const q = search.toLowerCase();
+        return (
+          (log.actor_name && log.actor_name.toLowerCase().includes(q)) ||
+          (log.actor_email && log.actor_email.toLowerCase().includes(q)) ||
+          log.description.toLowerCase().includes(q)
+        );
+      })
+    : inventoryLogs;
 
   const fetchInventoryLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params: Record<string, string | number> = {
-        page: page,
+        page,
         page_size: PAGE_SIZE,
       };
-      if (actionFilter) {
-        params.action_type = actionFilter;
+      if (actionFilter) params.action_type = actionFilter;
+      if (fromDate) params.from_date = new Date(fromDate).toISOString();
+      if (toDate) {
+        // Include the full end day
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        params.to_date = end.toISOString();
       }
       const response: InventoryLogListResponse = await auditorApi.getInventoryLogs(params);
       setInventoryLogs(response.items);
@@ -55,11 +77,45 @@ const DashboardInventoryLogs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, actionFilter]);
+  }, [page, actionFilter, fromDate, toDate]);
 
   useEffect(() => {
     fetchInventoryLogs();
   }, [fetchInventoryLogs]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setActionFilter('');
+    setFromDate('');
+    setToDate('');
+    setSearch('');
+    setSearchInput('');
+    setPage(1);
+  };
+
+  const handleExport = async () => {
+    if (exportLoading) return;
+    setExportLoading(true);
+    try {
+      await auditorApi.exportInventoryLogs({
+        action_type: actionFilter || undefined,
+        from_date: fromDate ? new Date(fromDate).toISOString() : undefined,
+        to_date: toDate ? (() => { const d = new Date(toDate); d.setHours(23,59,59,999); return d.toISOString(); })() : undefined,
+        search: search || undefined,
+      });
+    } catch (err) {
+      console.error('Failed to export inventory logs:', err);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const hasActiveFilters = actionFilter || fromDate || toDate || search;
 
   return (
     <div className="inventory-logs-section">
@@ -70,15 +126,32 @@ const DashboardInventoryLogs: React.FC = () => {
         </p>
       </div>
 
+      {/* Search bar */}
+      <form className="logs-search-bar" onSubmit={handleSearchSubmit}>
+        <div className="search-input-wrap">
+          <Search size={16} className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search by name, email or description..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="search-btn">Search</button>
+        {hasActiveFilters && (
+          <button type="button" className="clear-btn" onClick={handleClearFilters}>
+            Clear
+          </button>
+        )}
+      </form>
+
       <div className="logs-controls">
         <div className="filter-group">
           <Filter size={16} />
           <select
             value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
             className="filter-select"
           >
             <option value="">All Actions</option>
@@ -93,15 +166,44 @@ const DashboardInventoryLogs: React.FC = () => {
             <option value="return_rejected">Return Rejected</option>
             <option value="return_completed">Return Completed</option>
           </select>
+
+          <div className="date-range-group">
+            <label className="date-label">From</label>
+            <input
+              type="date"
+              className="date-input"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+            />
+            <label className="date-label">To</label>
+            <input
+              type="date"
+              className="date-input"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+            />
+          </div>
         </div>
-        <button
-          className="refresh-btn"
-          onClick={fetchInventoryLogs}
-          disabled={loading}
-        >
-          <RefreshCw size={16} className={loading ? 'spinning' : ''} />
-          Refresh
-        </button>
+
+        <div className="controls-right">
+          <button
+            className="export-btn"
+            onClick={handleExport}
+            disabled={exportLoading}
+            title="Export current results to Excel"
+          >
+            <Download size={16} />
+            {exportLoading ? 'Exporting...' : 'Export Excel'}
+          </button>
+          <button
+            className="refresh-btn"
+            onClick={fetchInventoryLogs}
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -124,12 +226,12 @@ const DashboardInventoryLogs: React.FC = () => {
               <tr>
                 <td colSpan={5} className="loading-cell">Loading...</td>
               </tr>
-            ) : inventoryLogs.length === 0 ? (
+            ) : filteredLogs.length === 0 ? (
               <tr>
                 <td colSpan={5} className="empty-cell">No inventory logs found</td>
               </tr>
             ) : (
-              inventoryLogs.map((log) => (
+              filteredLogs.map((log) => (
                 <tr key={log.id}>
                   <td className="timestamp">{formatDateTime(log.created_at)}</td>
                   <td>

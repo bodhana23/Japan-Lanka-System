@@ -6,7 +6,7 @@ import {
   ActivityLogListResponse
 } from '../../services/api';
 import {
-  RefreshCw, ChevronLeft, ChevronRight, Filter,
+  RefreshCw, ChevronLeft, ChevronRight, Filter, Search, Download,
   CheckCircle, AlertTriangle, Info, XCircle, FileText
 } from 'lucide-react';
 import './DashboardActivityLogs.css';
@@ -43,12 +43,29 @@ const PAGE_SIZE = 20;
 const DashboardActivityLogs: React.FC = () => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
+
+  // Client-side search applied on top of server-side filters
+  const filteredLogs = search
+    ? activityLogs.filter(log => {
+        const q = search.toLowerCase();
+        return (
+          (log.user_name && log.user_name.toLowerCase().includes(q)) ||
+          (log.user_email && log.user_email.toLowerCase().includes(q)) ||
+          log.description.toLowerCase().includes(q)
+        );
+      })
+    : activityLogs;
 
   const getActivityTypeClass = (activityType: string): string => {
     if (activityType.includes('failed') || activityType.includes('deleted')) {
@@ -79,14 +96,16 @@ const DashboardActivityLogs: React.FC = () => {
     setError(null);
     try {
       const params: Record<string, string | number> = {
-        page: page,
+        page,
         page_size: PAGE_SIZE,
       };
-      if (typeFilter) {
-        params.activity_type = typeFilter;
-      }
-      if (userTypeFilter) {
-        params.user_type = userTypeFilter;
+      if (typeFilter) params.activity_type = typeFilter;
+      if (userTypeFilter) params.user_type = userTypeFilter;
+      if (fromDate) params.from_date = new Date(fromDate).toISOString();
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        params.to_date = end.toISOString();
       }
       const response: ActivityLogListResponse = await auditorApi.getActivityLogs(params);
       setActivityLogs(response.items);
@@ -98,11 +117,47 @@ const DashboardActivityLogs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, userTypeFilter]);
+  }, [page, typeFilter, userTypeFilter, fromDate, toDate]);
 
   useEffect(() => {
     fetchActivityLogs();
   }, [fetchActivityLogs]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setTypeFilter('');
+    setUserTypeFilter('');
+    setFromDate('');
+    setToDate('');
+    setSearch('');
+    setSearchInput('');
+    setPage(1);
+  };
+
+  const handleExport = async () => {
+    if (exportLoading) return;
+    setExportLoading(true);
+    try {
+      await auditorApi.exportActivityLogs({
+        activity_type: typeFilter || undefined,
+        user_type: userTypeFilter || undefined,
+        from_date: fromDate ? new Date(fromDate).toISOString() : undefined,
+        to_date: toDate ? (() => { const d = new Date(toDate); d.setHours(23,59,59,999); return d.toISOString(); })() : undefined,
+        search: search || undefined,
+      });
+    } catch (err) {
+      console.error('Failed to export activity logs:', err);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const hasActiveFilters = typeFilter || userTypeFilter || fromDate || toDate || search;
 
   return (
     <div className="activity-logs-section">
@@ -113,15 +168,32 @@ const DashboardActivityLogs: React.FC = () => {
         </p>
       </div>
 
+      {/* Search bar */}
+      <form className="logs-search-bar" onSubmit={handleSearchSubmit}>
+        <div className="search-input-wrap">
+          <Search size={16} className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search by name, email or description..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="search-btn">Search</button>
+        {hasActiveFilters && (
+          <button type="button" className="clear-btn" onClick={handleClearFilters}>
+            Clear
+          </button>
+        )}
+      </form>
+
       <div className="logs-controls">
         <div className="filter-group">
           <Filter size={16} />
           <select
             value={userTypeFilter}
-            onChange={(e) => {
-              setUserTypeFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => { setUserTypeFilter(e.target.value); setPage(1); }}
             className="filter-select"
           >
             <option value="">All Users</option>
@@ -130,10 +202,7 @@ const DashboardActivityLogs: React.FC = () => {
           </select>
           <select
             value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
             className="filter-select"
           >
             <option value="">All Activities</option>
@@ -158,15 +227,44 @@ const DashboardActivityLogs: React.FC = () => {
               <option value="employee_deleted">Deleted</option>
             </optgroup>
           </select>
+
+          <div className="date-range-group">
+            <label className="date-label">From</label>
+            <input
+              type="date"
+              className="date-input"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+            />
+            <label className="date-label">To</label>
+            <input
+              type="date"
+              className="date-input"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+            />
+          </div>
         </div>
-        <button
-          className="refresh-btn"
-          onClick={fetchActivityLogs}
-          disabled={loading}
-        >
-          <RefreshCw size={16} className={loading ? 'spinning' : ''} />
-          Refresh
-        </button>
+
+        <div className="controls-right">
+          <button
+            className="export-btn"
+            onClick={handleExport}
+            disabled={exportLoading}
+            title="Export current results to Excel"
+          >
+            <Download size={16} />
+            {exportLoading ? 'Exporting...' : 'Export Excel'}
+          </button>
+          <button
+            className="refresh-btn"
+            onClick={fetchActivityLogs}
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -190,12 +288,12 @@ const DashboardActivityLogs: React.FC = () => {
               <tr>
                 <td colSpan={6} className="loading-cell">Loading...</td>
               </tr>
-            ) : activityLogs.length === 0 ? (
+            ) : filteredLogs.length === 0 ? (
               <tr>
                 <td colSpan={6} className="empty-cell">No activity logs found</td>
               </tr>
             ) : (
-              activityLogs.map((log) => (
+              filteredLogs.map((log) => (
                 <tr key={log.id} className={`log-row-${getActivityTypeClass(log.activity_type)}`}>
                   <td className="log-type">
                     <span className={`log-icon log-${getActivityTypeClass(log.activity_type)}`}>

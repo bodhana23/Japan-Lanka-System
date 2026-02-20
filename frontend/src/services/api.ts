@@ -963,6 +963,17 @@ export interface ActivityLogListResponse {
   total_pages: number;
 }
 
+function triggerBlobDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
 export const auditorApi = {
   getInventoryLogs: async (params?: {
     action_type?: string;
@@ -1003,6 +1014,57 @@ export const auditorApi = {
     }
     const response = await api.get<ActivityLogListResponse>(`/auditor/activity-logs?${searchParams.toString()}`);
     return response.data;
+  },
+
+  exportInventoryLogs: async (params?: {
+    action_type?: string;
+    from_date?: string;
+    to_date?: string;
+    search?: string;
+  }): Promise<void> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get(`/auditor/inventory-logs/export?${searchParams.toString()}`, { responseType: 'blob' });
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    triggerBlobDownload(response.data as Blob, `inventory_logs_${today}.xlsx`);
+  },
+
+  exportActivityLogs: async (params?: {
+    activity_type?: string;
+    user_type?: string;
+    from_date?: string;
+    to_date?: string;
+    search?: string;
+  }): Promise<void> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const response = await api.get(`/auditor/activity-logs/export?${searchParams.toString()}`, { responseType: 'blob' });
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    triggerBlobDownload(response.data as Blob, `activity_logs_${today}.xlsx`);
+  },
+
+  downloadMonthlyTransactions: async (): Promise<void> => {
+    const response = await api.get('/auditor/reports/monthly-transactions', { responseType: 'blob' });
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    triggerBlobDownload(response.data as Blob, `monthly_transactions_${today}.xlsx`);
+  },
+
+  downloadInventoryAudit: async (): Promise<void> => {
+    const response = await api.get('/auditor/reports/inventory-audit', { responseType: 'blob' });
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    triggerBlobDownload(response.data as Blob, `inventory_audit_${today}.xlsx`);
   },
 };
 
