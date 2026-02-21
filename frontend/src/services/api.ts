@@ -431,14 +431,28 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      const path = window.location.pathname;
+      // Don't intercept 401s that come from login attempts themselves
+      if (path.includes('/login')) {
+        return Promise.reject(error);
+      }
+
+      // Determine which login page to redirect to based on the stored user role
+      const storedUser = localStorage.getItem('currentUser');
+      let isEmployee = false;
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          isEmployee = ['manager', 'admin', 'auditor'].includes(parsed.role);
+        } catch {
+          // ignore
+        }
+      }
+
       localStorage.removeItem('token');
       localStorage.removeItem('currentUser');
 
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
+      window.location.href = isEmployee ? '/employee-login' : '/login';
     }
     return Promise.reject(error);
   }

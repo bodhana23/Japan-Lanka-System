@@ -18,6 +18,8 @@ from app.schemas.inventory_transaction import (
 )
 from app.utils.deps import require_manager_or_admin
 from app.services.notification_service import notify_admins_low_stock, LOW_STOCK_THRESHOLD
+from app.services.audit_service import log_inventory_event
+from app.models.inventory_log import InventoryActionType, RelatedEntityType
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -181,6 +183,16 @@ async def create_adjustment(
         ip_address=get_client_ip(request)
     )
     db.add(audit_log)
+
+    # Write to inventory_logs so auditors can see this adjustment
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.STOCK_ADJUSTED,
+        description=f"Stock adjusted for '{product.name}': {quantity_before} -> {new_quantity} by {current_employee.email}",
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.PRODUCT,
+        related_entity_id=product.id
+    )
 
     # Notify admins if adjustment caused stock to drop to or below the low stock threshold
     if quantity_before > LOW_STOCK_THRESHOLD and new_quantity <= LOW_STOCK_THRESHOLD:

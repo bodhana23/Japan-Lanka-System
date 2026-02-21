@@ -172,6 +172,7 @@ const ManagerDashboard: React.FC = () => {
   const [stockAdjustmentProduct, setStockAdjustmentProduct] = useState<Product | null>(null);
   const [isProcessingAdjustment, setIsProcessingAdjustment] = useState(false);
   const [adjustmentError, setAdjustmentError] = useState<string | null>(null);
+  const [adjustmentSuccess, setAdjustmentSuccess] = useState<string | null>(null);
 
   // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -455,15 +456,14 @@ const ManagerDashboard: React.FC = () => {
   const handleStockAdjustment = async (productId: string, quantityChange: number, reason: string) => {
     setIsProcessingAdjustment(true);
     setAdjustmentError(null);
+    setAdjustmentSuccess(null);
     try {
       const response = await inventoryApi.createAdjustment({ product_id: productId, quantity_change: quantityChange, reason });
       setProducts(products.map(p => p.id === productId ? { ...p, quantity: response.quantity_after } : p));
       if (selectedProduct && selectedProduct.id === productId) {
         setSelectedProduct({ ...selectedProduct, quantity: response.quantity_after });
       }
-      setShowStockAdjustment(false);
-      setStockAdjustmentProduct(null);
-      alert('Stock adjusted successfully!');
+      setAdjustmentSuccess(`Stock updated successfully! New quantity: ${response.quantity_after} units.`);
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to adjust stock.';
       setAdjustmentError(errorMessage);
@@ -668,12 +668,12 @@ const ManagerDashboard: React.FC = () => {
       {/* Add Product Modal */}
       {showAddProduct && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content edit-product-modal">
             <div className="modal-header">
               <h2>Add New Product</h2>
               <button onClick={() => setShowAddProduct(false)} className="close-modal">×</button>
             </div>
-            <form className="add-product-form">
+            <form className="edit-product-form">
               <div className="form-group">
                 <label>Product Name:</label>
                 <input
@@ -739,11 +739,11 @@ const ManagerDashboard: React.FC = () => {
                   placeholder="Enter image URL (optional)"
                 />
               </div>
-              <div className="form-actions">
-                <button type="button" onClick={handleAddProduct} className="save-btn">Add Product</button>
-                <button type="button" onClick={() => setShowAddProduct(false)} className="cancel-btn">Cancel</button>
-              </div>
             </form>
+            <div className="edit-product-footer">
+              <button type="button" onClick={handleAddProduct} className="save-btn">Add Product</button>
+              <button type="button" onClick={() => setShowAddProduct(false)} className="cancel-btn">Cancel</button>
+            </div>
           </div>
         </div>
       )}
@@ -775,10 +775,12 @@ const ManagerDashboard: React.FC = () => {
             setShowStockAdjustment(false);
             setStockAdjustmentProduct(null);
             setAdjustmentError(null);
+            setAdjustmentSuccess(null);
           }}
           onAdjust={handleStockAdjustment}
           isProcessing={isProcessingAdjustment}
           error={adjustmentError}
+          successMessage={adjustmentSuccess}
         />
       )}
 
@@ -1027,7 +1029,8 @@ const StockAdjustmentModal: React.FC<{
   onAdjust: (productId: string, quantityChange: number, reason: string) => void;
   isProcessing: boolean;
   error: string | null;
-}> = ({ product, onClose, onAdjust, isProcessing, error }) => {
+  successMessage: string | null;
+}> = ({ product, onClose, onAdjust, isProcessing, error, successMessage }) => {
   const [direction, setDirection] = useState<'add' | 'reduce'>('add');
   const [quantity, setQuantity] = useState<number>(1);
   const [reason, setReason] = useState<string>('');
@@ -1064,84 +1067,97 @@ const StockAdjustmentModal: React.FC<{
         </div>
 
         <div className="stock-adjustment-body">
-          <div className="stock-product-info">
-            <p className="product-info-name">{product.name}</p>
-            <p className="product-info-stock">Current stock: {product.quantity} units</p>
-          </div>
+          {successMessage ? (
+            <div className="adjustment-success-state">
+              <CheckCircle size={48} className="success-icon" />
+              <p className="success-title">Stock Updated!</p>
+              <p className="success-message">{successMessage}</p>
+              <button className="close-success-btn" onClick={onClose}>
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="stock-product-info">
+                <p className="product-info-name">{product.name}</p>
+                <p className="product-info-stock">Current stock: {product.quantity} units</p>
+              </div>
 
-          <div className="direction-toggle">
-            <button
-              type="button"
-              className={direction === 'add' ? 'active-add' : ''}
-              onClick={() => setDirection('add')}
-            >
-              <PlusCircle size={16} /> Add Stock
-            </button>
-            <button
-              type="button"
-              className={direction === 'reduce' ? 'active-reduce' : ''}
-              onClick={() => setDirection('reduce')}
-            >
-              <MinusCircle size={16} /> Reduce Stock
-            </button>
-          </div>
+              <div className="direction-toggle">
+                <button
+                  type="button"
+                  className={direction === 'add' ? 'active-add' : ''}
+                  onClick={() => setDirection('add')}
+                >
+                  <PlusCircle size={16} /> Add Stock
+                </button>
+                <button
+                  type="button"
+                  className={direction === 'reduce' ? 'active-reduce' : ''}
+                  onClick={() => setDirection('reduce')}
+                >
+                  <MinusCircle size={16} /> Reduce Stock
+                </button>
+              </div>
 
-          <div className="form-group">
-            <label>
-              <BarChart2 size={16} />
-              Quantity to {direction === 'add' ? 'Add' : 'Reduce'} *
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={quantity || ''}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              placeholder="Enter quantity"
-            />
-          </div>
+              <div className="form-group">
+                <label>
+                  <BarChart2 size={16} />
+                  Quantity to {direction === 'add' ? 'Add' : 'Reduce'} *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity || ''}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  placeholder="Enter quantity"
+                />
+              </div>
 
-          <div className="form-group">
-            <label>
-              <FileText size={16} />
-              Reason *
-            </label>
-            <textarea
-              rows={4}
-              maxLength={500}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter reason for stock adjustment (required)"
-            />
-            <span className={`char-counter${reason.length > 480 ? ' near-limit' : ''}`}>
-              {reason.length}/500
-            </span>
-          </div>
+              <div className="form-group">
+                <label>
+                  <FileText size={16} />
+                  Reason *
+                </label>
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Enter reason for stock adjustment (required)"
+                />
+                <span className={`char-counter${reason.length > 480 ? ' near-limit' : ''}`}>
+                  {reason.length}/500
+                </span>
+              </div>
 
-          {validationError && (
-            <div className="validation-error">{validationError}</div>
+              {validationError && (
+                <div className="validation-error">{validationError}</div>
+              )}
+              {error && (
+                <div className="api-error">{error}</div>
+              )}
+
+              <div className="action-buttons">
+                <button
+                  type="button"
+                  className="cancel-adjust-btn"
+                  onClick={onClose}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="confirm-adjust-btn"
+                  onClick={handleSubmit}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? 'Processing...' : (direction === 'add' ? <><PlusCircle size={16} /> Add Stock</> : <><MinusCircle size={16} /> Reduce Stock</>)}
+                </button>
+              </div>
+            </>
           )}
-          {error && (
-            <div className="api-error">{error}</div>
-          )}
-
-          <div className="action-buttons">
-            <button
-              type="button"
-              className="cancel-adjust-btn"
-              onClick={onClose}
-              disabled={isProcessing}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="confirm-adjust-btn"
-              onClick={handleSubmit}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : (direction === 'add' ? <><PlusCircle size={16} /> Add Stock</> : <><MinusCircle size={16} /> Reduce Stock</>)}
-            </button>
-          </div>
         </div>
       </div>
     </div>
