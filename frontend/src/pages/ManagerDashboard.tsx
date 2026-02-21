@@ -4,12 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { DashboardLayout, roleConfigs } from '../components/shared';
 import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
 import { DashboardInventory, DashboardOrders, DashboardReturns, DashboardProfile } from '../components/manager';
-import { productsApi, ordersApi, returnsApi, Product as ApiProduct, Order as ApiOrder, ReturnRequest as ApiReturnRequest } from '../services/api';
+import { productsApi, ordersApi, returnsApi, inventoryApi, Product as ApiProduct, Order as ApiOrder, ReturnRequest as ApiReturnRequest } from '../services/api';
 import { formatDateTime } from '../utils/dateUtils';
 import {
   Package, Clock, RotateCcw, AlertTriangle,
   Tag, Factory, Car, DollarSign, BarChart2, Image, Trash2, RefreshCw, FileText, CheckCircle, XCircle,
-  ClipboardList, User, Store
+  ClipboardList, User, Store, AlertCircle, PlusCircle, MinusCircle
 } from 'lucide-react';
 import './ManagerDashboard.css';
 
@@ -166,6 +166,21 @@ const ManagerDashboard: React.FC = () => {
   const [isLoadingReturns, setIsLoadingReturns] = useState(true);
   const [returnsError, setReturnsError] = useState<string | null>(null);
   const [selectedReturnRequest, setSelectedReturnRequest] = useState<ReturnRequestUI | null>(null);
+
+  // Stock adjustment modal state
+  const [showStockAdjustment, setShowStockAdjustment] = useState(false);
+  const [stockAdjustmentProduct, setStockAdjustmentProduct] = useState<Product | null>(null);
+  const [isProcessingAdjustment, setIsProcessingAdjustment] = useState(false);
+  const [adjustmentError, setAdjustmentError] = useState<string | null>(null);
+
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Product update loading state
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
 
   // Fetch products from API
   useEffect(() => {
@@ -370,19 +385,90 @@ const ManagerDashboard: React.FC = () => {
     setShowEditProduct(true);
   };
 
-  const handleUpdateProduct = (updatedProduct: Product) => {
-    setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-    setShowEditProduct(false);
-    setSelectedProduct(null);
-    alert('Product updated successfully!');
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    setIsUpdatingProduct(true);
+    try {
+      const payload = {
+        name: updatedProduct.name,
+        description: updatedProduct.description,
+        brand: updatedProduct.brand,
+        model: updatedProduct.model,
+        price: updatedProduct.price,
+        image_url: updatedProduct.imageLink,
+      };
+      const updated = await productsApi.updateProduct(updatedProduct.id, payload);
+      setProducts(products.map(p => p.id === updatedProduct.id ? {
+        ...p,
+        name: updated.name,
+        description: updated.description || '',
+        brand: updated.brand,
+        model: updated.model,
+        price: typeof updated.price === 'string' ? parseFloat(updated.price) : updated.price,
+        imageLink: updated.image_url || '',
+      } : p));
+      setShowEditProduct(false);
+      setSelectedProduct(null);
+      alert('Product updated successfully!');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to update product.';
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setIsUpdatingProduct(false);
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      setProducts(products.filter(p => p.id !== productId));
+  const requestDeleteProduct = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setProductToDelete(product);
+      setDeleteError(null);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeletingProduct(true);
+    setDeleteError(null);
+    try {
+      await productsApi.deleteProduct(productToDelete.id);
+      setProducts(products.filter(p => p.id !== productToDelete.id));
+      setShowDeleteConfirm(false);
+      setProductToDelete(null);
       setShowEditProduct(false);
       setSelectedProduct(null);
       alert('Product deleted successfully!');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to delete product.';
+      setDeleteError(errorMessage);
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  };
+
+  const cancelDeleteProduct = () => {
+    setShowDeleteConfirm(false);
+    setProductToDelete(null);
+    setDeleteError(null);
+  };
+
+  const handleStockAdjustment = async (productId: string, quantityChange: number, reason: string) => {
+    setIsProcessingAdjustment(true);
+    setAdjustmentError(null);
+    try {
+      const response = await inventoryApi.createAdjustment({ product_id: productId, quantity_change: quantityChange, reason });
+      setProducts(products.map(p => p.id === productId ? { ...p, quantity: response.quantity_after } : p));
+      if (selectedProduct && selectedProduct.id === productId) {
+        setSelectedProduct({ ...selectedProduct, quantity: response.quantity_after });
+      }
+      setShowStockAdjustment(false);
+      setStockAdjustmentProduct(null);
+      alert('Stock adjusted successfully!');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to adjust stock.';
+      setAdjustmentError(errorMessage);
+    } finally {
+      setIsProcessingAdjustment(false);
     }
   };
 
@@ -446,11 +532,12 @@ const ManagerDashboard: React.FC = () => {
       }));
 
       // Show success message
-      const statusMessages = {
+      const statusMessages: Record<string, string> = {
         'pending': 'Order marked as pending',
         'in_progress': 'Order marked as in progress',
         'ready_to_pickup': 'Order marked as ready for pickup',
-        'delivered': 'Order marked as delivered'
+        'delivered': 'Order marked as delivered',
+        'return_approved': 'Return approved'
       };
 
       alert(statusMessages[newStatus] || 'Order status updated');
@@ -670,7 +757,39 @@ const ManagerDashboard: React.FC = () => {
             setSelectedProduct(null);
           }}
           onSave={handleUpdateProduct}
-          onDelete={handleDeleteProduct}
+          onDelete={requestDeleteProduct}
+          onOpenStockAdjust={(product) => {
+            setStockAdjustmentProduct(product);
+            setAdjustmentError(null);
+            setShowStockAdjustment(true);
+          }}
+          isSaving={isUpdatingProduct}
+        />
+      )}
+
+      {/* Stock Adjustment Modal */}
+      {showStockAdjustment && stockAdjustmentProduct && (
+        <StockAdjustmentModal
+          product={stockAdjustmentProduct}
+          onClose={() => {
+            setShowStockAdjustment(false);
+            setStockAdjustmentProduct(null);
+            setAdjustmentError(null);
+          }}
+          onAdjust={handleStockAdjustment}
+          isProcessing={isProcessingAdjustment}
+          error={adjustmentError}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && productToDelete && (
+        <ConfirmDeleteModal
+          product={productToDelete}
+          onConfirm={confirmDeleteProduct}
+          onCancel={cancelDeleteProduct}
+          isDeleting={isDeletingProduct}
+          error={deleteError}
         />
       )}
 
@@ -697,9 +816,16 @@ const EditProductModal: React.FC<{
   onClose: () => void;
   onSave: (product: Product) => void;
   onDelete: (productId: string) => void;
-}> = ({ product, onClose, onSave, onDelete }) => {
+  onOpenStockAdjust: (product: Product) => void;
+  isSaving: boolean;
+}> = ({ product, onClose, onSave, onDelete, onOpenStockAdjust, isSaving }) => {
   const [formData, setFormData] = useState<Product>(product);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  // Sync formData.quantity if parent updates selectedProduct after a stock adjustment
+  React.useEffect(() => {
+    setFormData(prev => ({ ...prev, quantity: product.quantity }));
+  }, [product.quantity]);
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -720,10 +846,6 @@ const EditProductModal: React.FC<{
       newErrors.price = 'Price must be greater than 0';
     }
 
-    if (formData.quantity < 0) {
-      newErrors.quantity = 'Quantity cannot be negative';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -736,7 +858,7 @@ const EditProductModal: React.FC<{
 
   const handleInputChange = (field: keyof Product, value: string | number) => {
     setFormData({...formData, [field]: value});
-    if (errors[field]) {
+    if (errors[field as string]) {
       setErrors({...errors, [field]: ''});
     }
   };
@@ -841,20 +963,13 @@ const EditProductModal: React.FC<{
             </div>
 
             <div className="form-group">
-              <label htmlFor="quantity">
+              <label>
                 <BarChart2 size={16} className="label-icon" />
-                Quantity *
+                Current Stock
               </label>
-              <input
-                id="quantity"
-                type="number"
-                min="0"
-                value={formData.quantity || ''}
-                onChange={(e) => handleInputChange('quantity', Number(e.target.value))}
-                placeholder="Enter quantity"
-                className={errors.quantity ? 'error' : ''}
-              />
-              {errors.quantity && <span className="error-message">{errors.quantity}</span>}
+              <div className="quantity-readonly-display">
+                {formData.quantity} units
+              </div>
             </div>
           </div>
 
@@ -872,15 +987,159 @@ const EditProductModal: React.FC<{
             />
           </div>
 
-          <div className="form-actions">
-            <button type="button" onClick={handleSubmit} className="save-btn">
-              Save Changes
+          <div className="stock-adjustment-section">
+            <div className="stock-adjustment-info">
+              <BarChart2 size={16} />
+              <span>To change stock quantity, use the Stock Adjustment tool</span>
+            </div>
+            <button
+              type="button"
+              className="adjust-stock-btn"
+              onClick={() => onOpenStockAdjust(formData)}
+            >
+              <RefreshCw size={16} /> Adjust Stock
             </button>
-            <button type="button" onClick={onClose} className="cancel-btn">
+          </div>
+        </div>
+
+        <div className="edit-product-footer">
+          <button type="button" onClick={handleSubmit} className="save-btn" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button type="button" onClick={onClose} className="cancel-btn" disabled={isSaving}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleDelete} className="delete-btn-modal" disabled={isSaving}>
+            <Trash2 size={16} /> Delete Product
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+// Stock Adjustment Modal Component
+const StockAdjustmentModal: React.FC<{
+  product: Product;
+  onClose: () => void;
+  onAdjust: (productId: string, quantityChange: number, reason: string) => void;
+  isProcessing: boolean;
+  error: string | null;
+}> = ({ product, onClose, onAdjust, isProcessing, error }) => {
+  const [direction, setDirection] = useState<'add' | 'reduce'>('add');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [reason, setReason] = useState<string>('');
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleSubmit = () => {
+    setValidationError(null);
+    if (!quantity || quantity < 1) {
+      setValidationError('Quantity must be at least 1.');
+      return;
+    }
+    if (!reason.trim()) {
+      setValidationError('Reason is required.');
+      return;
+    }
+    if (reason.trim().length > 500) {
+      setValidationError('Reason must be 500 characters or less.');
+      return;
+    }
+    if (direction === 'reduce' && quantity > product.quantity) {
+      setValidationError(`Cannot reduce more than current stock (${product.quantity} units).`);
+      return;
+    }
+    const quantityChange = direction === 'add' ? quantity : -quantity;
+    onAdjust(product.id, quantityChange, reason.trim());
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content stock-adjustment-modal">
+        <div className="modal-header">
+          <h2>Adjust Stock</h2>
+          <button onClick={onClose} className="close-modal" disabled={isProcessing}>×</button>
+        </div>
+
+        <div className="stock-adjustment-body">
+          <div className="stock-product-info">
+            <p className="product-info-name">{product.name}</p>
+            <p className="product-info-stock">Current stock: {product.quantity} units</p>
+          </div>
+
+          <div className="direction-toggle">
+            <button
+              type="button"
+              className={direction === 'add' ? 'active-add' : ''}
+              onClick={() => setDirection('add')}
+            >
+              <PlusCircle size={16} /> Add Stock
+            </button>
+            <button
+              type="button"
+              className={direction === 'reduce' ? 'active-reduce' : ''}
+              onClick={() => setDirection('reduce')}
+            >
+              <MinusCircle size={16} /> Reduce Stock
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>
+              <BarChart2 size={16} />
+              Quantity to {direction === 'add' ? 'Add' : 'Reduce'} *
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={quantity || ''}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              placeholder="Enter quantity"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>
+              <FileText size={16} />
+              Reason *
+            </label>
+            <textarea
+              rows={4}
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Enter reason for stock adjustment (required)"
+            />
+            <span className={`char-counter${reason.length > 480 ? ' near-limit' : ''}`}>
+              {reason.length}/500
+            </span>
+          </div>
+
+          {validationError && (
+            <div className="validation-error">{validationError}</div>
+          )}
+          {error && (
+            <div className="api-error">{error}</div>
+          )}
+
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="cancel-adjust-btn"
+              onClick={onClose}
+              disabled={isProcessing}
+            >
               Cancel
             </button>
-            <button type="button" onClick={handleDelete} className="delete-btn-modal">
-              <Trash2 size={16} /> Delete Product
+            <button
+              type="button"
+              className="confirm-adjust-btn"
+              onClick={handleSubmit}
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Processing...' : (direction === 'add' ? <><PlusCircle size={16} /> Add Stock</> : <><MinusCircle size={16} /> Reduce Stock</>)}
             </button>
           </div>
         </div>
@@ -889,7 +1148,62 @@ const EditProductModal: React.FC<{
   );
 };
 
+// Confirm Delete Modal Component
+const ConfirmDeleteModal: React.FC<{
+  product: Product;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+  error: string | null;
+}> = ({ product, onConfirm, onCancel, isDeleting, error }) => {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content confirm-delete-modal">
+        <div className="modal-header">
+          <h2>Delete Product</h2>
+          <button onClick={onCancel} className="close-modal" disabled={isDeleting}>×</button>
+        </div>
 
+        <div className="confirm-delete-body">
+          <div className="confirm-delete-icon">
+            <AlertCircle size={56} />
+          </div>
+          <h3>Are you sure?</h3>
+          <p>
+            You are about to delete:{' '}
+            <span className="product-name-highlight">{product.name}</span>
+          </p>
+          <div className="delete-warning">
+            This action will deactivate the product and remove it from the store. It cannot be reversed.
+          </div>
+
+          {error && (
+            <div className="api-error">{error}</div>
+          )}
+
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="cancel-delete-btn"
+              onClick={onCancel}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="confirm-delete-btn"
+              onClick={onConfirm}
+              disabled={isDeleting}
+            >
+              <Trash2 size={16} /> {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Return Detail Modal Component
 const ReturnDetailModal: React.FC<{

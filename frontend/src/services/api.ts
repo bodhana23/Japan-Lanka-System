@@ -378,6 +378,28 @@ export interface ApiError {
   detail: string;
 }
 
+export interface InventoryAdjustmentRequest {
+  product_id: string;
+  quantity_change: number;
+  reason: string;
+}
+
+export interface InventoryAdjustmentResponse {
+  id: string;
+  product_id: string;
+  product_name?: string;
+  product_brand?: string;
+  employee_id?: string;
+  employee_name?: string;
+  transaction_type: string;
+  quantity_change: number;
+  quantity_before: number;
+  quantity_after: number;
+  reason?: string;
+  reference_order_id?: string;
+  created_at: string;
+}
+
 // API base URL from environment variable (with fallback for development)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -837,6 +859,15 @@ export const returnsApi = {
       status,
       admin_notes: adminNotes,
     });
+    return response.data;
+  },
+};
+
+// ============ INVENTORY API ============
+
+export const inventoryApi = {
+  createAdjustment: async (data: InventoryAdjustmentRequest): Promise<InventoryAdjustmentResponse> => {
+    const response = await api.post<InventoryAdjustmentResponse>('/inventory/adjustment', data);
     return response.data;
   },
 };

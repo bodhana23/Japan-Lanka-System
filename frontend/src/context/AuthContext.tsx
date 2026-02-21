@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
-import { authApi, User, AuthResponse } from '../services/api';
+import { authApi, employeeAuthApi, User, AuthResponse } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginEmployee: (email: string, password: string) => Promise<string>;
   register: (email: string, fullName: string, password: string, phoneNumber?: string) => Promise<void>;
   completeRegistrationAndLogin: (email: string, password: string, fullName: string, phoneNumber?: string | null) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -127,6 +128,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     handleAuthResponse(response);
   };
 
+  const loginEmployee = async (email: string, password: string): Promise<string> => {
+    // Clear any stale customer session before writing the employee session.
+    // Without this, a previously stored role:'customer' in localStorage can
+    // survive a failed employee login attempt and redirect the user to '/'.
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
+
+    const response = await employeeAuthApi.login(email, password);
+    const userData: User = {
+      id: response.user.id,
+      email: response.user.email,
+      full_name: response.user.full_name,
+      role: response.role.toLowerCase() as User['role'],
+      is_active: response.user.is_active,
+      created_at: response.user.created_at,
+      updated_at: response.user.updated_at,
+    };
+    setToken(response.access_token);
+    setUser(userData);
+    localStorage.setItem('token', response.access_token);
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    return response.role.toLowerCase();
+  };
+
   const register = async (
     email: string,
     fullName: string,
@@ -197,6 +222,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     isAuthenticated: !!token && !!user,
     login,
+    loginEmployee,
     register,
     completeRegistrationAndLogin,
     signInWithGoogle,

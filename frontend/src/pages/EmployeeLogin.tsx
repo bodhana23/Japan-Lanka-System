@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
-import { employeeAuthApi, EmployeeAuthResponse } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { AxiosError } from 'axios';
 import './EmployeeLogin.css';
 
@@ -16,6 +16,7 @@ const EmployeeLogin: React.FC = () => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { loginEmployee } = useAuth();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedEmail = sanitizeInput(e.target.value);
@@ -62,40 +63,19 @@ const EmployeeLogin: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Call the employee login API
-      const response: EmployeeAuthResponse = await employeeAuthApi.login(email, password);
-
-      // Store token and user info
-      localStorage.setItem('token', response.access_token);
-
-      // Convert employee data to user format for consistency
-      const userData = {
-        id: response.user.id,
-        email: response.user.email,
-        full_name: response.user.full_name,
-        fullName: response.user.full_name, // For backwards compatibility
-        name: response.user.full_name, // For dashboard welcome message
-        role: response.role.toLowerCase(), // Convert MANAGER -> manager
-        is_active: response.user.is_active,
-        created_at: response.user.created_at,
-        updated_at: response.user.updated_at,
-      };
-
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      // Login via AuthContext so context state is updated correctly
+      const role = await loginEmployee(email, password);
 
       // Navigate based on role
-      switch (response.role.toUpperCase()) {
-        case 'MANAGER':
-          navigate('/manager-dashboard');
-          break;
-        case 'ADMIN':
-          navigate('/admin-dashboard');
-          break;
-        case 'AUDITOR':
-          navigate('/auditor-dashboard');
-          break;
-        default:
-          navigate('/');
+      if (role === 'manager') {
+        navigate('/manager-dashboard');
+      } else if (role === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (role === 'auditor') {
+        navigate('/auditor-dashboard');
+      } else {
+        // Unknown role — stay on page and show error instead of redirecting to customer portal
+        setErrors({ form: `Unrecognised role "${role}". Please contact your administrator.` });
       }
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
@@ -152,7 +132,7 @@ const EmployeeLogin: React.FC = () => {
               value={email}
               onChange={handleEmailChange}
               placeholder="Enter your employee email"
-              autoComplete="email"
+              autoComplete="off"
               tabIndex={1}
               required
               disabled={isLoading}
@@ -170,7 +150,7 @@ const EmployeeLogin: React.FC = () => {
                 value={password}
                 onChange={handlePasswordChange}
                 placeholder="Enter your password"
-                autoComplete="current-password"
+                autoComplete="off"
                 tabIndex={2}
                 required
                 disabled={isLoading}

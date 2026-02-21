@@ -29,6 +29,40 @@ def init_db():
         print(f"  - {table_name}")
 
 
+def seed_default_admin():
+    """Seed a default admin employee if no employees exist.
+
+    This ensures there is always at least one account to log in with
+    after a fresh database initialisation. The password must be changed
+    after the first login via the Admin dashboard.
+    """
+    from app.database import SessionLocal
+    from app.models.employee import Employee, EmployeeRole
+    from app.utils.security import get_password_hash
+
+    db = SessionLocal()
+    try:
+        if db.query(Employee).count() == 0:
+            admin = Employee(
+                email="admin@japanlanka.com",
+                full_name="System Admin",
+                password_hash=get_password_hash("Admin@1234"),
+                role=EmployeeRole.ADMIN,
+                is_active=True,
+            )
+            db.add(admin)
+            db.commit()
+            print("\nDefault admin seeded:")
+            print("  Email   : admin@japanlanka.com")
+            print("  Password: Admin@1234")
+            print("  Role    : ADMIN")
+            print("  *** Change this password after first login ***")
+        else:
+            print("\nEmployees already exist — skipping default admin seed.")
+    finally:
+        db.close()
+
+
 def drop_db():
     """Drop all database tables. Use with caution!"""
     print("Dropping all database tables...")
@@ -38,3 +72,4 @@ def drop_db():
 
 if __name__ == "__main__":
     init_db()
+    seed_default_admin()

@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.database import get_db
-from app.models import Product, Customer, Employee
+from app.models import Product, Customer, Employee, InventoryTransaction
+from app.models.inventory_transaction import TransactionType
 from app.services.audit_service import log_inventory_event
 from app.models.inventory_log import InventoryActionType, RelatedEntityType
 from app.schemas.product import (
@@ -192,6 +193,17 @@ async def update_product(
             related_entity_type=RelatedEntityType.PRODUCT,
             related_entity_id=product.id
         )
+        # Also create an InventoryTransaction so auditors can see it in /inventory/transactions
+        inv_transaction = InventoryTransaction(
+            product_id=product.id,
+            employee_id=current_user.id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            quantity_change=product.quantity_available - old_quantity,
+            quantity_before=old_quantity,
+            quantity_after=product.quantity_available,
+            reason="Product updated via product edit form"
+        )
+        db.add(inv_transaction)
     else:
         log_inventory_event(
             db=db,

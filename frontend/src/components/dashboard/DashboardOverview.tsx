@@ -14,7 +14,7 @@ interface Order {
   id: string;
   items: string[];
   amount: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved';
   orderDate: string;
   deliveryMethod: 'pickup' | 'shipping';
 }

@@ -36,6 +36,7 @@ from app.utils.firebase import (
 router = APIRouter(prefix="/auth/employee", tags=["Employee Authentication"])
 
 
+
 def get_client_ip(request: Request) -> str:
     """Get client IP address from request."""
     forwarded = request.headers.get("X-Forwarded-For")
@@ -64,7 +65,39 @@ async def login(
 
     employee = db.query(Employee).filter(Employee.email == credentials.email).first()
 
-    if not employee or not verify_password(credentials.password, employee.password_hash):
+    if not employee:
+        auth_rate_limiter.record_attempt(ip_address, success=False)
+        log_activity_event(
+            db=db,
+            activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
+            description=f"Failed login attempt for employee {credentials.email} (account not found)",
+            employee_id=None,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+
+    if employee.password_hash is None:
+        auth_rate_limiter.record_attempt(ip_address, success=False)
+        log_activity_event(
+            db=db,
+            activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
+            description=f"Failed login attempt for employee {credentials.email} (no password set — Google-only account)",
+            employee_id=employee.id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This account has no password set. Please sign in with Google or contact your administrator."
+        )
+
+    if not verify_password(credentials.password, employee.password_hash):
         # Record failed attempt for rate limiting
         auth_rate_limiter.record_attempt(ip_address, success=False)
 
@@ -73,7 +106,7 @@ async def login(
             db=db,
             activity_type=ActivityType.EMPLOYEE_LOGIN_FAILED,
             description=f"Failed login attempt for employee {credentials.email} (invalid credentials)",
-            employee_id=employee.id if employee else None,
+            employee_id=employee.id,
             ip_address=ip_address,
             user_agent=user_agent
         )

@@ -2788,12 +2788,22 @@
 }
 
 /* Edit Product Modal Styles */
-.edit-product-modal {
-  max-width: 700px;
-  width: 95%;
+/* These rules must override .modal-content which sets overflow-y:auto and padding:2.5rem */
+.modal-content.edit-product-modal {
+  max-width: 860px;
+  width: 92%;
+  height: 90vh;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.edit-product-modal .modal-header {
+  flex-shrink: 0;
+  padding: 1.75rem 2.5rem;
 }
 
 .product-icon-header {
@@ -2812,13 +2822,18 @@
 .edit-product-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+  /* min-height: 0 is required for flex children to shrink and scroll correctly */
+  min-height: 0;
+  padding: 1.5rem 2.5rem;
 }
 
 .edit-product-form .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .edit-product-form .form-group {
@@ -2840,7 +2855,8 @@
   font-size: 1.1rem;
 }
 
-.edit-product-form input {
+.edit-product-form input,
+.edit-product-form textarea {
   background: #ffffff;
   border: 2px solid #e8e8e8;
   border-radius: 12px;
@@ -2850,9 +2866,12 @@
   font-weight: 500;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: inherit;
+  resize: vertical;
 }
 
-.edit-product-form input:focus {
+.edit-product-form input:focus,
+.edit-product-form textarea:focus {
   outline: none;
   border-color: #00b894;
   background: #ffffff;
@@ -2880,12 +2899,14 @@
   font-size: 0.8rem;
 }
 
-.edit-product-form .form-actions {
+.edit-product-footer {
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
+  flex-shrink: 0;
+  padding: 1.25rem 2.5rem;
   border-top: 2px solid #e8e8e8;
+  background: #ffffff;
+  border-radius: 0 0 25px 25px;
 }
 
 .delete-btn-modal {
@@ -2911,17 +2932,30 @@
 }
 
 /* Responsive Design for Edit Product Modal */
+@media (max-width: 960px) {
+  .edit-product-modal {
+    max-width: 720px;
+  }
+}
+
 @media (max-width: 768px) {
   .edit-product-modal {
-    width: 95%;
-    padding: 1.5rem;
+    width: 97%;
+    max-height: 95vh;
+  }
+
+  .edit-product-modal .modal-header,
+  .edit-product-form,
+  .edit-product-footer {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 
   .edit-product-form .form-row {
     grid-template-columns: 1fr;
   }
 
-  .edit-product-form .form-actions {
+  .edit-product-footer {
     flex-direction: column;
   }
 
@@ -2936,6 +2970,362 @@
   .cancel-btn {
     order: 2;
   }
+}
+
+/* Quantity Read-Only Display */
+.quantity-readonly-display {
+  background: #f5f5f5;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 1rem;
+  color: #666;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: default;
+  user-select: none;
+}
+
+/* Stock Adjustment Section inside Edit Modal */
+.stock-adjustment-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0fdf4;
+  border: 2px dashed #00b894;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  gap: 1rem;
+}
+
+.stock-adjustment-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #00a085;
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.adjust-stock-btn {
+  background: white;
+  border: 2px solid #00b894;
+  color: #00b894;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.adjust-stock-btn:hover {
+  background: #00b894;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+}
+
+/* Stock Adjustment Modal */
+.stock-adjustment-modal {
+  max-width: 480px;
+  width: 95%;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.stock-adjustment-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stock-product-info {
+  background: #f0fdf4;
+  border-left: 4px solid #00b894;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.stock-product-info .product-info-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+}
+
+.stock-product-info .product-info-stock {
+  font-size: 0.9rem;
+  color: #00a085;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Direction toggle: Add / Reduce */
+.direction-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #f0f0f0;
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.direction-toggle button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.direction-toggle button.active-add {
+  background: #00b894;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+}
+
+.direction-toggle button.active-reduce {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.stock-adjustment-modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stock-adjustment-modal .form-group label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stock-adjustment-modal .form-group input[type="number"],
+.stock-adjustment-modal .form-group textarea {
+  background: #ffffff;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 1rem;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  resize: vertical;
+}
+
+.stock-adjustment-modal .form-group input[type="number"]:focus,
+.stock-adjustment-modal .form-group textarea:focus {
+  outline: none;
+  border-color: #00b894;
+  box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.15);
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: -0.25rem;
+}
+
+.char-counter.near-limit {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.stock-adjustment-modal .validation-error,
+.stock-adjustment-modal .api-error {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #c53030;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stock-adjustment-modal .action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.stock-adjustment-modal .confirm-adjust-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.3);
+}
+
+.stock-adjustment-modal .confirm-adjust-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
+}
+
+.stock-adjustment-modal .confirm-adjust-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.stock-adjustment-modal .cancel-adjust-btn {
+  background: #f5f5f5;
+  color: #666;
+  border: 2px solid #e8e8e8;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.stock-adjustment-modal .cancel-adjust-btn:hover {
+  background: #e8e8e8;
+  color: #333;
+}
+
+/* Confirm Delete Modal */
+.confirm-delete-modal {
+  max-width: 420px;
+  width: 95%;
+  background: white;
+}
+
+.confirm-delete-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.confirm-delete-icon {
+  color: #ef4444;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.confirm-delete-body h3 {
+  font-size: 1.25rem;
+  color: #333;
+  font-weight: 700;
+  margin: 0;
+}
+
+.confirm-delete-body p {
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirm-delete-body .product-name-highlight {
+  font-weight: 700;
+  color: #333;
+}
+
+.confirm-delete-body .delete-warning {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #c53030;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.confirm-delete-body .api-error {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #c53030;
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.confirm-delete-modal .action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.confirm-delete-modal .cancel-delete-btn {
+  flex: 1;
+  background: #f5f5f5;
+  color: #666;
+  border: 2px solid #e8e8e8;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.confirm-delete-modal .cancel-delete-btn:hover {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.confirm-delete-modal .confirm-delete-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+}
+
+.confirm-delete-modal .confirm-delete-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+.confirm-delete-modal .confirm-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Responsive Design for Statistics Cards */
