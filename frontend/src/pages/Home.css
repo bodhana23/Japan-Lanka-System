@@ -243,6 +243,25 @@
   transform: translateX(3px);
 }
 
+.register-nav-btn {
+  padding: 0.625rem 1.25rem;
+  background: transparent;
+  color: var(--home-text);
+  border: 1.5px solid var(--home-border);
+  border-radius: var(--home-radius-full);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--home-transition);
+  font-family: inherit;
+}
+
+.register-nav-btn:hover {
+  border-color: var(--home-primary);
+  color: var(--home-primary);
+  background: rgba(16, 185, 129, 0.05);
+}
+
 /* ============================================
    HERO SECTION
    ============================================ */

@@ -6,6 +6,7 @@ export interface User {
   email: string;
   full_name: string;
   phone_number?: string;
+  address?: string;
   role: 'customer' | 'manager' | 'admin' | 'auditor';
   is_active: boolean;
   is_google_user?: boolean;
@@ -493,7 +494,7 @@ export const authApi = {
     return response.data;
   },
 
-  updateMe: async (data: { full_name?: string; phone_number?: string }): Promise<User> => {
+  updateMe: async (data: { full_name?: string; phone_number?: string; address?: string }): Promise<User> => {
     const response = await api.put<User>('/auth/customer/profile', data);
     return response.data;
   },

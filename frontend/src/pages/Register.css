@@ -1,444 +1,696 @@
-.register-container {
+/* ============================================================
+   REGISTER PAGE — Split Layout
+   Japan Lanka Enterprises · 2026
+   Matches Login page design language exactly.
+   ============================================================ */
+
+/* ── Page wrapper ───────────────────────────────────────────── */
+.register-page {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, #e8f5f2 0%, #f0fdf4 50%, #e8f5f2 100%);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 2rem 1rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f8fafc;
+}
+
+/* ================================================================
+   LEFT PANEL — brand / marketing
+   ================================================================ */
+.register-left {
+  width: 42%;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #10b981 0%, #059669 55%, #1e293b 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem 2.5rem 2rem;
   position: relative;
   overflow: hidden;
+  min-height: 100vh;
 }
 
-.register-container::before {
+/* decorative circles — same blur style as Home page orbs */
+.register-left::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(0, 184, 148, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(0, 160, 133, 0.05) 0%, transparent 50%);
-  opacity: 0.8;
+  top: -100px;
+  right: -100px;
+  width: 350px;
+  height: 350px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.register-left::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 280px;
+  height: 280px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.register-card {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 3rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 480px;
-  border: 2px solid #f0f0f0;
+/* ── Left: brand logo row ──────────────────────────────────── */
+.left-brand {
   position: relative;
   z-index: 1;
 }
 
-.company-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid rgba(0, 184, 148, 0.2);
+.left-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.75rem;
 }
 
-.company-header h1 {
-  font-size: 2rem;
-  margin: 0 0 0.5rem 0;
+.left-brand-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.left-brand-name {
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #00b894;
+  color: #ffffff;
+  line-height: 1.2;
 }
 
-.company-header p {
-  color: #666666;
-  font-size: 1.1rem;
-  margin: 0;
-  font-weight: 400;
+.left-brand-tagline {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.2;
 }
 
-.register-form h2 {
-  text-align: center;
-  color: #333333;
-  margin-bottom: 0.5rem;
-  font-size: 1.8rem;
-  font-weight: 600;
+/* ── Left: headline + sub ─────────────────────────────────── */
+.left-headline {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.01em;
 }
 
-.form-subtitle {
-  text-align: center;
-  color: #666666;
-  margin-bottom: 2rem;
-  font-size: 1rem;
-  font-weight: 400;
-  padding: 0.5rem;
-  background: rgba(0, 184, 148, 0.1);
+.left-subline {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.65;
+  margin: 0 0 2rem 0;
+}
+
+/* ── Left: trust badges ───────────────────────────────────── */
+.left-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.left-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.left-badge-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  border-left: 4px solid #00b894;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.form-group {
+.left-badge-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Left: bottom sign-in link ────────────────────────────── */
+.left-bottom {
+  position: relative;
+  z-index: 1;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.left-signin-link {
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+.left-signin-link:hover { opacity: 0.8; }
+
+/* Mobile-only strip element — hidden on desktop */
+.left-mobile-signin { display: none; }
+
+/* ================================================================
+   RIGHT PANEL — the form
+   ================================================================ */
+.register-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 2.5rem;
+  /* Same grid + base colour as Login page */
+  background: #f8fafc;
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Top-right orb — mirrors login-container::before */
+.register-right::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Bottom-left orb — mirrors login-container::after */
+.register-right::after {
+  content: '';
+  position: fixed;
+  bottom: -150px;
+  left: -150px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Form card — identical spec to .login-card */
+.register-form-wrapper {
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.25rem 2.5rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 10px 40px rgba(16, 185, 129, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+}
+
+/* ── Right: heading ───────────────────────────────────────── */
+.register-heading {
   margin-bottom: 1.5rem;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.8rem;
-  color: #333333;
-  font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: 0.3px;
+.register-heading h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.2;
 }
 
-.optional-label {
-  color: #999999;
-  font-weight: 400;
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 1.2rem;
-  border: 2px solid #e8e8e8;
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-  background: #ffffff;
-  color: #333333;
-  font-weight: 500;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #00b894;
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
-  background: #ffffff;
-  transform: translateY(-2px);
-}
-
-.form-group input::placeholder {
-  color: #999999;
-  font-weight: 400;
-}
-
-.form-group input:hover {
-  border-color: #d1d5db;
-  transform: translateY(-1px);
-}
-
-.form-group input.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
-  background: #fef2f2;
-}
-
-.error-message {
-  display: block;
-  color: #ef4444;
+.register-heading p {
   font-size: 0.875rem;
-  margin-top: 0.5rem;
-  font-weight: 500;
+  color: #64748b;
+  margin: 0;
 }
 
+/* ── Form error banner ─────────────────────────────────────── */
 .form-error-message {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
   text-align: center;
 }
 
-/* Password Input with Toggle */
+/* ── Form groups ──────────────────────────────────────────── */
+.register-form .form-group {
+  margin-bottom: 0.85rem;
+}
+
+.register-form .form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.2px;
+}
+
+.optional-label {
+  color: #9ca3af;
+  font-weight: 400;
+  font-size: 0.78rem;
+  font-style: normal;
+  margin-left: 0.3rem;
+}
+
+/* Inputs — exact same spec as Login.css .form-group input */
+.register-form .form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 500;
+  outline: none;
+}
+.register-form .form-group input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+.register-form .form-group input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+.register-form .form-group input:hover:not(:focus) {
+  border-color: #cbd5e1;
+}
+.register-form .form-group input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  background: #fef9f9;
+}
+
+/* Field-level error text */
+.error-message {
+  display: block;
+  color: #ef4444;
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+  font-weight: 500;
+}
+
+/* Password hint line */
+.password-requirements {
+  font-size: 0.73rem;
+  color: #9ca3af;
+  margin-top: 0.3rem;
+  line-height: 1.45;
+}
+
+/* ── Password wrapper ─────────────────────────────────────── */
 .password-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
-
 .password-input-wrapper input {
-  padding-right: 3rem !important;
+  padding-right: 2.75rem !important;
 }
-
 .password-toggle-btn {
   position: absolute;
-  right: 1rem;
+  right: 0.85rem;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  color: #6b7280;
+  color: #9ca3af;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s ease;
+  line-height: 0;
 }
+.password-toggle-btn:hover { color: #10b981; }
+.password-toggle-btn:focus { outline: none; }
 
-.password-toggle-btn:hover {
-  color: #00b894;
-}
-
-.password-toggle-btn:focus {
-  outline: none;
-}
-
-.password-requirements {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
-  font-style: italic;
-}
-
-.register-btn:disabled,
-.back-login-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
+/* ── Submit button — exact same spec as Login.css .login-btn ── */
 .register-btn {
   width: 100%;
-  padding: 1.2rem;
-  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  padding: 0.85rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
   font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  transition: all 0.25s ease;
+  margin-top: 0.5rem;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
-
-.register-btn:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #00b894 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+.register-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
 }
+.register-btn:active:not(:disabled) { transform: translateY(0); }
+.register-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
 
-.register-btn:active {
-  transform: translateY(0);
-}
-
-.login-section {
-  text-align: center;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid rgba(0, 184, 148, 0.2);
-}
-
-.login-section p {
-  color: #666666;
-  margin-bottom: 1rem;
-  font-size: 1rem;
-}
-
-.back-login-btn {
-  background: transparent;
-  color: #00b894;
-  border: 2px solid #00b894;
-  padding: 0.8rem 2rem;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.back-login-btn:hover {
-  background: #00b894;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
-}
-
-/* Divider */
+/* ── Divider — exact same spec as Login.css ───────────────── */
 .divider {
   display: flex;
   align-items: center;
-  text-align: center;
-  margin: 1.5rem 0;
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
-
 .divider::before,
 .divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid #e8e8e8;
+  height: 1px;
+  background: #e2e8f0;
 }
-
 .divider span {
-  padding: 0 1rem;
-  color: #999999;
-  font-size: 0.9rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
   font-weight: 500;
-}
-
-/* Google Sign-Up Button */
-.google-btn {
-  width: 100%;
-  padding: 1rem 1.2rem;
-  background: #ffffff;
-  color: #333333;
-  border: 2px solid #e8e8e8;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.google-btn:hover:not(:disabled) {
-  border-color: #00b894;
-  background: #f8fffe;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.google-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.google-icon {
   flex-shrink: 0;
 }
 
-/* Email Verification Success Screen */
-.verification-success-card {
-  text-align: center;
-}
-
-.verification-content {
-  padding: 1rem 0;
-}
-
-.verification-icon {
-  margin-bottom: 1.5rem;
-}
-
-.verification-content h2 {
-  color: #333333;
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
+/* ── Google button — exact same spec as Login.css ─────────── */
+.google-btn {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: #ffffff;
+  color: #374151;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+.google-btn:hover:not(:disabled) {
+  border-color: #10b981;
+  background: #f0fdf9;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.12);
+}
+.google-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+.google-icon { flex-shrink: 0; }
+
+/* ── Sign-in link row — same style as Login.css .register-section ── */
+.login-section {
+  text-align: center;
+  margin-top: 1.25rem;
+}
+.login-section p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+.back-login-btn {
+  color: #10b981;
+  font-weight: 600;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.back-login-btn:hover { color: #059669; text-decoration: underline; }
+.back-login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ================================================================
+   EMAIL VERIFICATION SCREEN
+   Styled as a standalone centered card matching the Login card
+   ================================================================ */
+.verify-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 1.5rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.verify-page::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.verify-page::after {
+  content: '';
+  position: fixed;
+  bottom: -150px;
+  left: -150px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Card — identical spec to .login-card */
+.verify-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.25rem 2.5rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 10px 40px rgba(16, 185, 129, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  position: relative;
+  z-index: 10;
+}
+
+.verify-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.verify-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
 }
 
 .verification-message {
-  color: #666666;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 0.3rem 0;
 }
 
 .verification-email {
-  color: #00b894;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  color: #10b981;
+  margin: 0 0 1rem 0;
   word-break: break-all;
 }
 
 .verification-instructions {
-  color: #666666;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: rgba(0, 184, 148, 0.1);
-  border-radius: 8px;
-  border-left: 4px solid #00b894;
-}
-
-.verification-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.resend-btn {
-  width: 100%;
-  padding: 1rem 1.2rem;
-  background: transparent;
-  color: #00b894;
-  border: 2px solid #00b894;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.resend-btn:hover:not(:disabled) {
-  background: #00b894;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
-}
-
-.resend-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.65;
+  margin: 0 0 1.25rem 0;
+  padding: 0.85rem 1rem;
+  background: rgba(16, 185, 129, 0.06);
+  border-radius: 10px;
+  border-left: 3px solid #10b981;
+  text-align: left;
 }
 
 .resend-message {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  margin-bottom: 0.9rem;
+  font-size: 0.85rem;
 }
-
 .resend-message.success {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   color: #166534;
 }
-
 .resend-message.error {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
 }
 
+.verification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Primary verify action — same style as .register-btn */
+.resend-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
+}
+.resend-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+}
+.resend-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+
+/* Ghost action button */
+.verify-login-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: transparent;
+  color: #10b981;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.verify-login-btn:hover {
+  background: #f0fdf9;
+  border-color: #10b981;
+  color: #059669;
+}
+
 .verification-note {
-  color: #999999;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  color: #9ca3af;
   font-style: italic;
 }
 
-/* Responsive Design */
+/* ================================================================
+   RESPONSIVE — mobile
+   ================================================================ */
 @media (max-width: 768px) {
-  .register-container {
-    padding: 1rem 0.5rem;
+  .register-page {
+    flex-direction: column;
   }
 
-  .register-card {
-    padding: 2rem;
-    max-width: 400px;
+  .register-left {
+    width: 100%;
+    min-height: unset;
+    padding: 1.1rem 1.25rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 
-  .company-header h1 {
-    font-size: 1.8rem;
+  /* Hide decorative content — keep only logo */
+  .left-headline,
+  .left-subline,
+  .left-badges,
+  .left-bottom {
+    display: none;
   }
 
-  .form-group input,
-  .form-group select {
-    padding: 1rem;
+  .left-brand { margin-bottom: 0; }
+  .left-brand-logo { margin-bottom: 0; }
+
+  /* Show mobile sign-in strip */
+  .left-mobile-signin {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.82);
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
   }
+  .left-mobile-signin button {
+    color: #ffffff;
+    font-weight: 700;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 0.2rem;
+  }
+
+  .register-right {
+    flex: 1;
+    min-height: unset;
+    padding: 1.25rem 1rem 2rem;
+    align-items: flex-start;
+  }
+
+  .register-form-wrapper {
+    max-width: 100%;
+    padding: 1.75rem 1.5rem;
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-right { padding: 1rem 0.75rem 1.5rem; }
+  .register-form-wrapper { padding: 1.5rem 1.25rem; border-radius: 16px; }
+  .register-heading h2 { font-size: 1.4rem; }
+  .verify-card { padding: 2rem 1.5rem; }
 }

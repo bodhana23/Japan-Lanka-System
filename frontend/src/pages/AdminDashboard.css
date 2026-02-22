@@ -10,7 +10,18 @@
   min-height: 100vh;
   font-size: 1.2rem;
   color: #6c757d;
-  background: #f5f7fa;
+  background:
+    radial-gradient(circle, rgba(16, 185, 129, 0.18) 1px, transparent 1px),
+    radial-gradient(circle, rgba(16, 185, 129, 0.07) 2px, transparent 2px),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 18px,
+      rgba(16, 185, 129, 0.04) 18px,
+      rgba(16, 185, 129, 0.04) 19px
+    ),
+    linear-gradient(145deg, #eaf6f1 0%, #f2f8fc 40%, #eef4fb 70%, #ecf5f1 100%);
+  background-size: 24px 24px, 72px 72px, 100% 100%, 100% 100%;
 }
 
 /* Animations */

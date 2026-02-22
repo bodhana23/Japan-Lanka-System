@@ -199,16 +199,12 @@ function DashboardLayout<T extends string = string>({
                 </div>
                 <div className="dl-header-actions">
                   <NotificationBell />
-                  <button
-                    className="dl-profile-btn"
-                    onClick={handleProfileClick}
-                    aria-label="View profile"
-                  >
+                  <div className="dl-profile-btn">
                     <span className="dl-profile-avatar">
                       {firstName.charAt(0).toUpperCase()}
                     </span>
                     <span className="dl-profile-name">{firstName}</span>
-                  </button>
+                  </div>
                 </div>
               </>
             ) : (

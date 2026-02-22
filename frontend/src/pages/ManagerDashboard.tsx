@@ -22,6 +22,7 @@ interface Product {
   description: string;
   brand: string;
   model: string;
+  category: string;
   price: number;
   quantity: number;
   imageLink: string;
@@ -199,6 +200,7 @@ const ManagerDashboard: React.FC = () => {
             description: p.description || '',
             brand: p.brand,
             model: p.model,
+            category: p.category,
             price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
             quantity: p.quantity_available,
             imageLink: p.image_url || ''
@@ -340,6 +342,7 @@ const ManagerDashboard: React.FC = () => {
     description: '',
     brand: '',
     model: '',
+    category: '',
     price: 0,
     quantity: 0,
     imageLink: ''
@@ -347,38 +350,62 @@ const ManagerDashboard: React.FC = () => {
 
   // Statistics calculations using useMemo
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.brand || !newProduct.model) {
-      alert('Please fill in all required fields (name, brand, and model).');
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.brand || !newProduct.model || !newProduct.category) {
+      alert('Please fill in all required fields (name, brand, model, and category).');
       return;
     }
-    
+
     if (newProduct.price <= 0) {
       alert('Price must be greater than 0.');
       return;
     }
-    
+
     if (newProduct.quantity < 0) {
       alert('Quantity cannot be negative.');
       return;
     }
-    
-    const product: Product = {
-      ...newProduct,
-      id: `P${Date.now()}`
-    };
-    setProducts([...products, product]);
-    setNewProduct({
-      name: '',
-      description: '',
-      brand: '',
-      model: '',
-      price: 0,
-      quantity: 0,
-      imageLink: ''
-    });
-    setShowAddProduct(false);
-    alert('Product added successfully!');
+
+    try {
+      const created = await productsApi.createProduct({
+        name: newProduct.name,
+        description: newProduct.description || undefined,
+        brand: newProduct.brand,
+        model: newProduct.model,
+        category: newProduct.category,
+        price: newProduct.price,
+        quantity_available: newProduct.quantity,
+        image_url: newProduct.imageLink || undefined,
+      });
+
+      setProducts([...products, {
+        id: created.id,
+        name: created.name,
+        description: created.description || '',
+        brand: created.brand,
+        model: created.model,
+        category: created.category,
+        price: typeof created.price === 'string' ? parseFloat(created.price) : created.price,
+        quantity: created.quantity_available,
+        imageLink: created.image_url || '',
+      }]);
+
+      setNewProduct({
+        name: '',
+        description: '',
+        brand: '',
+        model: '',
+        category: '',
+        price: 0,
+        quantity: 0,
+        imageLink: ''
+      });
+      setShowAddProduct(false);
+      alert('Product added successfully!');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to add product.';
+      alert(`Error: ${errorMessage}`);
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -703,11 +730,20 @@ const ManagerDashboard: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>Model:</label>
-                <input 
+                <input
                   type="text"
                   value={newProduct.model}
                   onChange={(e) => setNewProduct({...newProduct, model: e.target.value})}
                   placeholder="Enter model"
+                />
+              </div>
+              <div className="form-group">
+                <label>Category:</label>
+                <input
+                  type="text"
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                  placeholder="e.g. Brakes, Engine, Filters"
                 />
               </div>
               <div className="form-group">

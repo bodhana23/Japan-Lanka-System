@@ -107,17 +107,45 @@ const EmployeeLogin: React.FC = () => {
   return (
     <div className="employee-login-container">
       <div className="employee-login-card">
+        {/* Go Back */}
         <button className="go-back-btn" onClick={handleGoBack} type="button" disabled={isLoading}>
-          ← Go Back
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Go Back
         </button>
-        <div className="company-header">
-          <h1>Japan Lanka Enterprises</h1>
-          <p>Management System</p>
+
+        {/* Brand header */}
+        <div className="emp-brand">
+          <div className="emp-brand-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" />
+              <rect x="9" y="11" width="14" height="10" rx="2" />
+              <circle cx="12" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+            </svg>
+          </div>
+          <div className="emp-brand-text">
+            <span className="emp-brand-name">Japan Lanka</span>
+            <span className="emp-brand-sub">Automobile Parts</span>
+          </div>
+        </div>
+
+        {/* Staff badge */}
+        <div className="emp-staff-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Staff Portal
+        </div>
+
+        {/* Heading */}
+        <div className="emp-heading">
+          <h2>Employee Sign In</h2>
+          <p>Access the management portal</p>
         </div>
 
         <form onSubmit={handleLogin} className="employee-login-form">
-          <h2>Employee Login</h2>
-
           {errors.form && (
             <div className="form-error-message">
               {errors.form}
@@ -180,11 +208,11 @@ const EmployeeLogin: React.FC = () => {
           </div>
 
           <button type="submit" className="employee-login-btn-submit" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
           <div className="info-section">
-            <p className="info-text">This portal is for employees only (Manager, Admin, Auditor)</p>
+            <p className="info-text">This portal is for employees only — Manager, Admin &amp; Auditor</p>
           </div>
         </form>
       </div>

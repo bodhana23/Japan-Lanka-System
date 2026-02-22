@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: February 20, 2026*
+*Last updated: February 22, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -39,6 +39,9 @@
 ## Project Structure
 ```
 Japan-Lanka-System/
+├── postman/
+│   ├── Japan_Lanka_API.postman_collection.json   # Full API collection (50+ requests)
+│   └── Japan_Lanka_Local.postman_environment.json # Local environment variables
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -687,6 +690,33 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Wishlist functionality
 
 ## Recent Changes (January-February 2026)
+
+### Postman API Testing Collection (Feb 22, 2026)
+
+**Purpose:** Enable manual API testing without modifying any existing system code. Purely additive.
+
+**Files Created:**
+- `postman/Japan_Lanka_API.postman_collection.json` — Full collection with 50+ requests across 13 folders
+- `postman/Japan_Lanka_Local.postman_environment.json` — Environment with base_url and auto-captured token/ID variables
+
+**Collection Folders:**
+- Health Check, Customer Auth, Employee Auth, Products, Cart, Orders, Returns, Notifications, Inventory, Users (Admin), Analytics, Auditor Logs, Error Scenarios
+
+**Key Features:**
+- Auto-saves JWT tokens to environment variables on login (`customer_token`, `manager_token`, `admin_token`, `employee_token`)
+- Auto-captures resource IDs (`product_id`, `order_id`, `cart_item_id`, `return_id`, `notification_id`, `user_id`) via test scripts
+- Error Scenarios folder tests 400/401/403 responses for validation and access control
+- All requests include realistic example bodies matching actual Pydantic schemas
+
+**How to Use:**
+1. Import both files into Postman
+2. Select `Japan Lanka Local` environment
+3. Run `Health Check` → login as admin/manager → login as customer
+4. Tokens auto-populate; requests can then be run in sequence or independently
+
+**Branch:** `Postman-intregration`
+
+---
 
 ### UI/UX Accessibility & Notification Improvements (Feb 20, 2026)
 

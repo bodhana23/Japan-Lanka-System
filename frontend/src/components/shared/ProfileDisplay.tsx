@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   User, Mail, Phone, Shield, Calendar, Tag, Lock,
-  Edit, Save, CheckCircle, AlertCircle
+  Edit, Save, CheckCircle, AlertCircle, MapPin
 } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 import './ProfileDisplay.css';
@@ -14,6 +14,7 @@ export interface ProfileUser {
   name?: string;
   role: string;
   phone_number?: string;
+  address?: string;
   is_google_user?: boolean;
   created_at?: string;
 }
@@ -33,7 +34,7 @@ export interface ProfileDisplayProps {
   subtitle?: string;
   roleLabel?: string; // Override role display (e.g., "Administrator" instead of "admin")
   isEditable?: boolean; // Whether to allow editing
-  onSave?: (data: { full_name: string; phone_number?: string }) => Promise<void>;
+  onSave?: (data: { full_name: string; phone_number?: string; address?: string }) => Promise<void>;
   onChangePassword?: () => void; // Navigate to change password
   fieldConfig?: ProfileFieldConfig;
   accentColor?: string; // Override accent color
@@ -74,6 +75,7 @@ const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
   const [formData, setFormData] = useState({
     fullName: displayName,
     phoneNumber: user.phone_number || '',
+    address: user.address || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,6 +121,7 @@ const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
       await onSave({
         full_name: formData.fullName.trim(),
         phone_number: formData.phoneNumber.trim() || undefined,
+        address: formData.address.trim() || undefined,
       });
       setSuccessMessage('Profile updated successfully!');
       setIsEditing(false);
@@ -134,6 +137,7 @@ const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
     setFormData({
       fullName: displayName,
       phoneNumber: user.phone_number || '',
+      address: user.address || '',
     });
     setErrors({});
     setIsEditing(false);
@@ -244,6 +248,19 @@ const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* Address */}
+                <div className="pd-field">
+                  <div className="pd-field-icon">
+                    <MapPin size={18} />
+                  </div>
+                  <div className="pd-field-content">
+                    <span className="pd-field-label">Address</span>
+                    <span className="pd-field-value">
+                      {user.address || 'Not provided'}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Role */}
                 {config.showRole && (
@@ -366,6 +383,22 @@ const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
                   {errors.phoneNumber && <span className="pd-error-msg">{errors.phoneNumber}</span>}
                 </div>
               )}
+
+              <div className="pd-form-group">
+                <label htmlFor="address">
+                  <MapPin size={16} className="pd-label-icon" />
+                  Address
+                </label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter your delivery address"
+                  disabled={isLoading}
+                />
+              </div>
 
               <div className="pd-form-actions">
                 <button
