@@ -28,7 +28,18 @@
 .dl-container {
   display: flex;
   min-height: 100vh;
-  background: var(--color-bg-page, #f5f7fa);
+  background:
+    radial-gradient(circle, rgba(16, 185, 129, 0.18) 1px, transparent 1px),
+    radial-gradient(circle, rgba(16, 185, 129, 0.07) 2px, transparent 2px),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 18px,
+      rgba(16, 185, 129, 0.04) 18px,
+      rgba(16, 185, 129, 0.04) 19px
+    ),
+    linear-gradient(145deg, #eaf6f1 0%, #f2f8fc 40%, #eef4fb 70%, #ecf5f1 100%);
+  background-size: 24px 24px, 72px 72px, 100% 100%, 100% 100%;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -311,14 +322,7 @@
   border: 2px solid #e9ecef;
   border-radius: 50px;
   padding: 8px 20px 8px 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dl-profile-btn:hover {
-  border-color: var(--dl-accent-color);
-  transform: translateY(-2px);
-  box-shadow: var(--dl-accent-shadow);
+  cursor: default;
 }
 
 .dl-profile-avatar {

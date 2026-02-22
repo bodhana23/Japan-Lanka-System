@@ -14,7 +14,7 @@ interface AuthContextType {
   completeRegistrationAndLogin: (email: string, password: string, fullName: string, phoneNumber?: string | null) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => void;
-  updateUser: (data: { full_name?: string; phone_number?: string }) => Promise<void>;
+  updateUser: (data: { full_name?: string; phone_number?: string; address?: string }) => Promise<void>;
   onLoginSuccess?: () => void;
   setOnLoginSuccess: (callback: (() => void) | undefined) => void;
 }
@@ -210,7 +210,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     sessionStorage.removeItem('cart');
   };
 
-  const updateUser = async (data: { full_name?: string; phone_number?: string }): Promise<void> => {
+  const updateUser = async (data: { full_name?: string; phone_number?: string; address?: string }): Promise<void> => {
     const updatedUser = await authApi.updateMe(data);
     setUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));

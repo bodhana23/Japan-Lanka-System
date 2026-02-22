@@ -80,6 +80,10 @@ const Home: React.FC = () => {
     navigate('/login');
   };
 
+  const handleRegisterClick = () => {
+    navigate('/register');
+  };
+
   const handleLearnMoreClick = () => {
     const aboutSection = document.getElementById('about-section');
     if (aboutSection) {
@@ -142,6 +146,9 @@ const Home: React.FC = () => {
             <a href="#features" className="nav-link">Features</a>
             <a href="#about-section" className="nav-link">About</a>
             <a href="#testimonials" className="nav-link">Reviews</a>
+            <button className="register-nav-btn" onClick={handleRegisterClick}>
+              Register
+            </button>
             <button className="login-btn" onClick={handleLoginClick}>
               <Lock size={16} />
               <span>Login</span>

@@ -250,23 +250,23 @@ const Shop: React.FC = () => {
           <div className="header-left">
             {isAuthenticated ? (
               <button onClick={handleBackToDashboard} className="back-btn">
-                <ArrowLeft size={20} />
+                <ArrowLeft size={16} />
                 <span>Dashboard</span>
               </button>
             ) : (
               <button onClick={handleBackToHome} className="back-btn">
-                <ArrowLeft size={20} />
+                <ArrowLeft size={16} />
                 <span>Home</span>
               </button>
             )}
-            <h1>Browse Auto Parts</h1>
+            <h1>Browse <span className="header-title-accent">Auto Parts</span></h1>
           </div>
           <div className="header-actions">
             <button
               className="mobile-filter-toggle"
               onClick={() => setShowFilters(!showFilters)}
             >
-              <Filter size={18} />
+              <Filter size={16} />
               <span>Filters</span>
               {activeFilterCount > 0 && (
                 <span className="filter-count-badge">{activeFilterCount}</span>
@@ -277,7 +277,7 @@ const Shop: React.FC = () => {
               onClick={() => setShowCart(!showCart)}
               className="cart-btn"
             >
-              <ShoppingCart size={20} />
+              <ShoppingCart size={17} />
               <span>Cart</span>
               {getTotalItems() > 0 && (
                 <span className="cart-badge">{getTotalItems()}</span>
@@ -307,13 +307,16 @@ const Shop: React.FC = () => {
             {/* Search Filter */}
             <div className="filter-section">
               <label className="filter-label">Search Parts</label>
-              <input
-                type="text"
-                placeholder="Search by name..."
-                value={filters.searchQuery}
-                onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                className="filter-search-input"
-              />
+              <div className="filter-search-wrapper">
+                <Search size={15} className="filter-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by name, brand…"
+                  value={filters.searchQuery}
+                  onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                  className="filter-search-input"
+                />
+              </div>
             </div>
 
             {/* Brand Filter */}
@@ -327,7 +330,8 @@ const Shop: React.FC = () => {
                       checked={filters.brands.includes(brand)}
                       onChange={() => toggleBrand(brand)}
                     />
-                    <span>{brand} ({count})</span>
+                    <span>{brand}</span>
+                    <span className="brand-count">{count}</span>
                   </label>
                 ))}
               </div>
@@ -387,9 +391,11 @@ const Shop: React.FC = () => {
 
             {/* Price Range Filter */}
             <div className="filter-section">
-              <label className="filter-label">
-                Price Range: ${filters.priceMin} - ${filters.priceMax}
-              </label>
+              <label className="filter-label">Price Range</label>
+              <div className="price-range-display">
+                <span>RS {filters.priceMin.toLocaleString()}</span>
+                <span>RS {filters.priceMax.toLocaleString()}</span>
+              </div>
               <div className="price-range-inputs">
                 <input
                   type="range"
@@ -512,33 +518,33 @@ const Shop: React.FC = () => {
             {isLoadingProducts ? (
               <div className="empty-state">
                 <div className="empty-state-icon">
-                  <RefreshCw size={48} />
+                  <RefreshCw size={32} />
                 </div>
-                <h3>Loading products...</h3>
+                <h3>Loading products…</h3>
                 <p>Please wait while we fetch the latest inventory</p>
               </div>
             ) : productsError ? (
               <div className="empty-state error-state">
                 <div className="empty-state-icon">
-                  <AlertCircle size={48} />
+                  <AlertCircle size={32} />
                 </div>
                 <h3>Error loading products</h3>
                 <p>{productsError}</p>
                 <button onClick={() => window.location.reload()} className="clear-filters-cta">
-                  <RefreshCw size={18} />
+                  <RefreshCw size={16} />
                   Try Again
                 </button>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">
-                  <Search size={48} />
+                  <Search size={32} />
                 </div>
                 <h3>No parts found</h3>
                 <p>Try adjusting your filters or search query</p>
                 {activeFilterCount > 0 && (
                   <button onClick={clearAllFilters} className="clear-filters-cta">
-                    <X size={18} />
+                    <X size={16} />
                     Clear All Filters
                   </button>
                 )}
@@ -561,7 +567,7 @@ const Shop: React.FC = () => {
                       />
                     ) : null}
                     <div className={`no-image-placeholder ${product.image ? 'hidden' : ''}`}>
-                      <Package size={48} color="#ccc" />
+                      <Package size={40} />
                     </div>
                   </div>
                   <div className="product-info">
@@ -602,87 +608,92 @@ const Shop: React.FC = () => {
             )}
           </section>
 
-          {/* Cart Sidebar */}
-          {showCart && (
-            <aside className="cart-sidebar">
-              <div className="cart-header">
-                <div className="cart-header-title">
-                  <ShoppingCart size={24} />
-                  <h3>Shopping Cart</h3>
-                </div>
-                <button
-                  onClick={() => setShowCart(false)}
-                  className="close-cart"
-                  aria-label="Close shopping cart"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="cart-items">
-                {cart.length === 0 ? (
-                  <div className="empty-cart">
-                    <ShoppingCart size={48} />
-                    <p>Your cart is empty</p>
-                  </div>
-                ) : (
-                  cart.map(item => (
-                    <div key={item.id} className="cart-item">
-                      <div className="cart-item-info">
-                        <div className="cart-item-image">
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} />
-                          ) : (
-                            <Package size={24} color="#ccc" />
-                          )}
-                        </div>
-                        <div className="cart-item-details">
-                          <h4>{item.name}</h4>
-                          <p className="cart-item-model">{item.model}</p>
-                          <span className="cart-item-price">
-                            RS {item.price.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="quantity-controls">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="quantity-btn"
-                          aria-label="Decrease quantity"
-                        >
-                          -
-                        </button>
-                        <span className="quantity">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="quantity-btn"
-                          disabled={item.quantity >= item.quantityAvailable}
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              
-              {cart.length > 0 && (
-                <div className="cart-footer">
-                  <div className="cart-total">
-                    <span>Total:</span>
-                    <strong>RS {getTotalPrice().toLocaleString()}</strong>
-                  </div>
-                  <button onClick={handleCheckout} className="checkout-btn">
-                    <ShoppingCart size={18} />
-                    Proceed to Checkout
-                  </button>
-                </div>
-              )}
-            </aside>
-          )}
+          {/* Cart Sidebar - removed from here, moved outside shop-layout */}
         </div>
       </main>
+
+      {/* Cart Sidebar - rendered at top level so it's not trapped in a stacking context */}
+      {showCart && (
+        <>
+          <div className="cart-overlay" onClick={() => setShowCart(false)} />
+          <aside className="cart-sidebar">
+            <div className="cart-header">
+              <div className="cart-header-title">
+                <ShoppingCart size={20} />
+                <h3>Shopping Cart</h3>
+              </div>
+              <button
+                onClick={() => setShowCart(false)}
+                className="close-cart"
+                aria-label="Close shopping cart"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            
+            <div className="cart-items">
+              {cart.length === 0 ? (
+                <div className="empty-cart">
+                  <ShoppingCart size={40} />
+                  <p>Your cart is empty</p>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.id} className="cart-item">
+                    <div className="cart-item-info">
+                      <div className="cart-item-image">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} />
+                        ) : (
+                          <Package size={22} />
+                        )}
+                      </div>
+                      <div className="cart-item-details">
+                        <h4>{item.name}</h4>
+                        <p className="cart-item-model">{item.model}</p>
+                        <span className="cart-item-price">
+                          RS {item.price.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="quantity-controls">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="quantity-btn"
+                        aria-label="Decrease quantity"
+                      >
+                        -
+                      </button>
+                      <span className="quantity">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="quantity-btn"
+                        disabled={item.quantity >= item.quantityAvailable}
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            {cart.length > 0 && (
+              <div className="cart-footer">
+                <div className="cart-total">
+                  <span>Total:</span>
+                  <strong>RS {getTotalPrice().toLocaleString()}</strong>
+                </div>
+                <button onClick={handleCheckout} className="checkout-btn">
+                  <ShoppingCart size={17} />
+                  Proceed to Checkout
+                </button>
+              </div>
+            )}
+          </aside>
+        </>
+      )}
     </div>
   );
 };

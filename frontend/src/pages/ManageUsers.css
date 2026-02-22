@@ -1,6 +1,17 @@
 .manage-users-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background:
+    radial-gradient(circle, rgba(16, 185, 129, 0.18) 1px, transparent 1px),
+    radial-gradient(circle, rgba(16, 185, 129, 0.07) 2px, transparent 2px),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 18px,
+      rgba(16, 185, 129, 0.04) 18px,
+      rgba(16, 185, 129, 0.04) 19px
+    ),
+    linear-gradient(145deg, #eaf6f1 0%, #f2f8fc 40%, #eef4fb 70%, #ecf5f1 100%);
+  background-size: 24px 24px, 72px 72px, 100% 100%, 100% 100%;
 }
 
 .manage-users-header {
@@ -26,7 +37,7 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.back-btn {
+.manage-users-header .back-btn {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 2px solid white;
@@ -37,7 +48,7 @@
   transition: all 0.3s ease;
 }
 
-.back-btn:hover {
+.manage-users-header .back-btn:hover {
   background: white;
   color: #00b894;
   transform: translateX(-5px);

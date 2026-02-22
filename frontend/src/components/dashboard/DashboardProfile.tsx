@@ -19,11 +19,12 @@ const DashboardProfile: React.FC<DashboardProfileProps> = ({ onNavigate }) => {
     full_name: user?.full_name || '',
     role: 'customer',
     phone_number: user?.phone_number || '',
+    address: user?.address || '',
     is_google_user: user?.is_google_user,
   };
 
   // Handle save profile
-  const handleSave = async (data: { full_name: string; phone_number?: string }) => {
+  const handleSave = async (data: { full_name: string; phone_number?: string; address?: string }) => {
     const updatedUser = await authApi.updateMe(data);
     // Update localStorage with new user data
     const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
