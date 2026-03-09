@@ -10,9 +10,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import Customer, Employee, Order, ReturnRequest, OrderItem, ReturnItem, OrderStatusHistory
+from app.models import Customer, Employee, Order, ReturnRequest, OrderItem, ReturnItem, OrderStatusHistory, InventoryTransaction, Product
 from app.models.return_request import ReturnStatus
 from app.models.order import OrderStatus
+from app.models.inventory_transaction import TransactionType
 from app.utils.timezone import get_current_time
 
 RETURN_WINDOW_DAYS = 7
@@ -196,9 +197,6 @@ async def create_return_request(
     db: Session = Depends(get_db)
 ):
     """Create a new return request for an order with specific items."""
-    # Debug logging
-    print(f"[DEBUG] Return request data: order_id={return_data.order_id}, reason={return_data.reason}, items={len(return_data.items)}")
-
     # Check if a return request already exists for this order (prevent duplicates)
     existing_return = db.query(ReturnRequest).filter(
         ReturnRequest.order_id == return_data.order_id
@@ -401,12 +399,24 @@ async def update_return_request_status(
 
     old_status = return_request.status
 
-    # Business rule: Only PENDING requests can be approved or rejected
-    if old_status != ReturnStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot modify return request. Current status is '{old_status.value}'. Only pending requests can be approved or rejected."
-        )
+    # Business rule: Valid status transitions
+    # PENDING → APPROVED or REJECTED
+    # APPROVED → COMPLETED (when returned goods are physically received back)
+    # REJECTED and COMPLETED are terminal states
+    valid_transitions = {
+        ReturnStatus.PENDING: [ReturnStatus.APPROVED, ReturnStatus.REJECTED],
+        ReturnStatus.APPROVED: [ReturnStatus.COMPLETED],
+    }
+    allowed_next = valid_transitions.get(old_status, [])
+    if status_update.status not in allowed_next:
+        if old_status in (ReturnStatus.REJECTED, ReturnStatus.COMPLETED):
+            detail = f"Return request is already '{old_status.value}' and cannot be modified."
+        else:
+            detail = (
+                f"Invalid status transition from '{old_status.value}' to '{status_update.status.value}'. "
+                f"Allowed: {[s.value for s in allowed_next]}"
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     # Business rule: Rejected requests must include a reason message
     if status_update.status == ReturnStatus.REJECTED:
@@ -426,6 +436,27 @@ async def update_return_request_status(
         order = db.query(Order).filter(Order.id == return_request.order_id).first()
         if order:
             order.status = OrderStatus.RETURN_APPROVED
+
+    # When completed, restore inventory stock for returned items
+    if status_update.status == ReturnStatus.COMPLETED:
+        for return_item in return_request.return_items:
+            order_item = db.query(OrderItem).filter(OrderItem.id == return_item.order_item_id).first()
+            if order_item:
+                product = db.query(Product).filter(Product.id == order_item.product_id).first()
+                if product:
+                    quantity_before = product.quantity_available
+                    product.quantity_available += return_item.quantity
+                    inv_transaction = InventoryTransaction(
+                        product_id=product.id,
+                        employee_id=current_employee.id,
+                        transaction_type=TransactionType.RETURN_IN,
+                        quantity_change=return_item.quantity,
+                        quantity_before=quantity_before,
+                        quantity_after=product.quantity_available,
+                        reason=f"Return #{str(return_request.id)[:8]} completed",
+                        reference_order_id=return_request.order_id
+                    )
+                    db.add(inv_transaction)
 
     # Determine action type based on new status
     if status_update.status == ReturnStatus.APPROVED:

@@ -254,6 +254,7 @@ class EmployeeRoleChecker:
 
 # Pre-configured role checkers for employees
 require_admin = EmployeeRoleChecker([EmployeeRole.ADMIN])
+require_manager_only = EmployeeRoleChecker([EmployeeRole.MANAGER])
 require_manager = EmployeeRoleChecker([EmployeeRole.MANAGER, EmployeeRole.ADMIN])
 require_manager_or_admin = EmployeeRoleChecker([EmployeeRole.MANAGER, EmployeeRole.ADMIN])
 require_auditor = EmployeeRoleChecker([EmployeeRole.AUDITOR, EmployeeRole.ADMIN])

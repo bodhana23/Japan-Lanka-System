@@ -37,7 +37,7 @@ from app.schemas.order_status_history import (
     OrderStatusHistoryResponse,
     OrderStatusHistoryListResponse,
 )
-from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, CurrentUser
+from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, require_manager_only, CurrentUser
 from app.models.audit_log import AuditLog
 from app.services.notification_service import notify_order_status_change, notify_managers_new_order, notify_admins_low_stock, LOW_STOCK_THRESHOLD
 
@@ -496,7 +496,7 @@ async def get_order_status_history(
 async def create_offline_sale(
     sale_data: OfflineSaleCreate,
     request: Request,
-    current_employee: Employee = Depends(require_manager),
+    current_employee: Employee = Depends(require_manager_only),
     db: Session = Depends(get_db)
 ):
     """Create an offline sale (Manager only).
