@@ -66,6 +66,7 @@ interface CustomerOrder {
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
+  deliveryMethod?: 'pickup' | 'shipping';
   // Offline sales fields
   salesChannel?: 'online' | 'offline';
   offlineCustomerName?: string;
@@ -104,10 +105,19 @@ const ManagerDashboard: React.FC = () => {
   const location = useLocation();
   const { user: authUser } = useAuth();
 
-  // Derive active nav from current URL path (single source of truth)
+  // Derive active nav from current URL path (or ?section= query param from notification click)
   const activeNav = useMemo<ManagerNavId>(() => {
+    const params = new URLSearchParams(location.search);
+    const sectionParam = params.get('section') as ManagerNavId | null;
+    if (sectionParam && ['inventory', 'orders', 'returns', 'offline-sales', 'profile'].includes(sectionParam)) {
+      return sectionParam;
+    }
     return pathToNavId[location.pathname] || 'inventory';
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
+
+  // Parse order_id and return_id from URL query params (for notification deep-links)
+  const urlOrderId = useMemo(() => new URLSearchParams(location.search).get('order_id') || undefined, [location.search]);
+  const urlReturnId = useMemo(() => new URLSearchParams(location.search).get('return_id') || undefined, [location.search]);
 
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
@@ -183,6 +193,14 @@ const ManagerDashboard: React.FC = () => {
 
   // Product update loading state
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Fetch products from API
   useEffect(() => {
@@ -260,6 +278,7 @@ const ManagerDashboard: React.FC = () => {
               orderDate: o.created_at,
               deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
               contactNumber: customerPhone,
+              deliveryMethod: o.delivery_method as 'pickup' | 'shipping',
               // Offline sales fields
               salesChannel: o.sales_channel,
               offlineCustomerName: o.offline_customer_name,
@@ -529,7 +548,7 @@ const ManagerDashboard: React.FC = () => {
       }));
 
       setSelectedReturnRequest(null);
-      alert(`Return request ${action} successfully!`);
+      showToast(`Return request ${action} successfully!`, 'success');
     } catch (error: any) {
       console.error('Error updating return status:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to update return request status.';
@@ -558,7 +577,7 @@ const ManagerDashboard: React.FC = () => {
         return order;
       }));
 
-      // Show success message
+      // Show success toast
       const statusMessages: Record<string, string> = {
         'pending': 'Order marked as pending',
         'in_progress': 'Order marked as in progress',
@@ -567,11 +586,11 @@ const ManagerDashboard: React.FC = () => {
         'return_approved': 'Return approved'
       };
 
-      alert(statusMessages[newStatus] || 'Order status updated');
+      showToast(statusMessages[newStatus] || 'Order status updated', 'success');
     } catch (error: any) {
       console.error('Error updating order status:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to update order status.';
-      alert(`Error: ${errorMessage}`);
+      showToast(`Error: ${errorMessage}`, 'error');
     }
   };
 
@@ -645,6 +664,7 @@ const ManagerDashboard: React.FC = () => {
             isLoading={isLoadingOrders}
             error={ordersError}
             onStatusUpdate={handleOrderStatusUpdate}
+            highlightOrderId={urlOrderId}
           />
         );
       
@@ -667,6 +687,7 @@ const ManagerDashboard: React.FC = () => {
                 setSelectedReturnRequest(request);
               }
             }}
+            highlightReturnId={urlReturnId}
           />
         );
 
@@ -842,7 +863,20 @@ const ManagerDashboard: React.FC = () => {
           onAction={handleReturnAction}
           isProcessing={isProcessingReturn}
           error={returnActionError}
+          showToast={showToast}
         />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`manager-toast manager-toast-${toast.type}`}>
+          <span className="manager-toast-icon">
+            {toast.type === 'success' && <CheckCircle size={16} />}
+            {toast.type === 'error' && <AlertTriangle size={16} />}
+            {toast.type === 'info' && <AlertCircle size={16} />}
+          </span>
+          <span className="manager-toast-message">{toast.message}</span>
+        </div>
       )}
     </DashboardLayout>
   );
@@ -1264,11 +1298,23 @@ const ReturnDetailModal: React.FC<{
   onAction: (returnId: string, action: 'approved' | 'rejected', adminNotes?: string) => void;
   isProcessing: boolean;
   error: string | null;
-}> = ({ returnRequest, onClose, onAction, isProcessing, error }) => {
+  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
+}> = ({ returnRequest, onClose, onAction, isProcessing, error, showToast }) => {
   const [adminNotes, setAdminNotes] = useState(returnRequest.admin_notes || '');
+  const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | null>(null);
 
-  const handleAction = (action: 'approved' | 'rejected') => {
-    onAction(returnRequest.id, action, adminNotes || undefined);
+  const handleActionClick = (action: 'approved' | 'rejected') => {
+    if (action === 'rejected' && (!adminNotes || !adminNotes.trim())) {
+      showToast('A reason message is required when rejecting a return request.', 'error');
+      return;
+    }
+    setPendingAction(action);
+  };
+
+  const handleConfirmAction = () => {
+    if (!pendingAction) return;
+    onAction(returnRequest.id, pendingAction, adminNotes || undefined);
+    setPendingAction(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -1282,182 +1328,225 @@ const ReturnDetailModal: React.FC<{
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content return-detail-modal">
-        <div className="modal-header">
-          <h2>Return Request #{returnRequest.id.slice(-8).toUpperCase()}</h2>
-          <button onClick={onClose} className="close-modal">×</button>
-        </div>
-
-        <div className="return-detail-content">
-          {/* Customer & Order Info */}
-          <div className="return-info-section">
-            <h4>Customer Information</h4>
-            <div className="info-grid">
-              <div className="info-item">
-                <span className="info-label">Name:</span>
-                <span className="info-value">{returnRequest.customer_name}</span>
+    <>
+      <div className="rdm-overlay" onClick={pendingAction ? undefined : onClose}>
+        <div className="rdm-box" onClick={(e) => e.stopPropagation()}>
+          <div className="rdm-header">
+            <div className="rdm-header-left">
+              <RotateCcw size={20} className="rdm-header-icon" />
+              <div>
+                <h2 className="rdm-title">Return Request</h2>
+                <span className="rdm-subtitle">#{returnRequest.id.slice(-8).toUpperCase()}</span>
               </div>
-              <div className="info-item">
-                <span className="info-label">Email:</span>
-                <span className="info-value">{returnRequest.customer_email}</span>
-              </div>
+            </div>
+            <div className="rdm-header-right">
+              <span
+                className="rdm-status-badge"
+                style={{ backgroundColor: getStatusColor(returnRequest.status) }}
+              >
+                {returnRequest.status.toUpperCase()}
+              </span>
+              <button onClick={onClose} className="rdm-close-btn" aria-label="Close">×</button>
             </div>
           </div>
 
-          <div className="return-info-section">
-            <h4>Order Information</h4>
-            <div className="info-grid">
-              <div className="info-item">
-                <span className="info-label">Order ID:</span>
-                <span className="info-value">#{returnRequest.order_id.slice(-8).toUpperCase()}</span>
-              </div>
-              {returnRequest.order_total && (
-                <div className="info-item">
-                  <span className="info-label">Order Total:</span>
-                  <span className="info-value">Rs. {returnRequest.order_total.toLocaleString()}</span>
+          <div className="rdm-body">
+            <div className="rdm-columns">
+              {/* Left Column */}
+              <div className="rdm-col">
+                <div className="rdm-section">
+                  <h4 className="rdm-section-title">
+                    <User size={15} /> Customer
+                  </h4>
+                  <div className="rdm-field-grid">
+                    <div className="rdm-field">
+                      <span className="rdm-label">Name</span>
+                      <span className="rdm-value">{returnRequest.customer_name}</span>
+                    </div>
+                    <div className="rdm-field">
+                      <span className="rdm-label">Email</span>
+                      <span className="rdm-value rdm-email">{returnRequest.customer_email}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-              {returnRequest.order_status && (
-                <div className="info-item">
-                  <span className="info-label">Order Status:</span>
-                  <span className="info-value">{returnRequest.order_status}</span>
+
+                <div className="rdm-section">
+                  <h4 className="rdm-section-title">
+                    <ClipboardList size={15} /> Order
+                  </h4>
+                  <div className="rdm-field-grid">
+                    <div className="rdm-field">
+                      <span className="rdm-label">Order ID</span>
+                      <span className="rdm-value rdm-monospace">#{returnRequest.order_id.slice(-8).toUpperCase()}</span>
+                    </div>
+                    {returnRequest.order_total && (
+                      <div className="rdm-field">
+                        <span className="rdm-label">Order Total</span>
+                        <span className="rdm-value rdm-amount">Rs. {returnRequest.order_total.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {returnRequest.order_date && (
+                      <div className="rdm-field">
+                        <span className="rdm-label">Order Date</span>
+                        <span className="rdm-value">{formatDateTime(returnRequest.order_date)}</span>
+                      </div>
+                    )}
+                    <div className="rdm-field">
+                      <span className="rdm-label">Request Date</span>
+                      <span className="rdm-value">{formatDateTime(returnRequest.created_at)}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-              {returnRequest.order_date && (
-                <div className="info-item">
-                  <span className="info-label">Order Date:</span>
-                  <span className="info-value">{formatDateTime(returnRequest.order_date)}</span>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Return Request Info */}
-          <div className="return-info-section">
-            <h4>Return Request Details</h4>
-            <div className="info-grid">
-              <div className="info-item">
-                <span className="info-label">Status:</span>
-                <span className="info-value">
-                  <span
-                    className="status-badge-inline"
-                    style={{ backgroundColor: getStatusColor(returnRequest.status), color: 'white' }}
-                  >
-                    {returnRequest.status.toUpperCase()}
-                  </span>
-                </span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Request Date:</span>
-                <span className="info-value">{formatDateTime(returnRequest.created_at)}</span>
-              </div>
-              <div className="info-item full-width">
-                <span className="info-label">Reason:</span>
-                <span className="info-value">{returnRequest.reason}</span>
-              </div>
-              {returnRequest.description && (
-                <div className="info-item full-width">
-                  <span className="info-label">Additional Description:</span>
-                  <span className="info-value">{returnRequest.description}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Items to Return */}
-          {returnRequest.items && returnRequest.items.length > 0 && (
-            <div className="return-info-section">
-              <h4>Items to Return</h4>
-              <table className="return-items-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {returnRequest.items.map((item, idx) => (
-                    <tr key={item.id || idx}>
-                      <td>{item.product_name || `Product ${item.product_id?.slice(-8)}`}</td>
-                      <td>{item.quantity}</td>
-                      <td>{item.unit_price ? `Rs. ${item.unit_price.toLocaleString()}` : '-'}</td>
-                      <td>{item.unit_price ? `Rs. ${(item.unit_price * item.quantity).toLocaleString()}` : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Existing Admin Notes (if any and not pending) */}
-          {returnRequest.status !== 'pending' && returnRequest.admin_notes && (
-            <div className="return-info-section">
-              <h4>Manager Response</h4>
-              <div className="existing-admin-notes">
-                {returnRequest.admin_notes}
-              </div>
-            </div>
-          )}
-
-          {/* Action Section (only for pending requests) */}
-          {returnRequest.status === 'pending' && (
-            <div className="return-action-section">
-              <h4>Take Action</h4>
-
-              {error && (
-                <div className="action-error">
-                  <AlertTriangle size={16} />
-                  {error}
-                </div>
-              )}
-
-              <div className="form-group">
-                <label htmlFor="admin-notes">
-                  Manager Message / Notes:
-                  <span className="required-hint">(Required for rejection)</span>
-                </label>
-                <textarea
-                  id="admin-notes"
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Enter your message or reason for the decision..."
-                  rows={4}
-                  disabled={isProcessing}
-                />
-              </div>
-
-              <div className="action-buttons">
-                <button
-                  onClick={() => handleAction('approved')}
-                  className="approve-btn"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <><RefreshCw size={16} className="spin" /> Processing...</>
-                  ) : (
-                    <><CheckCircle size={16} /> Approve Return</>
+                <div className="rdm-section">
+                  <h4 className="rdm-section-title">
+                    <AlertCircle size={15} /> Return Reason
+                  </h4>
+                  <div className="rdm-reason-badge">{returnRequest.reason}</div>
+                  {returnRequest.description && (
+                    <p className="rdm-description">{returnRequest.description}</p>
                   )}
-                </button>
-                <button
-                  onClick={() => handleAction('rejected')}
-                  className="reject-btn"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <><RefreshCw size={16} className="spin" /> Processing...</>
-                  ) : (
-                    <><XCircle size={16} /> Reject Return</>
-                  )}
-                </button>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="rdm-col">
+                {returnRequest.items && returnRequest.items.length > 0 && (
+                  <div className="rdm-section">
+                    <h4 className="rdm-section-title">
+                      <Package size={15} /> Items to Return
+                    </h4>
+                    <table className="rdm-items-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Qty</th>
+                          <th>Unit Price</th>
+                          <th>Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {returnRequest.items.map((item, idx) => (
+                          <tr key={item.id || idx}>
+                            <td>{item.product_name || `Product ${item.product_id?.slice(-8)}`}</td>
+                            <td className="rdm-center">{item.quantity}</td>
+                            <td className="rdm-right">{item.unit_price ? `Rs. ${item.unit_price.toLocaleString()}` : '—'}</td>
+                            <td className="rdm-right rdm-amount">{item.unit_price ? `Rs. ${(item.unit_price * item.quantity).toLocaleString()}` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Existing Admin Notes (non-pending) */}
+                {returnRequest.status !== 'pending' && returnRequest.admin_notes && (
+                  <div className="rdm-section">
+                    <h4 className="rdm-section-title">
+                      <CheckCircle size={15} /> Manager Response
+                    </h4>
+                    <div className={`rdm-manager-notes rdm-notes-${returnRequest.status}`}>
+                      {returnRequest.admin_notes}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Section (pending only) */}
+                {returnRequest.status === 'pending' && (
+                  <div className="rdm-section rdm-action-section">
+                    <h4 className="rdm-section-title">
+                      <AlertTriangle size={15} /> Take Action
+                    </h4>
+
+                    {error && (
+                      <div className="rdm-error-msg">
+                        <AlertTriangle size={14} /> {error}
+                      </div>
+                    )}
+
+                    <div className="rdm-form-group">
+                      <label className="rdm-form-label">
+                        Manager Message / Notes
+                        <span className="rdm-required-hint"> (required for rejection)</span>
+                      </label>
+                      <textarea
+                        className="rdm-textarea"
+                        value={adminNotes}
+                        onChange={(e) => setAdminNotes(e.target.value)}
+                        placeholder="Enter your message or reason for the decision..."
+                        rows={4}
+                        disabled={isProcessing}
+                      />
+                    </div>
+
+                    <div className="rdm-action-btns">
+                      <button
+                        onClick={() => handleActionClick('approved')}
+                        className="rdm-approve-btn"
+                        disabled={isProcessing}
+                      >
+                        <CheckCircle size={16} /> Approve Return
+                      </button>
+                      <button
+                        onClick={() => handleActionClick('rejected')}
+                        className="rdm-reject-btn"
+                        disabled={isProcessing}
+                      >
+                        <XCircle size={16} /> Reject Return
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Confirmation dialog */}
+      {pendingAction && (
+        <div className="rdm-confirm-overlay">
+          <div className="rdm-confirm-box">
+            <div className={`rdm-confirm-icon ${pendingAction === 'approved' ? 'rdm-confirm-approve' : 'rdm-confirm-reject'}`}>
+              {pendingAction === 'approved' ? <CheckCircle size={32} /> : <XCircle size={32} />}
+            </div>
+            <h3 className="rdm-confirm-title">
+              {pendingAction === 'approved' ? 'Approve Return?' : 'Reject Return?'}
+            </h3>
+            <p className="rdm-confirm-msg">
+              {pendingAction === 'approved'
+                ? 'This will approve the return request and update the order status.'
+                : 'This will reject the return request. The customer will be notified.'}
+            </p>
+            {adminNotes && (
+              <div className="rdm-confirm-notes">
+                <strong>Your note:</strong> {adminNotes}
+              </div>
+            )}
+            <div className="rdm-confirm-btns">
+              <button
+                className="rdm-confirm-cancel"
+                onClick={() => setPendingAction(null)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                className={pendingAction === 'approved' ? 'rdm-confirm-approve-btn' : 'rdm-confirm-reject-btn'}
+                onClick={handleConfirmAction}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <><RefreshCw size={14} className="spin" /> Processing...</>
+                ) : (
+                  pendingAction === 'approved' ? 'Yes, Approve' : 'Yes, Reject'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

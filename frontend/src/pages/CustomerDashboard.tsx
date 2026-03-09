@@ -49,7 +49,11 @@ const CustomerDashboard: React.FC = () => {
     ...roleConfigs.customer,
   }), []);
 
-  // Parse section from URL query params if present
+  // Parse section, order_id, and return_id from URL query params if present
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const urlOrderId = urlParams.get('order_id') || undefined;
+  const urlReturnId = urlParams.get('return_id') || undefined;
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const section = params.get('section') as CustomerNavId;
@@ -80,9 +84,9 @@ const CustomerDashboard: React.FC = () => {
       case 'overview':
         return <DashboardOverview onNavigate={handleNavChange} />;
       case 'orders':
-        return <DashboardOrders onNavigate={handleNavChange} />;
+        return <DashboardOrders onNavigate={handleNavChange} highlightOrderId={urlOrderId} />;
       case 'returns':
-        return <DashboardReturns onNavigate={handleNavChange} />;
+        return <DashboardReturns onNavigate={handleNavChange} autoOpenOrderId={urlOrderId} highlightReturnId={urlReturnId} />;
       case 'cart':
         return <DashboardCart onNavigate={handleNavChange} />;
       case 'profile':

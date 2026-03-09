@@ -674,3 +674,145 @@
 .dord-order-card:nth-child(3) { animation-delay: 0.15s; }
 .dord-order-card:nth-child(4) { animation-delay: 0.2s; }
 .dord-order-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* Highlight effect when navigating from notification */
+@keyframes dord-highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.35); }
+}
+
+.dord-highlighted {
+  animation: dord-highlight-pulse 1s ease-in-out 3;
+  border-color: #6366f1 !important;
+}
+
+/* Return info banners in order cards */
+.dord-return-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  margin: 8px 0;
+}
+
+.dord-return-approved {
+  background: #ecfdf5;
+  color: #065f46;
+  border-left: 3px solid #10b981;
+}
+
+.dord-return-pending {
+  background: #fffbeb;
+  color: #92400e;
+  border-left: 3px solid #f59e0b;
+}
+
+.dord-return-rejected {
+  background: #fef2f2;
+  color: #991b1b;
+  border-left: 3px solid #ef4444;
+}
+
+.dord-return-note {
+  margin: 2px 0 0;
+  font-weight: 400;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+/* ================================================
+   RETURN ITEMS BREAKDOWN (approved returns)
+   ================================================ */
+.dord-return-breakdown {
+  margin: 0 0 14px;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0fdf4;
+}
+
+.dord-return-breakdown-header {
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.dord-return-approved-header {
+  background: #d1fae5;
+  color: #065f46;
+  border-bottom: 1px solid #a7f3d0;
+}
+
+.dord-return-note-inline {
+  font-weight: 400;
+  font-size: 0.82rem;
+}
+
+.dord-return-breakdown-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.dord-return-col {
+  padding: 12px 14px;
+}
+
+.dord-returned-col {
+  background: #fef9f0;
+  border-left: 1px solid #a7f3d0;
+}
+
+.dord-return-col-title {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.dord-return-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dord-return-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.dord-returned-item {
+  color: #92400e;
+}
+
+.dord-return-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dord-return-item-qty {
+  font-weight: 600;
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.dord-returned-item .dord-return-item-qty {
+  color: #d97706;
+}
+
+.dord-return-item-price {
+  white-space: nowrap;
+  font-weight: 500;
+}

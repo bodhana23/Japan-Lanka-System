@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersApi, returnsApi, Order } from '../../services/api';
+import { ordersApi, returnsApi, Order, ReturnItemSummary } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
 import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw, FileText, Loader2 } from 'lucide-react';
 import './DashboardOrders.css';
@@ -9,9 +9,10 @@ type NavItemId = 'overview' | 'orders' | 'order-details' | 'returns' | 'cart' | 
 
 interface DashboardOrdersProps {
   onNavigate: (section: NavItemId) => void;
+  highlightOrderId?: string;
 }
 
-const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
+const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlightOrderId }) => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [eligibleOrderIds, setEligibleOrderIds] = useState<Set<string>>(new Set());
@@ -77,12 +78,22 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
     };
   }, []);
 
+  // Scroll to and highlight order when navigated from notification
+  useEffect(() => {
+    if (!highlightOrderId || isLoading) return;
+    setTimeout(() => {
+      const el = document.getElementById(`order-${highlightOrderId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('dord-highlighted');
+        setTimeout(() => el.classList.remove('dord-highlighted'), 3000);
+      }
+    }, 100);
+  }, [highlightOrderId, isLoading]);
+
   const handleRequestReturn = (order: Order) => {
-    setSelectedOrder(order);
-    setReturnReason('');
-    setSubmitError(null);
-    setSubmitSuccess(null);
-    setShowReturnModal(true);
+    // Navigate to returns section with the order pre-selected
+    navigate(`/customer?section=returns&order_id=${order.id}`);
   };
 
   const handleSubmitReturn = async () => {
@@ -270,7 +281,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
           {filteredOrders.map((order) => {
             const statusInfo = getStatusInfo(order.status);
             return (
-              <div key={order.id} className="dord-order-card">
+              <div key={order.id} id={`order-${order.id}`} className="dord-order-card">
                 <div className="dord-order-header">
                   <div className="dord-order-info">
                     <span className="dord-order-id">#{order.id.slice(0, 8).toUpperCase()}</span>
@@ -322,6 +333,72 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Return status section */}
+                {order.return_status === 'approved' && order.return_items && order.return_items.length > 0 && (
+                  <div className="dord-return-breakdown">
+                    <div className="dord-return-breakdown-header dord-return-approved-header">
+                      ✓ Return Approved
+                      {order.return_admin_notes && (
+                        <span className="dord-return-note-inline"> — {order.return_admin_notes}</span>
+                      )}
+                    </div>
+                    <div className="dord-return-breakdown-columns">
+                      <div className="dord-return-col">
+                        <h5 className="dord-return-col-title">Ordered Items</h5>
+                        <ul className="dord-return-item-list">
+                          {order.items.map((item, idx) => (
+                            <li key={idx} className="dord-return-item-row">
+                              <span className="dord-return-item-name">{item.product_name || 'Product'}</span>
+                              <span className="dord-return-item-qty">x{item.quantity}</span>
+                              <span className="dord-return-item-price">{formatCurrency(item.unit_price)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="dord-return-col dord-returned-col">
+                        <h5 className="dord-return-col-title">Returned Items</h5>
+                        <ul className="dord-return-item-list">
+                          {order.return_items.map((ri: ReturnItemSummary, idx: number) => (
+                            <li key={idx} className="dord-return-item-row dord-returned-item">
+                              <span className="dord-return-item-name">{ri.product_name || 'Product'}</span>
+                              <span className="dord-return-item-qty">x{ri.returned_quantity} / {ri.original_quantity}</span>
+                              <span className="dord-return-item-price">{formatCurrency(ri.unit_price)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {order.return_status === 'approved' && (!order.return_items || order.return_items.length === 0) && (
+                  <div className="dord-return-banner dord-return-approved">
+                    <AlertTriangle size={14} />
+                    <div>
+                      <strong>Return Approved</strong>
+                      {order.return_admin_notes && (
+                        <p className="dord-return-note">Manager: {order.return_admin_notes}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {order.return_status === 'pending' && (
+                  <div className="dord-return-banner dord-return-pending">
+                    <AlertTriangle size={14} />
+                    <span>Return request pending review</span>
+                  </div>
+                )}
+                {order.return_status === 'rejected' && (
+                  <div className="dord-return-banner dord-return-rejected">
+                    <AlertTriangle size={14} />
+                    <div>
+                      <strong>Return Rejected</strong>
+                      {order.return_admin_notes && (
+                        <p className="dord-return-note">Reason: {order.return_admin_notes}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="dord-order-footer">
                   <div className="dord-order-total">

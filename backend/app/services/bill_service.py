@@ -81,10 +81,25 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     order_date = order.created_at.strftime("%d %b %Y, %I:%M %p")
     order_type = "Offline Sale" if order.sales_channel.value == "offline" else "Online Order"
 
-    # Payment status - offline sales are paid, online orders are unpaid (until payment gateway is implemented)
+    # Payment status - use actual payment fields from the order
     is_offline = order.sales_channel.value == "offline"
-    payment_status = "PAID" if is_offline else "UNPAID"
-    payment_method = "Cash" if is_offline else "Pending"
+    from decimal import Decimal
+    paid_amount = Decimal(str(order.paid_amount or 0))
+    remaining_amount = Decimal(str(order.remaining_amount or 0))
+    total = Decimal(str(order.total_amount or 0))
+
+    if is_offline:
+        payment_status = "PAID"
+        payment_method = "Cash"
+    elif paid_amount >= total and total > 0:
+        payment_status = "PAID"
+        payment_method = "Online (PayHere)"
+    elif paid_amount > 0:
+        payment_status = "PARTIALLY PAID"
+        payment_method = "Online (PayHere) + Cash on Delivery"
+    else:
+        payment_status = "UNPAID"
+        payment_method = "Pending"
 
     # Customer name logic
     if order.customer:
@@ -183,25 +198,40 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     )
 
     # Payment info table
-    payment_status_color = colors.HexColor("#27ae60") if is_offline else colors.HexColor("#e74c3c")
-    amount_due = Decimal("0") if is_offline else total_amount
+    if is_offline or paid_amount >= total:
+        payment_status_color = colors.HexColor("#27ae60")
+    elif paid_amount > 0:
+        payment_status_color = colors.HexColor("#f39c12")
+    else:
+        payment_status_color = colors.HexColor("#e74c3c")
+
+    if is_offline:
+        amount_due = Decimal("0")
+    else:
+        amount_due = remaining_amount
 
     payment_data = [
         ["Payment Status:", payment_status],
         ["Payment Method:", payment_method],
-        ["Total Due:", f"Rs. {amount_due:,.2f}"],
     ]
+    if not is_offline and paid_amount > 0:
+        payment_data.append(["Amount Paid:", f"Rs. {paid_amount:,.2f}"])
+    if not is_offline and remaining_amount > 0:
+        payment_data.append(["Remaining (COD):", f"Rs. {remaining_amount:,.2f}"])
+    payment_data.append(["Total Due:", f"Rs. {amount_due:,.2f}"])
 
-    payment_table = Table(payment_data, colWidths=[40 * mm, 50 * mm])
+    payment_table = Table(payment_data, colWidths=[40 * mm, 60 * mm])
+    total_due_row = len(payment_data) - 1
     payment_table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
         ("FONTSIZE", (0, 0), (-1, -1), 11),
         ("TEXTCOLOR", (0, 0), (0, -1), colors.grey),
         ("TEXTCOLOR", (1, 0), (1, 0), payment_status_color),  # Payment status color
-        ("FONTNAME", (1, 2), (1, 2), "Helvetica-Bold"),  # Total Due bold
-        ("FONTSIZE", (1, 2), (1, 2), 14),  # Total Due larger
-        ("TEXTCOLOR", (1, 2), (1, 2), colors.HexColor("#c0392b") if not is_offline else colors.HexColor("#27ae60")),
+        ("FONTNAME", (1, total_due_row), (1, total_due_row), "Helvetica-Bold"),  # Total Due bold
+        ("FONTSIZE", (1, total_due_row), (1, total_due_row), 14),  # Total Due larger
+        ("TEXTCOLOR", (1, total_due_row), (1, total_due_row),
+         colors.HexColor("#27ae60") if amount_due == 0 else colors.HexColor("#c0392b")),
         ("ALIGN", (0, 0), (0, -1), "RIGHT"),
         ("ALIGN", (1, 0), (1, -1), "LEFT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),

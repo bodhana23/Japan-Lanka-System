@@ -14,6 +14,7 @@ interface CustomerOrder {
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
+  deliveryMethod?: 'pickup' | 'shipping';
   // Offline sales fields
   salesChannel?: 'online' | 'offline';
   offlineCustomerName?: string;
@@ -27,13 +28,15 @@ interface DashboardOrdersProps {
   isLoading: boolean;
   error: string | null;
   onStatusUpdate: (orderId: string, newStatus: CustomerOrder['status']) => void;
+  highlightOrderId?: string;
 }
 
 export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   orders,
   isLoading,
   error,
-  onStatusUpdate
+  onStatusUpdate,
+  highlightOrderId
 }) => {
   // Order filtering state
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +46,19 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+
+  // Scroll to and highlight order when navigated from notification
+  useEffect(() => {
+    if (!highlightOrderId || isLoading) return;
+    setTimeout(() => {
+      const el = document.getElementById(`mgr-order-${highlightOrderId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('mgr-order-highlighted');
+        setTimeout(() => el.classList.remove('mgr-order-highlighted'), 3000);
+      }
+    }, 100);
+  }, [highlightOrderId, isLoading]);
 
   // Status change confirmation state
   const [pendingStatusChange, setPendingStatusChange] = useState<{
@@ -432,7 +448,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       ) : (
         <div className="orders-grid">
           {filteredOrders.map(order => (
-            <div key={order.id} className={`order-card ${order.salesChannel === 'offline' ? 'offline-order' : ''}`}>
+            <div key={order.id} id={`mgr-order-${order.id}`} className={`order-card ${order.salesChannel === 'offline' ? 'offline-order' : ''}`}>
               <div className="order-header">
                 <div className="order-info">
                   <div className="order-id-row">
@@ -467,7 +483,9 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                     >
                       <option value="pending">Pending</option>
                       <option value="in_progress">In Progress</option>
-                      <option value="ready_to_pickup">Ready to Pickup</option>
+                      {order.deliveryMethod !== 'shipping' && (
+                        <option value="ready_to_pickup">Ready to Pickup</option>
+                      )}
                       <option value="delivered">Delivered</option>
                     </select>
                   )}

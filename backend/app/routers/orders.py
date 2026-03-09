@@ -30,6 +30,7 @@ from app.schemas.order import (
     InitiateCheckoutResponse,
     PayHereFormData,
     CheckoutCalculation,
+    ReturnItemSummary,
     get_delivery_fee,
     SRI_LANKA_DISTRICTS,
 )
@@ -108,12 +109,31 @@ def order_to_response(order: Order, db: Session = None) -> OrderResponse:
         customer_name = order.offline_customer_name
         customer_phone = order.offline_customer_phone
 
-    # Check if a return request exists for this order
+    # Check if a return request exists for this order and get its status
     has_return_request = False
+    return_status = None
+    return_admin_notes = None
+    return_items_summary = None
     if db is not None:
-        has_return_request = db.query(ReturnRequest).filter(
+        latest_return = db.query(ReturnRequest).filter(
             ReturnRequest.order_id == order.id
-        ).first() is not None
+        ).order_by(ReturnRequest.created_at.desc()).first()
+        if latest_return:
+            has_return_request = True
+            return_status = latest_return.status.value if hasattr(latest_return.status, 'value') else str(latest_return.status)
+            return_admin_notes = latest_return.admin_notes
+            # Build return items summary so front-end can show what was returned
+            return_items_summary = []
+            for ri in latest_return.return_items:
+                order_item = ri.order_item
+                product = order_item.product if order_item else None
+                return_items_summary.append(ReturnItemSummary(
+                    order_item_id=ri.order_item_id,
+                    product_name=product.name if product else None,
+                    returned_quantity=ri.quantity,
+                    original_quantity=order_item.quantity if order_item else ri.quantity,
+                    unit_price=order_item.unit_price if order_item else 0,
+                ))
 
     return OrderResponse(
         id=order.id,
@@ -142,7 +162,10 @@ def order_to_response(order: Order, db: Session = None) -> OrderResponse:
         customer_email=customer_email,
         customer_phone=customer_phone,
         is_billable=order.is_billable,
-        has_return_request=has_return_request
+        has_return_request=has_return_request,
+        return_status=return_status,
+        return_admin_notes=return_admin_notes,
+        return_items=return_items_summary,
     )
 
 

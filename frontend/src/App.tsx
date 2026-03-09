@@ -128,13 +128,17 @@ function App() {
                   <Route path="/payment/success" element={<PaymentSuccess />} />
                   <Route path="/payment/cancel" element={<PaymentCancel />} />
                   <Route path="/manager-dashboard" element={<Navigate to="/manager/inventory" replace />} />
-                  <Route path="/manager" element={<Navigate to="/manager/inventory" replace />} />
+                  {/* /manager with ?section= query params (notification deep-links) */}
+                  <Route path="/manager" element={<ManagerDashboard />} />
                   <Route path="/manager/inventory" element={<ManagerDashboard />} />
                   <Route path="/manager/orders" element={<ManagerDashboard />} />
                   <Route path="/manager/offline-sales" element={<OfflineSales />} />
                   <Route path="/manager/returns" element={<ManagerDashboard />} />
                   <Route path="/manager/profile" element={<ManagerDashboard />} />
+                  {/* /admin and /auditor with ?section= query params (notification deep-links) */}
+                  <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  <Route path="/auditor" element={<AuditorDashboard />} />
                   <Route path="/auditor-dashboard" element={<AuditorDashboard />} />
                   <Route path="/manage-users" element={<ManageUsers />} />
                   {/* Catch all route - redirect to 404 */}

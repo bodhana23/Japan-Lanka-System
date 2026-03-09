@@ -36,9 +36,11 @@ type ActiveTab = 'history' | 'request';
 
 interface DashboardReturnsProps {
   onNavigate: (section: NavItemId) => void;
+  autoOpenOrderId?: string;
+  highlightReturnId?: string;
 }
 
-const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
+const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate, autoOpenOrderId, highlightReturnId }) => {
   const navigate = useNavigate();
 
   // Tab state — default to request so customers see eligible orders first
@@ -118,6 +120,31 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
     setDescription('');
     setError(null);
   };
+
+  // Auto-open return form for a specific order when navigated from MyOrders
+  useEffect(() => {
+    if (!autoOpenOrderId || ordersLoading) return;
+    const order = eligibleOrders.find(o => o.id === autoOpenOrderId);
+    if (order) {
+      setActiveTab('request');
+      handleSelectOrder(order);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenOrderId, eligibleOrders, ordersLoading]);
+
+  // Auto-highlight a specific return when navigated from notifications
+  useEffect(() => {
+    if (!highlightReturnId || returnsLoading) return;
+    setActiveTab('history');
+    setTimeout(() => {
+      const el = document.getElementById(`return-${highlightReturnId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('dret-highlighted');
+        setTimeout(() => el.classList.remove('dret-highlighted'), 3000);
+      }
+    }, 100);
+  }, [highlightReturnId, myReturns, returnsLoading]);
 
   const handleItemToggle = (item: EligibleOrderItem) => {
     setSelectedItems(prev => {
@@ -297,7 +324,7 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
               {myReturns.map(ret => {
                 const statusCfg = STATUS_CONFIG[ret.status] ?? STATUS_CONFIG.pending;
                 return (
-                  <div key={ret.id} className={`dret-history-card dret-history-card-${ret.status}`}>
+                  <div key={ret.id} id={`return-${ret.id}`} className={`dret-history-card dret-history-card-${ret.status}`}>
                     {/* Card Header */}
                     <div className="dret-history-card-header">
                       <div className="dret-history-card-title">
@@ -331,18 +358,58 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate }) => {
                       <span>{ret.reason}</span>
                     </div>
 
-                    {/* Items */}
+                    {/* Items — two-column breakdown for approved/completed, simple list otherwise */}
                     {ret.items && ret.items.length > 0 && (
-                      <div className="dret-history-items">
-                        <span className="dret-history-label">Items returned:</span>
-                        <ul className="dret-history-items-list">
-                          {ret.items.map(item => (
-                            <li key={item.id}>
-                              {item.product_name ?? 'Unknown product'} × {item.quantity}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      (ret.status === 'approved' || ret.status === 'completed') ? (
+                        <div className="dret-item-breakdown">
+                          <div className="dret-item-breakdown-header">
+                            ✓ {ret.status === 'completed' ? 'Return Completed' : 'Return Approved'}
+                          </div>
+                          <div className="dret-item-breakdown-columns">
+                            <div className="dret-item-col">
+                              <h5 className="dret-item-col-title">Ordered Items</h5>
+                              <ul className="dret-item-col-list">
+                                {ret.items.map(item => (
+                                  <li key={item.id} className="dret-item-col-row">
+                                    <span className="dret-item-col-name">{item.product_name ?? 'Unknown product'}</span>
+                                    <span className="dret-item-col-qty">x{item.original_quantity ?? item.quantity}</span>
+                                    {item.unit_price != null && (
+                                      <span className="dret-item-col-price">{formatCurrency(item.unit_price)}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="dret-item-col dret-item-returned-col">
+                              <h5 className="dret-item-col-title">Returned Items</h5>
+                              <ul className="dret-item-col-list">
+                                {ret.items.map(item => (
+                                  <li key={item.id} className="dret-item-col-row dret-item-returned-row">
+                                    <span className="dret-item-col-name">{item.product_name ?? 'Unknown product'}</span>
+                                    <span className="dret-item-col-qty">
+                                      x{item.quantity} / {item.original_quantity ?? item.quantity}
+                                    </span>
+                                    {item.unit_price != null && (
+                                      <span className="dret-item-col-price">{formatCurrency(item.unit_price)}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="dret-history-items">
+                          <span className="dret-history-label">Items requested for return:</span>
+                          <ul className="dret-history-items-list">
+                            {ret.items.map(item => (
+                              <li key={item.id}>
+                                {item.product_name ?? 'Unknown product'} × {item.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
                     )}
 
                     {/* Description */}

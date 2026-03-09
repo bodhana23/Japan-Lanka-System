@@ -115,22 +115,42 @@ const NotificationBell: React.FC = () => {
     setIsOpen(false);
 
     if (isEmployee) {
-      // Employee navigation (manager, admin, auditor)
-      const basePath = user?.role?.toLowerCase() === 'manager' ? '/manager' :
-                       user?.role?.toLowerCase() === 'admin' ? '/admin' :
-                       user?.role?.toLowerCase() === 'auditor' ? '/auditor' : '/manager';
+      const role = user?.role?.toLowerCase();
 
-      if (notification.related_order_id) {
-        navigate(`${basePath}/orders`);
-      } else if (notification.related_return_id) {
-        navigate(`${basePath}/returns`);
+      if (role === 'manager') {
+        // Manager has dedicated orders + returns sections
+        if (notification.related_order_id) {
+          navigate(`/manager?section=orders&order_id=${notification.related_order_id}`);
+        } else if (notification.related_return_id) {
+          navigate(`/manager?section=returns&return_id=${notification.related_return_id}`);
+        } else {
+          navigate('/manager');
+        }
+      } else if (role === 'admin') {
+        // Admin has order-pipeline (no returns section) — map both to order-pipeline
+        if (notification.related_order_id) {
+          navigate(`/admin?section=order-pipeline&order_id=${notification.related_order_id}`);
+        } else if (notification.related_return_id) {
+          navigate(`/admin?section=order-pipeline&return_id=${notification.related_return_id}`);
+        } else {
+          navigate('/admin');
+        }
+      } else if (role === 'auditor') {
+        // Auditor has activity-logs — redirect there for any order/return notification
+        if (notification.related_order_id || notification.related_return_id) {
+          navigate('/auditor?section=activity-logs');
+        } else {
+          navigate('/auditor');
+        }
+      } else {
+        navigate('/manager');
       }
     } else {
       // Customer navigation
       if (notification.related_order_id) {
-        navigate('/customer?section=orders');
+        navigate(`/customer?section=orders&order_id=${notification.related_order_id}`);
       } else if (notification.related_return_id) {
-        navigate('/customer?section=returns');
+        navigate(`/customer?section=returns&return_id=${notification.related_return_id}`);
       }
     }
   };
@@ -230,10 +250,11 @@ const NotificationBell: React.FC = () => {
                   setIsOpen(false);
                   // Navigate to appropriate dashboard based on user role
                   if (isEmployee) {
-                    const basePath = user?.role?.toLowerCase() === 'manager' ? '/manager' :
-                                     user?.role?.toLowerCase() === 'admin' ? '/admin' :
-                                     user?.role?.toLowerCase() === 'auditor' ? '/auditor' : '/manager';
-                    navigate(`${basePath}/orders`);
+                    const role = user?.role?.toLowerCase();
+                    const basePath = role === 'manager' ? '/manager' :
+                                     role === 'admin' ? '/admin' :
+                                     role === 'auditor' ? '/auditor' : '/manager';
+                    navigate(basePath);
                   } else {
                     navigate('/customer');
                   }

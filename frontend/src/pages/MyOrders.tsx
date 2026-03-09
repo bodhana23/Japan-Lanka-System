@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersApi, returnsApi, Order } from '../services/api';
+import { ordersApi, returnsApi, Order, ReturnItemSummary } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../utils/dateUtils';
 import { Car, AlertTriangle, Inbox, Store, Truck, FileText, Loader2 } from 'lucide-react';
@@ -96,11 +96,8 @@ const MyOrders: React.FC = () => {
   };
 
   const handleRequestReturn = (order: Order) => {
-    setSelectedOrder(order);
-    setReturnReason('');
-    setSubmitError(null);
-    setSubmitSuccess(null);
-    setShowReturnModal(true);
+    // Navigate to the customer dashboard returns section with the order pre-selected
+    navigate(`/customer?section=returns&order_id=${order.id}`);
   };
 
   const handleSubmitReturn = async () => {
@@ -305,6 +302,72 @@ const MyOrders: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Return status section */}
+                  {order.return_status === 'approved' && order.return_items && order.return_items.length > 0 && (
+                    <div className="mo-return-breakdown">
+                      <div className="mo-return-breakdown-header mo-return-approved-header">
+                        ✓ Return Approved
+                        {order.return_admin_notes && (
+                          <span className="mo-return-note-inline"> — {order.return_admin_notes}</span>
+                        )}
+                      </div>
+                      <div className="mo-return-breakdown-columns">
+                        <div className="mo-return-col">
+                          <h5 className="mo-return-col-title">Ordered Items</h5>
+                          <ul className="mo-return-item-list">
+                            {order.items.map((item, idx) => (
+                              <li key={idx} className="mo-return-item-row">
+                                <span className="mo-return-item-name">{item.product_name || 'Product'}</span>
+                                <span className="mo-return-item-qty">x{item.quantity}</span>
+                                <span className="mo-return-item-price">{formatCurrency(item.unit_price)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mo-return-col mo-returned-col">
+                          <h5 className="mo-return-col-title">Returned Items</h5>
+                          <ul className="mo-return-item-list">
+                            {order.return_items.map((ri: ReturnItemSummary, idx: number) => (
+                              <li key={idx} className="mo-return-item-row mo-returned-item">
+                                <span className="mo-return-item-name">{ri.product_name || 'Product'}</span>
+                                <span className="mo-return-item-qty">x{ri.returned_quantity} / {ri.original_quantity}</span>
+                                <span className="mo-return-item-price">{formatCurrency(ri.unit_price)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {order.return_status === 'approved' && (!order.return_items || order.return_items.length === 0) && (
+                    <div className="mo-return-info-banner mo-return-approved">
+                      <AlertTriangle size={14} />
+                      <div>
+                        <strong>Return Approved</strong>
+                        {order.return_admin_notes && (
+                          <p className="mo-return-note">Manager: {order.return_admin_notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {order.return_status === 'pending' && (
+                    <div className="mo-return-info-banner mo-return-pending">
+                      <AlertTriangle size={14} />
+                      <span>Return request pending review</span>
+                    </div>
+                  )}
+                  {order.return_status === 'rejected' && (
+                    <div className="mo-return-info-banner mo-return-rejected">
+                      <AlertTriangle size={14} />
+                      <div>
+                        <strong>Return Rejected</strong>
+                        {order.return_admin_notes && (
+                          <p className="mo-return-note">Reason: {order.return_admin_notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mo-order-footer">
                     <div className="mo-order-total">

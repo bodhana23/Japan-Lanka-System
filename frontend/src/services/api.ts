@@ -126,6 +126,17 @@ export interface Order {
   customer_email?: string;
   is_billable?: boolean;
   has_return_request?: boolean;  // Whether a return request exists for this order
+  return_status?: string;  // Status of the latest return request (pending/approved/rejected/completed)
+  return_admin_notes?: string;  // Manager notes from the return decision
+  return_items?: ReturnItemSummary[];  // Items that were returned (populated when return exists)
+}
+
+export interface ReturnItemSummary {
+  order_item_id: string;
+  product_name?: string;
+  returned_quantity: number;
+  original_quantity: number;
+  unit_price: number;
 }
 
 export interface OrderListResponse {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle, Inbox, Package, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 
@@ -37,6 +37,7 @@ interface DashboardReturnsProps {
   onViewReturn: (returnRequest: ReturnRequestUI) => void;
   onAcceptReturn?: (returnId: string) => void;
   onRejectReturn?: (returnId: string) => void;
+  highlightReturnId?: string;
 }
 
 export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
@@ -45,7 +46,8 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
   error,
   onViewReturn,
   onAcceptReturn,
-  onRejectReturn
+  onRejectReturn,
+  highlightReturnId
 }) => {
   // Return filtering state
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -57,6 +59,19 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
     }
     return returnRequests.filter(r => r.status === statusFilter);
   }, [returnRequests, statusFilter]);
+
+  // Scroll to and highlight return when navigated from notification
+  useEffect(() => {
+    if (!highlightReturnId || isLoading) return;
+    setTimeout(() => {
+      const el = document.getElementById(`mgr-return-${highlightReturnId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('mgr-return-highlighted');
+        setTimeout(() => el.classList.remove('mgr-return-highlighted'), 3000);
+      }
+    }, 100);
+  }, [highlightReturnId, isLoading]);
 
   // Count returns by status for filter chips
   const statusCounts = useMemo(() => {
@@ -136,7 +151,7 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
       ) : (
         <div className="returns-grid">
           {filteredReturnRequests.map(request => (
-            <div key={request.id} className="return-item">
+            <div key={request.id} id={`mgr-return-${request.id}`} className="return-item">
               <div className="return-header">
                 <div className="return-id">Return #{request.id.slice(-8).toUpperCase()}</div>
                 <span className={`status-badge ${request.status}`}>

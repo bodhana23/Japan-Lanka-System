@@ -458,7 +458,7 @@ async def update_profile(
 async def change_password(
     password_data: EmployeeChangePasswordRequest,
     request: Request,
-    current_employee: Employee = Depends(require_admin),
+    current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
     """Change the current employee's password.

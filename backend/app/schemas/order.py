@@ -120,9 +120,26 @@ class OrderResponse(BaseModel):
     customer_phone: Optional[str] = None  # Fetched from user relationship
     is_billable: bool = False  # Whether bill can be generated for this order
     has_return_request: bool = False  # Whether a return request exists for this order
+    # Return summary when return is approved (shows which items were returned)
+    return_status: Optional[str] = None  # e.g. 'approved', 'pending', 'rejected', 'completed'
+    return_admin_notes: Optional[str] = None  # Manager notes from the return decision
+    return_items: Optional[List["ReturnItemSummary"]] = None  # Items that were returned
+
+
+class ReturnItemSummary(BaseModel):
+    """Lightweight return item embedded in OrderResponse."""
+    order_item_id: UUID
+    product_name: Optional[str] = None
+    returned_quantity: int
+    original_quantity: int
+    unit_price: Decimal
 
     class Config:
         from_attributes = True
+
+
+# Resolve the forward reference used in OrderResponse
+OrderResponse.model_rebuild()
 
 
 class OrderListResponse(BaseModel):

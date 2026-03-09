@@ -392,3 +392,35 @@
     max-width: none;
   }
 }
+
+/* Password input with toggle */
+.admin-password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-password-input-wrapper .admin-form-input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.admin-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.admin-password-toggle:hover {
+  color: #374151;
+}

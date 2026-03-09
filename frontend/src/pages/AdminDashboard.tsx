@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DashboardLayout, roleConfigs } from '../components/shared';
 import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
@@ -16,7 +16,7 @@ import { usersApi, productsApi, analyticsApi, Customer as ApiCustomer, Employee 
 import type { SalesData, BrandSales, ReturnAnalyticsResponse, OrderPipelineResponse, SalesChannelComparisonResponse } from '../services/api';
 import {
   Plus, CheckCircle, Clock, AlertTriangle, Trash2,
-  Users, BarChart2, User, Shield, Pencil, Lock, GitBranch
+  Users, BarChart2, User, Shield, Pencil, Lock, GitBranch, Eye, EyeOff
 } from 'lucide-react';
 import './AdminDashboard.css';
 
@@ -90,6 +90,8 @@ const AdminDashboard: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
+  const [showNewUserConfirmPassword, setShowNewUserConfirmPassword] = useState(false);
   const [editUserForm, setEditUserForm] = useState<EditUserForm>({
     id: '',
     fullName: '',
@@ -99,6 +101,7 @@ const AdminDashboard: React.FC = () => {
     confirmPassword: ''
   });
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser } = useAuth();
 
   // Navigation items for Admin Dashboard
@@ -110,6 +113,15 @@ const AdminDashboard: React.FC = () => {
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
     { id: 'change-password', label: 'Change Password', icon: <Lock size={20} /> },
   ], []);
+
+  // Sync activeNav from URL ?section= param (e.g. from notification click)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sectionParam = params.get('section') as AdminNavId | null;
+    if (sectionParam && ['analytics', 'order-pipeline', 'users', 'low-stock', 'profile', 'change-password'].includes(sectionParam)) {
+      setActiveNav(sectionParam);
+    }
+  }, [location.search]);
 
   // Role configuration for Admin
   const roleConfig: RoleConfig = useMemo(() => ({
@@ -797,27 +809,47 @@ const AdminDashboard: React.FC = () => {
 
               <div className="admin-form-group">
                 <label htmlFor="password">Password *</label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Enter strong password"
-                  value={newUserForm.password}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                  className="admin-form-input"
-                />
+                <div className="admin-password-input-wrapper">
+                  <input
+                    id="password"
+                    type={showNewUserPassword ? 'text' : 'password'}
+                    placeholder="Enter strong password"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    className="admin-form-input"
+                  />
+                  <button
+                    type="button"
+                    className="admin-password-toggle"
+                    onClick={() => setShowNewUserPassword(!showNewUserPassword)}
+                    aria-label={showNewUserPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewUserPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <p className="admin-field-hint">Min 8 characters: uppercase, lowercase, number, special character (!@#$%^&*)</p>
               </div>
 
               <div className="admin-form-group">
                 <label htmlFor="confirmPassword">Confirm Password *</label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Re-enter password"
-                  value={newUserForm.confirmPassword}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, confirmPassword: e.target.value })}
-                  className="admin-form-input"
-                />
+                <div className="admin-password-input-wrapper">
+                  <input
+                    id="confirmPassword"
+                    type={showNewUserConfirmPassword ? 'text' : 'password'}
+                    placeholder="Re-enter password"
+                    value={newUserForm.confirmPassword}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, confirmPassword: e.target.value })}
+                    className="admin-form-input"
+                  />
+                  <button
+                    type="button"
+                    className="admin-password-toggle"
+                    onClick={() => setShowNewUserConfirmPassword(!showNewUserConfirmPassword)}
+                    aria-label={showNewUserConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewUserConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="admin-modal-footer">

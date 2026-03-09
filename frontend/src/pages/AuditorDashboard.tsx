@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DashboardLayout, roleConfigs } from '../components/shared';
 import type { NavItem, RoleConfig, DashboardUser } from '../components/shared';
@@ -24,6 +24,7 @@ interface UserProfile {
 
 const AuditorDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser } = useAuth();
   const [activeNav, setActiveNav] = useState<AuditorNavId>('inventory-logs');
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -61,6 +62,15 @@ const AuditorDashboard: React.FC = () => {
     }
     return undefined;
   }, [authUser, user]);
+
+  // Sync activeNav from URL ?section= param (e.g. from notification click)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sectionParam = params.get('section') as AuditorNavId | null;
+    if (sectionParam && ['inventory-logs', 'activity-logs', 'reports', 'profile'].includes(sectionParam)) {
+      setActiveNav(sectionParam);
+    }
+  }, [location.search]);
 
   // Check authentication on mount
   useEffect(() => {
