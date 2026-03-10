@@ -414,6 +414,32 @@ async def update_order_status(
     old_status = order.status
     order.status = status_update.status
 
+    # COD collection: shipping order delivered → collect remaining COD amount
+    if (
+        status_update.status == OrderStatus.DELIVERED
+        and order.delivery_method == DeliveryMethod.SHIPPING
+        and old_status != OrderStatus.DELIVERED
+    ):
+        from decimal import Decimal
+        remaining = Decimal(str(order.remaining_amount or 0))
+        if remaining > 0:
+            order.paid_amount = Decimal(str(order.paid_amount or 0)) + remaining
+            order.remaining_amount = Decimal("0")
+            order.update_payment_status()
+
+    # COD collection: pickup order picked up → collect remaining amount
+    if (
+        status_update.status == OrderStatus.PICKED_UP
+        and order.delivery_method == DeliveryMethod.PICKUP
+        and old_status != OrderStatus.PICKED_UP
+    ):
+        from decimal import Decimal
+        remaining = Decimal(str(order.remaining_amount or 0))
+        if remaining > 0:
+            order.paid_amount = Decimal(str(order.paid_amount or 0)) + remaining
+            order.remaining_amount = Decimal("0")
+            order.update_payment_status()
+
     # Create status history record
     status_history = OrderStatusHistory(
         order_id=order.id,

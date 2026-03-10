@@ -17,6 +17,7 @@ class OrderStatus(str, PyEnum):
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
     RETURN_APPROVED = "return_approved"
+    PICKED_UP = "picked_up"
 
 
 class DeliveryMethod(str, PyEnum):

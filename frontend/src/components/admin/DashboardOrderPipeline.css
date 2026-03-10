@@ -252,6 +252,104 @@
   align-items: center;
 }
 
+/* Branched Pipeline Layout */
+.admin-pipeline-branched {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.admin-pipeline-shared-row {
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+
+.admin-pipeline-branch-split {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.admin-pipeline-branch-line {
+  flex: 1;
+  height: 2px;
+  background: #E5E7EB;
+  border-radius: 1px;
+}
+
+.admin-pipeline-branch-labels {
+  display: flex;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.admin-pipeline-branch-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+.admin-pipeline-branch-shipping {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.admin-pipeline-branch-pickup {
+  background: rgba(6, 182, 212, 0.1);
+  color: #0891B2;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.admin-pipeline-tracks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-pipeline-track {
+  border-radius: 12px;
+  padding: 0.85rem 1rem 0.85rem 1rem;
+  border: 1px dashed;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-pipeline-track-shipping {
+  background: rgba(139, 92, 246, 0.03);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.admin-pipeline-track-pickup {
+  background: rgba(6, 182, 212, 0.03);
+  border-color: rgba(6, 182, 212, 0.2);
+}
+
+.admin-pipeline-track .admin-pipeline-flow {
+  overflow-x: visible;
+  padding: 0;
+  margin: 0;
+  align-items: center;
+}
+
+.admin-pipeline-track .admin-pipeline-stage {
+  flex: 1;
+  min-width: 0;
+  align-self: flex-start;
+}
+
+.admin-pipeline-track .admin-pipeline-arrow {
+  align-self: flex-start;
+  margin-top: 25px; /* (70px bar height / 2) - (arrow icon height / 2) ≈ 35 - 10 = 25px */
+}
+
 /* Cancelled Section */
 .admin-pipeline-cancelled-section {
   background: white;
@@ -518,6 +616,14 @@
 
   .admin-pipeline-cancelled-bar {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .admin-pipeline-tracks {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pipeline-branch-labels {
     gap: 0.75rem;
   }
 

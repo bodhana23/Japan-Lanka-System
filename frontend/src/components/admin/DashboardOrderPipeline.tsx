@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
   shipped: 'Shipped',
   ready_to_pickup: 'Ready to Pickup',
   delivered: 'Delivered',
+  picked_up: 'Picked Up',
   cancelled: 'Cancelled',
 };
 
@@ -24,11 +25,12 @@ const STATUS_COLORS: Record<string, string> = {
   shipped: '#8B5CF6',
   ready_to_pickup: '#06B6D4',
   delivered: '#10B981',
+  picked_up: '#059669',
   cancelled: '#EF4444',
 };
 
 // Statuses that should only show last month's orders
-const DATE_LIMITED_STATUSES = ['ready_to_pickup', 'delivered'];
+const DATE_LIMITED_STATUSES = ['ready_to_pickup', 'delivered', 'picked_up'];
 
 const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data }) => {
   const totalAll = data.totalActive + data.totalCompleted + data.totalCancelled;
@@ -82,9 +84,16 @@ const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data })
     setOrdersError(null);
   };
 
-  // Separate pipeline stages from cancelled
-  const pipelineStages = data.pipeline.filter(s => s.status !== 'cancelled');
+  // Separate pipeline stages into logical groups
+  const stageMap = Object.fromEntries(data.pipeline.map(s => [s.status, s]));
   const cancelledStage = data.pipeline.find(s => s.status === 'cancelled');
+
+  // Shared early stages (both shipping and pickup pass through these)
+  const sharedStages = ['pending', 'confirmed'].map(s => stageMap[s]).filter(Boolean);
+  // Shipping-only track: confirmed → shipped → delivered
+  const shippingStages = ['shipped', 'delivered'].map(s => stageMap[s]).filter(Boolean);
+  // Pickup-only track: confirmed → ready_to_pickup → picked_up
+  const pickupStages = ['ready_to_pickup', 'picked_up'].map(s => stageMap[s]).filter(Boolean);
 
   return (
     <div className="admin-pipeline-container">
@@ -133,60 +142,132 @@ const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data })
             <p>No order data available</p>
           </div>
         ) : (
-          <div className="admin-pipeline-flow">
-            {pipelineStages.map((stage, index) => {
-              const percentage = totalAll > 0 ? ((stage.count / totalAll) * 100) : 0;
-              const color = STATUS_COLORS[stage.status] || '#6B7280';
-              const isSelected = selectedStatus === stage.status;
-              return (
-                <React.Fragment key={stage.status}>
-                  <div
-                    className={`admin-pipeline-stage ${isSelected ? 'admin-pipeline-stage-selected' : ''}`}
-                    onClick={() => handleStageClick(stage.status)}
-                  >
+          <div className="admin-pipeline-branched">
+            {/* Shared stages: Pending → Confirmed */}
+            <div className="admin-pipeline-flow admin-pipeline-shared-row">
+              {sharedStages.map((stage, index) => {
+                const percentage = totalAll > 0 ? ((stage.count / totalAll) * 100) : 0;
+                const color = STATUS_COLORS[stage.status] || '#6B7280';
+                const isSelected = selectedStatus === stage.status;
+                return (
+                  <React.Fragment key={stage.status}>
                     <div
-                      className="admin-pipeline-stage-bar"
-                      style={{
-                        backgroundColor: isSelected ? `${color}25` : `${color}15`,
-                        borderColor: color,
-                        boxShadow: isSelected ? `0 4px 16px ${color}40` : undefined,
-                      }}
+                      className={`admin-pipeline-stage ${isSelected ? 'admin-pipeline-stage-selected' : ''}`}
+                      onClick={() => handleStageClick(stage.status)}
                     >
-                      <div className="admin-pipeline-stage-fill" style={{
-                        width: `${Math.max(percentage, 5)}%`,
-                        backgroundColor: color,
-                      }} />
-                      <div className="admin-pipeline-stage-content">
-                        <span className="admin-pipeline-stage-label">
-                          {STATUS_LABELS[stage.status] || stage.status}
-                        </span>
-                        <span className="admin-pipeline-stage-count" style={{ color }}>
-                          {stage.count}
-                        </span>
+                      <div className="admin-pipeline-stage-bar" style={{ backgroundColor: isSelected ? `${color}25` : `${color}15`, borderColor: color, boxShadow: isSelected ? `0 4px 16px ${color}40` : undefined }}>
+                        <div className="admin-pipeline-stage-fill" style={{ width: `${Math.max(percentage, 5)}%`, backgroundColor: color }} />
+                        <div className="admin-pipeline-stage-content">
+                          <span className="admin-pipeline-stage-label">{STATUS_LABELS[stage.status] || stage.status}</span>
+                          <span className="admin-pipeline-stage-count" style={{ color }}>{stage.count}</span>
+                        </div>
+                      </div>
+                      <div className="admin-pipeline-stage-meta">
+                        <span className="admin-pipeline-percentage">{percentage.toFixed(1)}%</span>
+                        {(stage.onlineCount > 0 || stage.offlineCount > 0) && (
+                          <div className="admin-pipeline-channel-split">
+                            <span className="admin-pipeline-channel-online" title="Online orders"><Monitor size={12} /> {stage.onlineCount}</span>
+                            <span className="admin-pipeline-channel-offline" title="Offline orders"><Store size={12} /> {stage.offlineCount}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="admin-pipeline-stage-meta">
-                      <span className="admin-pipeline-percentage">{percentage.toFixed(1)}%</span>
-                      {(stage.onlineCount > 0 || stage.offlineCount > 0) && (
-                        <div className="admin-pipeline-channel-split">
-                          <span className="admin-pipeline-channel-online" title="Online orders">
-                            <Monitor size={12} /> {stage.onlineCount}
-                          </span>
-                          <span className="admin-pipeline-channel-offline" title="Offline orders">
-                            <Store size={12} /> {stage.offlineCount}
-                          </span>
+                    {index < sharedStages.length - 1 && <div className="admin-pipeline-arrow"><ArrowRight size={20} /></div>}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Branch split indicator */}
+            <div className="admin-pipeline-branch-split">
+              <div className="admin-pipeline-branch-line" />
+              <div className="admin-pipeline-branch-labels">
+                <span className="admin-pipeline-branch-label admin-pipeline-branch-shipping">
+                  <Truck size={13} /> Shipping
+                </span>
+                <span className="admin-pipeline-branch-label admin-pipeline-branch-pickup">
+                  <MapPin size={13} /> Pickup
+                </span>
+              </div>
+              <div className="admin-pipeline-branch-line" />
+            </div>
+
+            {/* Two branch tracks */}
+            <div className="admin-pipeline-tracks">
+              {/* Shipping track: Shipped → Delivered */}
+              <div className="admin-pipeline-track admin-pipeline-track-shipping">
+                <div className="admin-pipeline-flow">
+                  {shippingStages.map((stage, index) => {
+                    const percentage = totalAll > 0 ? ((stage.count / totalAll) * 100) : 0;
+                    const color = STATUS_COLORS[stage.status] || '#6B7280';
+                    const isSelected = selectedStatus === stage.status;
+                    return (
+                      <React.Fragment key={stage.status}>
+                        <div
+                          className={`admin-pipeline-stage ${isSelected ? 'admin-pipeline-stage-selected' : ''}`}
+                          onClick={() => handleStageClick(stage.status)}
+                        >
+                          <div className="admin-pipeline-stage-bar" style={{ backgroundColor: isSelected ? `${color}25` : `${color}15`, borderColor: color, boxShadow: isSelected ? `0 4px 16px ${color}40` : undefined }}>
+                            <div className="admin-pipeline-stage-fill" style={{ width: `${Math.max(percentage, 5)}%`, backgroundColor: color }} />
+                            <div className="admin-pipeline-stage-content">
+                              <span className="admin-pipeline-stage-label">{STATUS_LABELS[stage.status] || stage.status}</span>
+                              <span className="admin-pipeline-stage-count" style={{ color }}>{stage.count}</span>
+                            </div>
+                          </div>
+                          <div className="admin-pipeline-stage-meta">
+                            <span className="admin-pipeline-percentage">{percentage.toFixed(1)}%</span>
+                            {(stage.onlineCount > 0 || stage.offlineCount > 0) && (
+                              <div className="admin-pipeline-channel-split">
+                                <span className="admin-pipeline-channel-online" title="Online orders"><Monitor size={12} /> {stage.onlineCount}</span>
+                                <span className="admin-pipeline-channel-offline" title="Offline orders"><Store size={12} /> {stage.offlineCount}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  {index < pipelineStages.length - 1 && (
-                    <div className="admin-pipeline-arrow">
-                      <ArrowRight size={20} />
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
+                        {index < shippingStages.length - 1 && <div className="admin-pipeline-arrow"><ArrowRight size={20} /></div>}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Pickup track: Ready to Pickup → Picked Up */}
+              <div className="admin-pipeline-track admin-pipeline-track-pickup">
+                <div className="admin-pipeline-flow">
+                  {pickupStages.map((stage, index) => {
+                    const percentage = totalAll > 0 ? ((stage.count / totalAll) * 100) : 0;
+                    const color = STATUS_COLORS[stage.status] || '#6B7280';
+                    const isSelected = selectedStatus === stage.status;
+                    return (
+                      <React.Fragment key={stage.status}>
+                        <div
+                          className={`admin-pipeline-stage ${isSelected ? 'admin-pipeline-stage-selected' : ''}`}
+                          onClick={() => handleStageClick(stage.status)}
+                        >
+                          <div className="admin-pipeline-stage-bar" style={{ backgroundColor: isSelected ? `${color}25` : `${color}15`, borderColor: color, boxShadow: isSelected ? `0 4px 16px ${color}40` : undefined }}>
+                            <div className="admin-pipeline-stage-fill" style={{ width: `${Math.max(percentage, 5)}%`, backgroundColor: color }} />
+                            <div className="admin-pipeline-stage-content">
+                              <span className="admin-pipeline-stage-label">{STATUS_LABELS[stage.status] || stage.status}</span>
+                              <span className="admin-pipeline-stage-count" style={{ color }}>{stage.count}</span>
+                            </div>
+                          </div>
+                          <div className="admin-pipeline-stage-meta">
+                            <span className="admin-pipeline-percentage">{percentage.toFixed(1)}%</span>
+                            {(stage.onlineCount > 0 || stage.offlineCount > 0) && (
+                              <div className="admin-pipeline-channel-split">
+                                <span className="admin-pipeline-channel-online" title="Online orders"><Monitor size={12} /> {stage.onlineCount}</span>
+                                <span className="admin-pipeline-channel-offline" title="Offline orders"><Store size={12} /> {stage.offlineCount}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {index < pickupStages.length - 1 && <div className="admin-pipeline-arrow"><ArrowRight size={20} /></div>}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

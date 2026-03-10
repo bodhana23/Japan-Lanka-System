@@ -110,9 +110,9 @@ async def get_eligible_orders(
     current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
-    """Get orders eligible for return (delivered or ready_to_pickup) for the current customer."""
-    # Get delivered or ready_to_pickup orders for this customer
-    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP]
+    """Get orders eligible for return (delivered, picked_up, or ready_to_pickup) for the current customer."""
+    # Get delivered, picked_up, or ready_to_pickup orders for this customer
+    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP]
     orders = db.query(Order).filter(
         Order.customer_id == current_customer.id,
         Order.status.in_(eligible_statuses)
@@ -120,10 +120,10 @@ async def get_eligible_orders(
 
     result_orders = []
     for order in orders:
-        # Check 7-day return window: find when order reached delivered/ready_to_pickup status
+        # Check 7-day return window: find when order reached delivered/picked_up/ready_to_pickup status
         delivery_history = db.query(OrderStatusHistory).filter(
             OrderStatusHistory.order_id == order.id,
-            OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP])
+            OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP])
         ).order_by(OrderStatusHistory.created_at.desc()).first()
 
         if delivery_history:
@@ -224,18 +224,18 @@ async def create_return_request(
             detail="You can only request returns for your own orders"
         )
 
-    # Check if order is eligible for return (delivered or ready_to_pickup)
-    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP]
+    # Check if order is eligible for return (delivered, picked_up, or ready_to_pickup)
+    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP]
     if order.status not in eligible_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order must be delivered or ready for pickup to request a return. Current status: {order.status.value}"
+            detail=f"Order must be delivered or picked up to request a return. Current status: {order.status.value}"
         )
 
     # Enforce 7-day return window
     delivery_history = db.query(OrderStatusHistory).filter(
         OrderStatusHistory.order_id == order.id,
-        OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP])
+        OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP])
     ).order_by(OrderStatusHistory.created_at.desc()).first()
 
     if delivery_history:

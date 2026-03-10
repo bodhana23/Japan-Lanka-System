@@ -83,9 +83,9 @@ def get_financial_summary(
             Order.created_at <= month_end,
         ]
 
-        # a) Total revenue and order count
+        # a) Total revenue and order count (paid_amount = actual collected cash)
         revenue_result = db.query(
-            func.coalesce(func.sum(Order.total_amount), 0),
+            func.coalesce(func.sum(Order.paid_amount), 0),
             func.count(Order.id),
         ).filter(*month_filters).first()
 
@@ -138,7 +138,7 @@ def get_financial_summary(
         daily_trend_results = (
             db.query(
                 func.date(Order.created_at).label("day"),
-                func.coalesce(func.sum(Order.total_amount), 0).label("daily_revenue"),
+                func.coalesce(func.sum(Order.paid_amount), 0).label("daily_revenue"),
             )
             .filter(
                 Order.status != OrderStatus.CANCELLED,
@@ -343,7 +343,7 @@ def get_order_pipeline(
     thirty_days_ago = now - timedelta(days=30)
 
     # Statuses that should only show last 30 days
-    date_limited_statuses = {OrderStatus.READY_TO_PICKUP, OrderStatus.DELIVERED}
+    date_limited_statuses = {OrderStatus.READY_TO_PICKUP, OrderStatus.DELIVERED, OrderStatus.PICKED_UP}
 
     status_order = [
         OrderStatus.PENDING,
@@ -351,6 +351,7 @@ def get_order_pipeline(
         OrderStatus.SHIPPED,
         OrderStatus.READY_TO_PICKUP,
         OrderStatus.DELIVERED,
+        OrderStatus.PICKED_UP,
         OrderStatus.CANCELLED,
     ]
 
@@ -419,8 +420,8 @@ def get_order_pipeline(
             onlineCount=data["onlineCount"],
             offlineCount=data["offlineCount"],
         ))
-        if s == OrderStatus.DELIVERED:
-            total_completed = data["count"]
+        if s in (OrderStatus.DELIVERED, OrderStatus.PICKED_UP):
+            total_completed += data["count"]
         elif s == OrderStatus.CANCELLED:
             total_cancelled = data["count"]
         else:
@@ -459,7 +460,7 @@ def get_sales_channel_comparison(
     channel_results = (
         db.query(
             Order.sales_channel,
-            func.coalesce(func.sum(Order.total_amount), 0).label("revenue"),
+            func.coalesce(func.sum(Order.paid_amount), 0).label("revenue"),
             func.count(Order.id).label("orders"),
         )
         .filter(*base_filters)
@@ -500,7 +501,7 @@ def get_sales_channel_comparison(
         month_channel = (
             db.query(
                 Order.sales_channel,
-                func.coalesce(func.sum(Order.total_amount), 0).label("revenue"),
+                func.coalesce(func.sum(Order.paid_amount), 0).label("revenue"),
                 func.count(Order.id).label("orders"),
             )
             .filter(

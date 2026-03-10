@@ -103,7 +103,7 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                   <span className="admin-detail-value">{data.orders}</span>
                 </div>
                 <div className="admin-detail-item">
-                  <span className="admin-detail-label">Avg Order:</span>
+                  <span className="admin-detail-label">Collected/Order:</span>
                   <span className="admin-detail-value">
                     Rs. {data.orders > 0 ? Math.round(data.sales / data.orders).toLocaleString() : '0'}
                   </span>
@@ -153,7 +153,7 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                     </ul>
                   </div>
                   <div className="admin-detail-section">
-                    <h4>Revenue by Category</h4>
+                    <h4>Order Value by Category</h4>
                     <ul>
                       {data.revenueByCategory && data.revenueByCategory.length > 0 ? (
                         data.revenueByCategory.map((cat, idx) => (
@@ -182,9 +182,9 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
             <div className="admin-summary-icon">
               <DollarSign size={24} />
             </div>
-            <h4>Monthly Revenue</h4>
+            <h4>Collected Revenue</h4>
             <p className="admin-summary-amount">Rs. {monthlyRevenue.toLocaleString()}</p>
-            <span className="admin-summary-label">Current Month</span>
+            <span className="admin-summary-label">Current Month (cash received)</span>
           </div>
           <div className="admin-summary-card admin-summary-success">
             <div className="admin-summary-icon">
@@ -192,13 +192,13 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
             </div>
             <h4>Yearly Revenue (Est.)</h4>
             <p className="admin-summary-amount">Rs. {Math.round(yearlyRevenue).toLocaleString()}</p>
-            <span className="admin-summary-label">Annual Projection</span>
+            <span className="admin-summary-label">Annualised from collected cash</span>
           </div>
           <div className="admin-summary-card admin-summary-info">
             <div className="admin-summary-icon">
               <ShoppingCart size={24} />
             </div>
-            <h4>Total Sales ({salesData.length} Months)</h4>
+            <h4>Total Collected ({salesData.length} Months)</h4>
             <p className="admin-summary-amount">Rs. {salesData.reduce((sum, data) => sum + data.sales, 0).toLocaleString()}</p>
           </div>
           <div className="admin-summary-card admin-summary-warning">
@@ -222,7 +222,7 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
 
       {/* Brand Sales Section */}
       <div className="admin-brand-section">
-        <h3>Top Selling Brands</h3>
+        <h3>Top Selling Brands <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#6B7280' }}>(by order value)</span></h3>
         <div className="admin-brand-chart">
           {brandSales && brandSales.length > 0 && brandSales.map((brand, index) => {
             const salesValues = brandSales.map(b => b.sales).filter(s => s > 0);

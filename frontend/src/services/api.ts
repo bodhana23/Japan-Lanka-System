@@ -101,7 +101,7 @@ export type PaymentStatus = 'not_paid' | 'partially_paid' | 'paid';
 export interface Order {
   id: string;
   user_id: string;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved';
+  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved' | 'picked_up';
   delivery_method: 'pickup' | 'shipping';
   sales_channel?: 'online' | 'offline';
   total_amount: number;
