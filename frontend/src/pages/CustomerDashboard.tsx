@@ -24,8 +24,8 @@ const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { cart: cartItems } = useCart();
 
-  // Default to 'orders' as requested - show previous orders on login
-  const [activeNav, setActiveNav] = useState<CustomerNavId>('orders');
+  // Default to 'overview' - show dashboard overview on login
+  const [activeNav, setActiveNav] = useState<CustomerNavId>('overview');
 
   // Calculate cart badge count
   const cartBadge = useMemo(() => {

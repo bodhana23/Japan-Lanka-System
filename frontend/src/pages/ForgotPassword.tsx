@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Mail, KeyRound, CheckCircle, ArrowLeft } from 'lucide-react';
 import { sendPasswordReset } from '../config/firebase';
 import { sanitizeInput, getEmailValidationError } from '../utils/validation';
 import './Login.css';
@@ -14,16 +15,13 @@ const ForgotPassword: React.FC = () => {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedEmail = sanitizeInput(e.target.value);
     setEmail(sanitizedEmail);
-    if (error) {
-      setError('');
-    }
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validate email
     const emailError = getEmailValidationError(email);
     if (emailError) {
       setError(emailError);
@@ -31,16 +29,11 @@ const ForgotPassword: React.FC = () => {
     }
 
     setIsLoading(true);
-
     try {
-      // Use Firebase's built-in password reset email service
       await sendPasswordReset(email);
-      // Always show success for security (prevents email enumeration)
       setIsSubmitted(true);
     } catch (err) {
       const firebaseError = err as { code?: string; message?: string };
-      // For security, show generic message for most errors to prevent email enumeration
-      // Only show specific error for rate limiting
       if (firebaseError.code === 'auth/too-many-requests') {
         setError('Too many requests. Please wait a few minutes before trying again.');
       } else if (firebaseError.code === 'auth/network-request-failed') {
@@ -54,90 +47,77 @@ const ForgotPassword: React.FC = () => {
     }
   };
 
-  const handleGoBack = () => {
-    navigate('/login');
-  };
-
-  // Success state after submission
+  // ── Success / Check Email state ──────────────────────────────
   if (isSubmitted) {
     return (
       <div className="login-container">
         <div className="login-card">
-          <div className="company-header">
-            <h1>Japan Lanka Enterprises</h1>
-            <p>Management System</p>
+          {/* Icon */}
+          <div className="fp-icon-wrap">
+            <Mail size={30} />
           </div>
 
-          <div className="login-form">
+          {/* Heading */}
+          <div className="fp-heading">
             <h2>Check Your Email</h2>
-
-            <div style={{
-              background: '#f0fdf4',
-              border: '1px solid #86efac',
-              color: '#166534',
-              padding: '1rem',
-              borderRadius: '8px',
-              marginBottom: '1.5rem',
-              textAlign: 'center'
-            }}>
-              If an account exists with this email, a password reset link has been sent.
-            </div>
-
-            <p style={{
-              color: '#666',
-              textAlign: 'center',
-              marginBottom: '1.5rem',
-              fontSize: '0.95rem'
-            }}>
-              Please check your inbox and follow the instructions to reset your password.
-              The link will expire in 1 hour.
-            </p>
-
-            <Link
-              to="/login"
-              className="login-btn"
-              style={{
-                display: 'block',
-                textAlign: 'center',
-                textDecoration: 'none'
-              }}
-            >
-              Back to Login
-            </Link>
+            <p>We've sent a password reset link to your inbox.</p>
           </div>
+
+          {/* Success box */}
+          <div className="fp-success-box">
+            <CheckCircle size={18} />
+            <span>
+              If an account exists with <strong>{email || 'that email'}</strong>, a
+              password reset link has been sent. The link will expire in{' '}
+              <strong>1 hour</strong>.
+            </span>
+          </div>
+
+          <p style={{ fontSize: '0.875rem', color: '#64748b', textAlign: 'center', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+            Didn't receive the email? Check your spam folder or try again with a different address.
+          </p>
+
+          <Link to="/login" className="login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            Back to Login
+          </Link>
+
+          <button
+            className="fp-back-link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}
+            onClick={() => setIsSubmitted(false)}
+          >
+            <ArrowLeft size={15} />
+            Try a different email
+          </button>
         </div>
       </div>
     );
   }
 
+  // ── Request form state ───────────────────────────────────────
   return (
     <div className="login-container">
       <div className="login-card">
-        <button className="go-back-btn" onClick={handleGoBack} type="button">
-          ← Back to Login
+        {/* Back button */}
+        <button className="go-back-btn" onClick={() => navigate('/login')} type="button">
+          <ArrowLeft size={14} />
+          Back to Login
         </button>
 
-        <div className="company-header">
-          <h1>Japan Lanka Enterprises</h1>
-          <p>Management System</p>
+        {/* Icon */}
+        <div className="fp-icon-wrap">
+          <KeyRound size={28} />
+        </div>
+
+        {/* Heading */}
+        <div className="fp-heading">
+          <h2>Forgot Password?</h2>
+          <p>Enter your email and we'll send you a reset link.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
-          <h2>Forgot Password</h2>
-
-          <p style={{
-            color: '#666',
-            textAlign: 'center',
-            marginBottom: '1.5rem',
-            fontSize: '0.95rem'
-          }}>
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-
           {error && (
-            <div className="form-error-message">
-              {error}
-            </div>
+            <div className="form-error-message">{error}</div>
           )}
 
           <div className="form-group">
@@ -147,7 +127,7 @@ const ForgotPassword: React.FC = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-              placeholder="Enter your email address"
+              placeholder="Enter your registered email"
               autoComplete="email"
               autoFocus
               required
@@ -159,18 +139,14 @@ const ForgotPassword: React.FC = () => {
           <button type="submit" className="login-btn" disabled={isLoading}>
             {isLoading ? 'Sending...' : 'Send Reset Link'}
           </button>
-
-          <div className="register-section">
-            <p>Remember your password?</p>
-            <Link
-              to="/login"
-              className="register-btn"
-              style={{ textDecoration: 'none', display: 'inline-block' }}
-            >
-              Login
-            </Link>
-          </div>
         </form>
+
+        <div className="fp-divider" />
+
+        <Link to="/login" className="fp-back-link">
+          <ArrowLeft size={15} />
+          Remember your password? Log in
+        </Link>
       </div>
     </div>
   );

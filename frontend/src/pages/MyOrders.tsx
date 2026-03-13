@@ -156,7 +156,7 @@ const MyOrders: React.FC = () => {
     const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
       'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
       'confirmed': { text: 'Confirmed', color: '#3498db', bgColor: '#ebf5fb' },
-      'shipped': { text: 'Shipped', color: '#9b59b6', bgColor: '#f5eef8' },
+      'shipped': { text: 'Shipped — On the Way', color: '#9b59b6', bgColor: '#f5eef8' },
       'ready_to_pickup': { text: 'Ready for Pickup', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
       'cancelled': { text: 'Cancelled', color: '#e74c3c', bgColor: '#fdedec' },
@@ -370,9 +370,24 @@ const MyOrders: React.FC = () => {
                   )}
 
                   <div className="mo-order-footer">
-                    <div className="mo-order-total">
-                      <span className="mo-total-label">Total:</span>
-                      <span className="mo-total-amount">{formatCurrency(order.total_amount)}</span>
+                    <div className="mo-footer-row">
+                      <div className="mo-order-total">
+                        <span className="mo-total-label">Total:</span>
+                        <span className="mo-total-amount">{formatCurrency(order.total_amount)}</span>
+                      </div>
+                      {/* Payment status badge */}
+                      {order.payment_status === 'paid' && (
+                        <div className="mo-payment-status mo-payment-paid">✓ Paid in Full</div>
+                      )}
+                      {order.payment_status === 'partially_paid' && (
+                        <div className="mo-payment-status mo-payment-partial">
+                          <div>Paid: {formatCurrency(order.paid_amount ?? 0)}</div>
+                          <div>Remaining (COD): {formatCurrency(order.remaining_amount ?? (order.total_amount - (order.paid_amount ?? 0)))}</div>
+                        </div>
+                      )}
+                      {(!order.payment_status || order.payment_status === 'not_paid') && (
+                        <div className="mo-payment-status mo-payment-pending">Cash on Delivery</div>
+                      )}
                     </div>
                     {showOrderActions && (
                       <div className="mo-order-actions">

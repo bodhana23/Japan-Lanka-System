@@ -92,6 +92,8 @@ const AdminDashboard: React.FC = () => {
   });
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [showNewUserConfirmPassword, setShowNewUserConfirmPassword] = useState(false);
+  const [showEditUserPassword, setShowEditUserPassword] = useState(false);
+  const [showEditUserConfirmPassword, setShowEditUserConfirmPassword] = useState(false);
   const [editUserForm, setEditUserForm] = useState<EditUserForm>({
     id: '',
     fullName: '',
@@ -934,28 +936,49 @@ const AdminDashboard: React.FC = () => {
 
               <div className="admin-form-group">
                 <label htmlFor="editPassword">New Password</label>
-                <input
-                  id="editPassword"
-                  type="password"
-                  placeholder="Leave blank to keep current password"
-                  value={editUserForm.password}
-                  onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
-                  className="admin-form-input"
-                />
+                <div className="admin-password-input-wrapper">
+                  <input
+                    id="editPassword"
+                    type={showEditUserPassword ? 'text' : 'password'}
+                    placeholder="Leave blank to keep current password"
+                    value={editUserForm.password}
+                    onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
+                    className="admin-form-input"
+                  />
+                  <button
+                    type="button"
+                    className="admin-password-toggle"
+                    onClick={() => setShowEditUserPassword(!showEditUserPassword)}
+                    aria-label={showEditUserPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showEditUserPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <p className="admin-field-hint">Min 8 characters: uppercase, lowercase, number, special character (!@#$%^&*)</p>
               </div>
 
               <div className="admin-form-group">
                 <label htmlFor="editConfirmPassword">Confirm New Password</label>
-                <input
-                  id="editConfirmPassword"
-                  type="password"
-                  placeholder="Re-enter new password"
-                  value={editUserForm.confirmPassword}
-                  onChange={(e) => setEditUserForm({ ...editUserForm, confirmPassword: e.target.value })}
-                  className="admin-form-input"
-                  disabled={!editUserForm.password}
-                />
+                <div className="admin-password-input-wrapper">
+                  <input
+                    id="editConfirmPassword"
+                    type={showEditUserConfirmPassword ? 'text' : 'password'}
+                    placeholder="Re-enter new password"
+                    value={editUserForm.confirmPassword}
+                    onChange={(e) => setEditUserForm({ ...editUserForm, confirmPassword: e.target.value })}
+                    className="admin-form-input"
+                    disabled={!editUserForm.password}
+                  />
+                  <button
+                    type="button"
+                    className="admin-password-toggle"
+                    onClick={() => setShowEditUserConfirmPassword(!showEditUserConfirmPassword)}
+                    aria-label={showEditUserConfirmPassword ? 'Hide password' : 'Show password'}
+                    disabled={!editUserForm.password}
+                  >
+                    {showEditUserConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="admin-modal-footer">

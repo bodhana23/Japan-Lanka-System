@@ -554,6 +554,29 @@
   font-weight: 700;
 }
 
+/* Customer message box in return detail */
+.return-customer-message {
+  margin: 0.75rem 0;
+  background: #f8fafc;
+  border-left: 3px solid #10b981;
+  border-radius: 0 8px 8px 0;
+  padding: 0.65rem 0.9rem;
+}
+.return-customer-message strong {
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.return-message-text {
+  margin: 0 !important;
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-style: italic;
+  line-height: 1.5;
+}
+
 .return-actions {
   margin-top: 1.5rem;
   display: flex;
@@ -575,6 +598,144 @@
 .view-chat-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+}
+
+/* ── Modern Add Product Modal ────────────────────────────────── */
+.add-product-modal-modern {
+  max-width: 640px !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.add-product-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+.add-product-modal-header .close-modal {
+  margin-left: auto;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.add-product-modal-header .close-modal:hover { background: rgba(255,255,255,0.35); }
+.add-product-modal-header h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
+.add-product-modal-header p { margin: 0; font-size: 0.82rem; opacity: 0.85; }
+.add-product-header-icon {
+  width: 42px; height: 42px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.add-product-form-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1.75rem 2rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.apf-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.apf-group.apf-full {
+  grid-column: span 2;
+}
+.apf-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+.apf-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
+  color: #1e293b;
+  outline: none;
+  box-sizing: border-box;
+}
+.apf-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+}
+textarea.apf-input { resize: vertical; }
+
+.add-product-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 2rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Add Product Confirmation */
+.add-product-confirm-modal {
+  max-width: 460px !important;
+  text-align: center;
+  padding: 2rem !important;
+}
+.confirm-modal-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.25rem;
+  color: white;
+}
+.add-product-confirm-modal h3 {
+  font-size: 1.3rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem;
+}
+.add-product-confirm-modal > p {
+  color: #64748b; font-size: 0.9rem; margin: 0 0 1.25rem;
+}
+.confirm-product-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+}
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row span { color: #64748b; }
+.confirm-row strong { color: #1e293b; }
+.confirm-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 /* Modal Styles */

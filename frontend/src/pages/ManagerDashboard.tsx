@@ -13,6 +13,21 @@ import {
 } from 'lucide-react';
 import './ManagerDashboard.css';
 
+// ── Product dropdown options ─────────────────────────────────────────────────
+const PRODUCT_BRANDS = [
+  'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru', 'Mitsubishi', 'Suzuki',
+  'Isuzu', 'Daihatsu', 'Lexus', 'Infiniti', 'Acura', 'Scion', 'Hino',
+  'Denso', 'NGK', 'Bosch', 'Gates', 'Aisin', 'Exedy', 'KYB', 'Monroe',
+  'Brembo', 'Akebono', 'NTN', 'NSK', 'Koyo', 'Other',
+];
+
+const PRODUCT_CATEGORIES = [
+  'Engine Parts', 'Brake System', 'Suspension', 'Transmission', 'Electrical',
+  'Cooling System', 'Fuel System', 'Exhaust', 'Body Parts', 'Interior',
+  'Filters', 'Belts & Chains', 'Clutch', 'Steering', 'Drivetrain',
+  'Lighting', 'Tyres & Wheels', 'Other',
+];
+
 // Navigation item IDs for Manager Dashboard
 type ManagerNavId = 'inventory' | 'orders' | 'offline-sales' | 'returns' | 'profile';
 
@@ -62,7 +77,7 @@ interface CustomerOrder {
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
@@ -193,6 +208,9 @@ const ManagerDashboard: React.FC = () => {
 
   // Product update loading state
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+
+  // Add product confirmation state
+  const [showAddProductConfirm, setShowAddProductConfirm] = useState(false);
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -371,20 +389,23 @@ const ManagerDashboard: React.FC = () => {
 
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.brand || !newProduct.model || !newProduct.category) {
-      alert('Please fill in all required fields (name, brand, model, and category).');
+      showToast('Please fill in all required fields (name, brand, model, and category).', 'error');
       return;
     }
-
     if (newProduct.price <= 0) {
-      alert('Price must be greater than 0.');
+      showToast('Price must be greater than 0.', 'error');
       return;
     }
-
     if (newProduct.quantity < 0) {
-      alert('Quantity cannot be negative.');
+      showToast('Quantity cannot be negative.', 'error');
       return;
     }
+    // Show confirmation popup before submitting
+    setShowAddProductConfirm(true);
+  };
 
+  const confirmAddProduct = async () => {
+    setShowAddProductConfirm(false);
     try {
       const created = await productsApi.createProduct({
         name: newProduct.name,
@@ -409,21 +430,12 @@ const ManagerDashboard: React.FC = () => {
         imageLink: created.image_url || '',
       }]);
 
-      setNewProduct({
-        name: '',
-        description: '',
-        brand: '',
-        model: '',
-        category: '',
-        price: 0,
-        quantity: 0,
-        imageLink: ''
-      });
+      setNewProduct({ name: '', description: '', brand: '', model: '', category: '', price: 0, quantity: 0, imageLink: '' });
       setShowAddProduct(false);
-      alert('Product added successfully!');
+      showToast(`"${created.name}" added to inventory successfully!`, 'success');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to add product.';
-      alert(`Error: ${errorMessage}`);
+      showToast(`Error: ${errorMessage}`, 'error');
     }
   };
 
@@ -455,10 +467,10 @@ const ManagerDashboard: React.FC = () => {
       } : p));
       setShowEditProduct(false);
       setSelectedProduct(null);
-      alert('Product updated successfully!');
+      showToast('Product updated successfully!', 'success');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to update product.';
-      alert(`Error: ${errorMessage}`);
+      showToast(`Error: ${errorMessage}`, 'error');
     } finally {
       setIsUpdatingProduct(false);
     }
@@ -484,7 +496,7 @@ const ManagerDashboard: React.FC = () => {
       setProductToDelete(null);
       setShowEditProduct(false);
       setSelectedProduct(null);
-      alert('Product deleted successfully!');
+      showToast('Product deleted successfully!', 'success');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to delete product.';
       setDeleteError(errorMessage);
@@ -561,7 +573,11 @@ const ManagerDashboard: React.FC = () => {
   const handleOrderStatusUpdate = async (orderId: string, newStatus: CustomerOrder['status']) => {
     try {
       // Map UI status to API status
-      const apiStatus = newStatus === 'in_progress' ? 'confirmed' : newStatus;
+      const statusMap: Record<string, string> = {
+        'in_progress': 'confirmed',
+        'shipped': 'shipped',
+      };
+      const apiStatus = statusMap[newStatus] ?? newStatus;
 
       // Call the backend API to update order status
       await ordersApi.updateOrderStatus(orderId, apiStatus as any);
@@ -581,8 +597,10 @@ const ManagerDashboard: React.FC = () => {
       const statusMessages: Record<string, string> = {
         'pending': 'Order marked as pending',
         'in_progress': 'Order marked as in progress',
+        'shipped': 'Order marked as shipped — on the road',
         'ready_to_pickup': 'Order marked as ready for pickup',
         'delivered': 'Order marked as delivered',
+        'picked_up': 'Order marked as picked up',
         'return_approved': 'Return approved'
       };
 
@@ -713,93 +731,150 @@ const ManagerDashboard: React.FC = () => {
     >
       {renderContent()}
 
-      {/* Add Product Modal */}
-      {showAddProduct && (
+      {/* Add Product Modal — Modern Redesign */}
+      {showAddProduct && !showAddProductConfirm && (
         <div className="modal-overlay">
-          <div className="modal-content edit-product-modal">
-            <div className="modal-header">
-              <h2>Add New Product</h2>
+          <div className="modal-content add-product-modal-modern">
+            {/* Header */}
+            <div className="add-product-modal-header">
+              <div className="add-product-header-icon"><Package size={22} /></div>
+              <div>
+                <h2>Add New Product</h2>
+                <p>Fill in the details to add a part to inventory</p>
+              </div>
               <button onClick={() => setShowAddProduct(false)} className="close-modal">×</button>
             </div>
-            <form className="edit-product-form">
-              <div className="form-group">
-                <label>Product Name:</label>
+
+            <div className="add-product-form-body">
+              {/* Product Name — full width */}
+              <div className="apf-group apf-full">
+                <label><Tag size={14} /> Product Name *</label>
                 <input
                   type="text"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                  placeholder="Enter product name"
+                  placeholder="e.g. Front Brake Pad Set"
+                  className="apf-input"
                 />
               </div>
-              <div className="form-group">
-                <label>Description:</label>
-                <textarea
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                  placeholder="Enter product description (optional)"
-                  rows={3}
-                />
-              </div>
-              <div className="form-group">
-                <label>Brand:</label>
-                <input 
-                  type="text"
+
+              {/* Brand + Category dropdowns */}
+              <div className="apf-group">
+                <label><Factory size={14} /> Brand *</label>
+                <select
                   value={newProduct.brand}
                   onChange={(e) => setNewProduct({...newProduct, brand: e.target.value})}
-                  placeholder="Enter brand name"
-                />
+                  className="apf-input"
+                >
+                  <option value="">Select brand...</option>
+                  {PRODUCT_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
               </div>
-              <div className="form-group">
-                <label>Model:</label>
+
+              <div className="apf-group">
+                <label><ClipboardList size={14} /> Category *</label>
+                <select
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                  className="apf-input"
+                >
+                  <option value="">Select category...</option>
+                  {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Model — free text with hint */}
+              <div className="apf-group apf-full">
+                <label><Car size={14} /> Compatible Model *</label>
                 <input
                   type="text"
                   value={newProduct.model}
                   onChange={(e) => setNewProduct({...newProduct, model: e.target.value})}
-                  placeholder="Enter model"
+                  placeholder="e.g. Corolla, Civic, Skyline (or 'Universal')"
+                  className="apf-input"
                 />
               </div>
-              <div className="form-group">
-                <label>Category:</label>
+
+              {/* Price + Quantity */}
+              <div className="apf-group">
+                <label><DollarSign size={14} /> Price (Rs.) *</label>
                 <input
-                  type="text"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                  placeholder="e.g. Brakes, Engine, Filters"
-                />
-              </div>
-              <div className="form-group">
-                <label>Price (Rs.):</label>
-                <input 
                   type="number"
                   min="0"
                   value={newProduct.price || ''}
                   onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})}
-                  placeholder="Enter price"
+                  placeholder="0.00"
+                  className="apf-input"
                 />
               </div>
-              <div className="form-group">
-                <label>Quantity:</label>
-                <input 
+
+              <div className="apf-group">
+                <label><BarChart2 size={14} /> Initial Quantity</label>
+                <input
                   type="number"
                   min="0"
                   value={newProduct.quantity || ''}
                   onChange={(e) => setNewProduct({...newProduct, quantity: Number(e.target.value)})}
-                  placeholder="Enter quantity"
+                  placeholder="0"
+                  className="apf-input"
                 />
               </div>
-              <div className="form-group">
-                <label>Image Link:</label>
-                <input 
+
+              {/* Description — full width */}
+              <div className="apf-group apf-full">
+                <label><FileText size={14} /> Description (optional)</label>
+                <textarea
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                  placeholder="Brief description of the part..."
+                  rows={3}
+                  className="apf-input"
+                />
+              </div>
+
+              {/* Image URL — full width */}
+              <div className="apf-group apf-full">
+                <label><Image size={14} /> Image URL (optional)</label>
+                <input
                   type="url"
                   value={newProduct.imageLink}
                   onChange={(e) => setNewProduct({...newProduct, imageLink: e.target.value})}
-                  placeholder="Enter image URL (optional)"
+                  placeholder="https://..."
+                  className="apf-input"
                 />
               </div>
-            </form>
-            <div className="edit-product-footer">
-              <button type="button" onClick={handleAddProduct} className="save-btn">Add Product</button>
+            </div>
+
+            <div className="add-product-modal-footer">
               <button type="button" onClick={() => setShowAddProduct(false)} className="cancel-btn">Cancel</button>
+              <button type="button" onClick={handleAddProduct} className="save-btn">
+                <CheckCircle size={16} /> Review & Add Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Product Confirmation Popup */}
+      {showAddProductConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content add-product-confirm-modal">
+            <div className="confirm-modal-icon"><AlertCircle size={36} /></div>
+            <h3>Confirm Add Product</h3>
+            <p>Are you sure you want to add this product to inventory?</p>
+            <div className="confirm-product-summary">
+              <div className="confirm-row"><span>Name:</span><strong>{newProduct.name}</strong></div>
+              <div className="confirm-row"><span>Brand:</span><strong>{newProduct.brand}</strong></div>
+              <div className="confirm-row"><span>Category:</span><strong>{newProduct.category}</strong></div>
+              <div className="confirm-row"><span>Model:</span><strong>{newProduct.model}</strong></div>
+              <div className="confirm-row"><span>Price:</span><strong>Rs. {Number(newProduct.price).toLocaleString()}</strong></div>
+              <div className="confirm-row"><span>Quantity:</span><strong>{newProduct.quantity} units</strong></div>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="cancel-btn" onClick={() => setShowAddProductConfirm(false)}>Go Back</button>
+              <button className="save-btn" onClick={confirmAddProduct}>
+                <CheckCircle size={16} /> Yes, Add Product
+              </button>
             </div>
           </div>
         </div>
@@ -987,14 +1062,18 @@ const EditProductModal: React.FC<{
                 <Factory size={16} className="label-icon" />
                 Brand *
               </label>
-              <input
+              <select
                 id="brand"
-                type="text"
                 value={formData.brand}
                 onChange={(e) => handleInputChange('brand', e.target.value)}
-                placeholder="Enter brand name"
                 className={errors.brand ? 'error' : ''}
-              />
+              >
+                <option value="">Select brand...</option>
+                {PRODUCT_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                {formData.brand && !PRODUCT_BRANDS.includes(formData.brand) && (
+                  <option value={formData.brand}>{formData.brand}</option>
+                )}
+              </select>
               {errors.brand && <span className="error-message">{errors.brand}</span>}
             </div>
 
@@ -1008,7 +1087,7 @@ const EditProductModal: React.FC<{
                 type="text"
                 value={formData.model}
                 onChange={(e) => handleInputChange('model', e.target.value)}
-                placeholder="Enter model"
+                placeholder="e.g. Corolla, Civic, Universal"
                 className={errors.model ? 'error' : ''}
               />
               {errors.model && <span className="error-message">{errors.model}</span>}

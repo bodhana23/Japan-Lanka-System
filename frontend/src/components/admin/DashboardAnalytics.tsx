@@ -135,40 +135,104 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
               </div>
 
               {/* Expanded Details */}
-              {isExpanded && (
-                <div className="admin-expanded-details" onClick={(e) => e.stopPropagation()}>
-                  <div className="admin-detail-section">
-                    <h4>Top Selling Parts</h4>
-                    <ul>
-                      {data.topSellingParts && data.topSellingParts.length > 0 ? (
-                        data.topSellingParts.map((part, idx) => (
-                          <li key={idx}>
-                            <span>{part.name}</span>
-                            <strong>{part.units} units</strong>
-                          </li>
-                        ))
-                      ) : (
-                        <li>No data available</li>
-                      )}
-                    </ul>
+              {isExpanded && (() => {
+                // Find return data for this month by matching month name
+                const monthReturn = returnAnalytics?.monthlyReturns?.find(
+                  mr => mr.month === data.month
+                );
+                return (
+                  <div className="admin-expanded-details" onClick={(e) => e.stopPropagation()}>
+                    {/* Month summary totals */}
+                    <div className="admin-month-totals">
+                      <div className="admin-month-total-item">
+                        <span className="admin-month-total-label">Total Revenue</span>
+                        <span className="admin-month-total-value">Rs. {data.sales.toLocaleString()}</span>
+                      </div>
+                      <div className="admin-month-total-item">
+                        <span className="admin-month-total-label">Total Orders</span>
+                        <span className="admin-month-total-value">{data.orders}</span>
+                      </div>
+                      <div className="admin-month-total-item">
+                        <span className="admin-month-total-label">Avg. per Order</span>
+                        <span className="admin-month-total-value">
+                          Rs. {data.orders > 0 ? Math.round(data.sales / data.orders).toLocaleString() : '0'}
+                        </span>
+                      </div>
+                      <div className="admin-month-total-item">
+                        <span className="admin-month-total-label">Return Loss</span>
+                        <span className="admin-month-total-value" style={{ color: '#c2410c' }}>
+                          {monthReturn ? `Rs. ${monthReturn.refundValue.toLocaleString()}` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Returns this month */}
+                    {monthReturn && (monthReturn.returns > 0) && (
+                      <div className="admin-returns-section">
+                        <h4>Returns This Month</h4>
+                        <div className="admin-returns-row">
+                          <span>{monthReturn.returns} return{monthReturn.returns !== 1 ? 's' : ''}</span>
+                          <span>Lost: Rs. {monthReturn.refundValue.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Day-by-day revenue (last 7 days of month) */}
+                    {data.dailyTrend && data.dailyTrend.some(v => v > 0) && (
+                      <div className="admin-detail-section">
+                        <h4>Last 7 Days — Revenue Trend</h4>
+                        <table className="admin-daily-table">
+                          <thead>
+                            <tr>
+                              <th>Day</th>
+                              <th>Revenue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.dailyTrend.map((rev, i) => (
+                              <tr key={i}>
+                                <td>Day {i + 1}</td>
+                                <td>{rev > 0 ? `Rs. ${rev.toLocaleString()}` : '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <div className="admin-detail-section">
+                      <h4>Order Value by Category</h4>
+                      <ul>
+                        {data.revenueByCategory && data.revenueByCategory.length > 0 ? (
+                          data.revenueByCategory.map((cat, idx) => (
+                            <li key={idx}>
+                              <span>{cat.category}</span>
+                              <strong>Rs. {cat.revenue.toLocaleString()}</strong>
+                            </li>
+                          ))
+                        ) : (
+                          <li>No category data for this month</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div className="admin-detail-section">
+                      <h4>Top Selling Parts</h4>
+                      <ul>
+                        {data.topSellingParts && data.topSellingParts.length > 0 ? (
+                          data.topSellingParts.map((part, idx) => (
+                            <li key={idx}>
+                              <span>{part.name}</span>
+                              <strong>{part.units} units</strong>
+                            </li>
+                          ))
+                        ) : (
+                          <li>No data available</li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
-                  <div className="admin-detail-section">
-                    <h4>Order Value by Category</h4>
-                    <ul>
-                      {data.revenueByCategory && data.revenueByCategory.length > 0 ? (
-                        data.revenueByCategory.map((cat, idx) => (
-                          <li key={idx}>
-                            <span>{cat.category}</span>
-                            <strong>Rs. {cat.revenue.toLocaleString()}</strong>
-                          </li>
-                        ))
-                      ) : (
-                        <li>No data available</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           );
         })}

@@ -190,6 +190,12 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
               <div className="return-details">
                 <p><strong>Order ID:</strong> #{request.order_id.slice(-8).toUpperCase()}</p>
                 <p><strong>Reason:</strong> {request.reason}</p>
+                {request.description && (
+                  <div className="return-customer-message">
+                    <strong>Customer Message:</strong>
+                    <p className="return-message-text">{request.description}</p>
+                  </div>
+                )}
                 <p><strong>Date:</strong> {formatDateTime(request.created_at)}</p>
                 {request.items && request.items.length > 0 && (
                   <div className="return-items-list">

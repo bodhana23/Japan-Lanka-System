@@ -10,7 +10,7 @@ interface CustomerOrder {
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
@@ -40,7 +40,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
 }) => {
   // Order filtering state
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
@@ -100,6 +100,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
     const statusNames: Record<CustomerOrder['status'], string> = {
       'pending': 'Pending',
       'in_progress': 'In Progress',
+      'shipped': 'Shipped',
       'ready_to_pickup': 'Ready to Pickup',
       'delivered': 'Delivered',
       'picked_up': 'Picked Up',
@@ -181,6 +182,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       all: orders.length,
       pending: orders.filter(o => o.status === 'pending').length,
       in_progress: orders.filter(o => o.status === 'in_progress').length,
+      shipped: orders.filter(o => o.status === 'shipped').length,
       ready_to_pickup: orders.filter(o => o.status === 'ready_to_pickup').length,
       delivered: orders.filter(o => o.status === 'delivered').length,
       picked_up: orders.filter(o => o.status === 'picked_up').length,
@@ -279,6 +281,15 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
             In Progress
             <span className="chip-badge">{statusCounts.in_progress}</span>
           </button>
+          {statusCounts.shipped > 0 && (
+            <button
+              className={`filter-chip ${statusFilter === 'shipped' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('shipped')}
+            >
+              Shipped
+              <span className="chip-badge">{statusCounts.shipped}</span>
+            </button>
+          )}
           <button
             className={`filter-chip ${statusFilter === 'ready_to_pickup' ? 'active' : ''}`}
             onClick={() => setStatusFilter('ready_to_pickup')}
@@ -475,9 +486,9 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   <p className="order-date">{formatDateTime(order.orderDate)}</p>
                 </div>
                 <div className="order-status">
-                  {order.status === 'return_approved' ? (
-                    <span className={`status-dropdown return_approved`} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
-                      Return Approved
+                  {order.status === 'return_approved' || order.salesChannel === 'offline' ? (
+                    <span className={`status-dropdown ${order.status}`} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                      {getStatusDisplayName(order.status)}
                     </span>
                   ) : (
                     <select
@@ -494,11 +505,14 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                     >
                       <option value="pending">Pending</option>
                       <option value="in_progress">In Progress</option>
+                      {order.deliveryMethod === 'shipping' && (
+                        <option value="shipped">Shipped (On the Road)</option>
+                      )}
                       {order.deliveryMethod !== 'shipping' && (
                         <option value="ready_to_pickup">Ready to Pickup</option>
                       )}
                       {order.deliveryMethod === 'shipping' ? (
-                        <option value="delivered">Delivered</option>
+                        <option value="delivered">Delivered (Received &amp; Paid)</option>
                       ) : (
                         <option value="picked_up">Picked Up</option>
                       )}

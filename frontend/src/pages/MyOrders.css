@@ -319,11 +319,48 @@
 /* Order Footer */
 .mo-order-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
   padding: 20px 25px;
   background: linear-gradient(135deg, #f8f9fa, #fff);
   border-top: 1px solid #e9ecef;
+}
+
+/* Payment status badges */
+.mo-payment-status {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+.mo-payment-paid {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+.mo-payment-partial {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 10px;
+}
+.mo-payment-pending {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.mo-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .mo-order-total {

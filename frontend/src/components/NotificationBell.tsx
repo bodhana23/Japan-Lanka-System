@@ -118,20 +118,21 @@ const NotificationBell: React.FC = () => {
       const role = user?.role?.toLowerCase();
 
       if (role === 'manager') {
-        // Manager has dedicated orders + returns sections
-        if (notification.related_order_id) {
-          navigate(`/manager?section=orders&order_id=${notification.related_order_id}`);
-        } else if (notification.related_return_id) {
+        // Manager has dedicated orders + returns sections.
+        // Check return_id FIRST — return notifications may also carry related_order_id.
+        if (notification.related_return_id) {
           navigate(`/manager?section=returns&return_id=${notification.related_return_id}`);
+        } else if (notification.related_order_id) {
+          navigate(`/manager?section=orders&order_id=${notification.related_order_id}`);
         } else {
           navigate('/manager');
         }
       } else if (role === 'admin') {
         // Admin has order-pipeline (no returns section) — map both to order-pipeline
-        if (notification.related_order_id) {
-          navigate(`/admin?section=order-pipeline&order_id=${notification.related_order_id}`);
-        } else if (notification.related_return_id) {
+        if (notification.related_return_id) {
           navigate(`/admin?section=order-pipeline&return_id=${notification.related_return_id}`);
+        } else if (notification.related_order_id) {
+          navigate(`/admin?section=order-pipeline&order_id=${notification.related_order_id}`);
         } else {
           navigate('/admin');
         }
@@ -146,11 +147,11 @@ const NotificationBell: React.FC = () => {
         navigate('/manager');
       }
     } else {
-      // Customer navigation
-      if (notification.related_order_id) {
-        navigate(`/customer?section=orders&order_id=${notification.related_order_id}`);
-      } else if (notification.related_return_id) {
+      // Customer navigation — check return_id first
+      if (notification.related_return_id) {
         navigate(`/customer?section=returns&return_id=${notification.related_return_id}`);
+      } else if (notification.related_order_id) {
+        navigate(`/customer?section=orders&order_id=${notification.related_order_id}`);
       }
     }
   };
