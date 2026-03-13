@@ -130,6 +130,7 @@ const AuditorDashboard: React.FC = () => {
       onNavChange={handleNavChange}
       roleConfig={roleConfig}
       user={dashboardUser}
+      onProfileClick={() => handleNavChange('profile')}
     >
       {renderContent()}
     </DashboardLayout>

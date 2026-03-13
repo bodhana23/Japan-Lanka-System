@@ -153,27 +153,62 @@
   transform: scale(1.1);
 }
 
-/* Day-by-day breakdown table in expanded view */
-.admin-daily-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+/* Monthly revenue trend — scrollable bar chart */
+.daily-trend-scroll {
+  max-height: 320px;
+  overflow-y: auto;
   margin-top: 0.5rem;
+  padding-right: 4px;
 }
-.admin-daily-table th {
-  text-align: left;
-  padding: 0.4rem 0.6rem;
-  background: #f0fdf4;
-  color: #374151;
-  font-weight: 600;
-  border-bottom: 2px solid #d1fae5;
+.daily-trend-scroll::-webkit-scrollbar {
+  width: 5px;
 }
-.admin-daily-table td {
-  padding: 0.4rem 0.6rem;
+.daily-trend-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+.daily-trend-scroll::-webkit-scrollbar-thumb {
+  background: #d1fae5;
+  border-radius: 3px;
+}
+.daily-trend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
   border-bottom: 1px solid #f1f5f9;
-  color: #374151;
+  font-size: 0.82rem;
 }
-.admin-daily-table tr:last-child td { border-bottom: none; }
+.daily-trend-row:last-child {
+  border-bottom: none;
+}
+.daily-trend-label {
+  width: 52px;
+  flex-shrink: 0;
+  color: #6b7280;
+  font-weight: 500;
+}
+.daily-trend-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #f0fdf4;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.daily-trend-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 5px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+.daily-trend-value {
+  width: 100px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #374151;
+  font-weight: 500;
+}
 
 /* Returns section in expanded card */
 .admin-returns-section {

@@ -28,8 +28,9 @@ from app.schemas.return_request import (
     EligibleOrderResponse,
     EligibleOrderItemResponse,
     EligibleOrdersListResponse,
+    OfflineReturnCreate,
 )
-from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, CurrentUser
+from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager_only, CurrentUser
 from app.services.notification_service import notify_return_status_change, notify_managers_new_return
 
 router = APIRouter(prefix="/returns", tags=["Return Requests"])
@@ -56,12 +57,14 @@ def return_item_to_response(return_item: ReturnItem) -> ReturnItemResponse:
 def return_request_to_response(return_req: ReturnRequest) -> ReturnRequestResponse:
     """Convert ReturnRequest model to ReturnRequestResponse with related data."""
     order = return_req.order
-    customer = return_req.customer
+    customer = return_req.customer  # None for offline returns
 
     return ReturnRequestResponse(
         id=return_req.id,
         order_id=return_req.order_id,
         customer_id=return_req.customer_id,
+        processed_by_employee_id=return_req.processed_by_employee_id,
+        is_offline_return=(return_req.customer_id is None),
         reason=return_req.reason,
         description=return_req.description,
         status=return_req.status,
@@ -71,7 +74,9 @@ def return_request_to_response(return_req: ReturnRequest) -> ReturnRequestRespon
         order_total=float(order.total_amount) if order else None,
         order_status=order.status.value if order else None,
         order_date=order.created_at if order else None,
-        customer_name=customer.full_name if customer else None,
+        customer_name=customer.full_name if customer else (
+            order.offline_customer_name if order else None
+        ),
         customer_email=customer.email if customer else None,
         items=[return_item_to_response(item) for item in return_req.return_items]
     )
@@ -310,6 +315,124 @@ async def create_return_request(
     db.commit()
     db.refresh(return_request)
 
+    return return_request_to_response(return_request)
+
+
+@router.post("/offline/{order_id}", response_model=ReturnRequestResponse, status_code=status.HTTP_201_CREATED)
+async def create_offline_return(
+    order_id: UUID,
+    return_data: OfflineReturnCreate,
+    current_employee: Employee = Depends(require_manager_only),
+    db: Session = Depends(get_db)
+):
+    """Process a return for an offline (walk-in) sale. Manager only.
+
+    Creates a return and immediately restocks inventory in one atomic operation,
+    since the manager physically receives the goods at the point of return.
+
+    Business rules:
+    - Order must be an offline sale (sales_channel == 'offline')
+    - Order must be in DELIVERED or PICKED_UP status
+    - No existing return request for this order
+    - Item quantities must not exceed original order quantities
+    """
+    # Verify order exists and is an offline sale
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    if order.sales_channel.value != "offline":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This endpoint is only for offline (walk-in) sales returns. "
+                   "For online order returns, customers must submit via their account."
+        )
+
+    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.PICKED_UP]
+    if order.status not in eligible_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order must be in 'delivered' or 'picked_up' status to process a return. "
+                   f"Current status: {order.status.value}"
+        )
+
+    # Check no existing return request for this order
+    existing_return = db.query(ReturnRequest).filter(ReturnRequest.order_id == order_id).first()
+    if existing_return:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A return request already exists for this order."
+        )
+
+    # Validate each return item
+    order_item_map = {str(item.id): item for item in order.items}
+    for item_data in return_data.items:
+        order_item = order_item_map.get(str(item_data.order_item_id))
+        if not order_item:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order item {item_data.order_item_id} does not belong to this order"
+            )
+        if item_data.quantity > order_item.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot return {item_data.quantity} units of '{order_item.product.name if order_item.product else order_item.product_id}'. "
+                       f"Original quantity was {order_item.quantity}."
+            )
+
+    # Create return request — customer_id is NULL, manager is tracked via processed_by_employee_id
+    return_request = ReturnRequest(
+        order_id=order_id,
+        customer_id=None,
+        processed_by_employee_id=current_employee.id,
+        reason=return_data.reason,
+        description=return_data.description,
+        status=ReturnStatus.COMPLETED  # Immediately completed — manager has goods in hand
+    )
+    db.add(return_request)
+    db.flush()  # Get return_request.id before creating related items
+
+    # Create return items and immediately restock inventory
+    for item_data in return_data.items:
+        return_item = ReturnItem(
+            return_request_id=return_request.id,
+            order_item_id=item_data.order_item_id,
+            quantity=item_data.quantity
+        )
+        db.add(return_item)
+
+        order_item = order_item_map[str(item_data.order_item_id)]
+        product = db.query(Product).filter(Product.id == order_item.product_id).first()
+        if product:
+            qty_before = product.quantity_available
+            product.quantity_available += item_data.quantity
+            inv_transaction = InventoryTransaction(
+                product_id=product.id,
+                employee_id=current_employee.id,
+                transaction_type=TransactionType.RETURN_IN,
+                quantity_change=item_data.quantity,
+                quantity_before=qty_before,
+                quantity_after=product.quantity_available,
+                reason=f"Offline return #{str(return_request.id)[:8]} processed by {current_employee.email}",
+                reference_order_id=order_id
+            )
+            db.add(inv_transaction)
+
+    # Audit log
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.RETURN_COMPLETED,
+        description=(
+            f"Offline return processed by {current_employee.email} "
+            f"for Order #{str(order_id)[:8]} ({len(return_data.items)} item type(s))"
+        ),
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.RETURN_REQUEST,
+        related_entity_id=return_request.id
+    )
+
+    db.commit()
+    db.refresh(return_request)
     return return_request_to_response(return_request)
 
 

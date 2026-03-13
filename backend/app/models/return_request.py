@@ -29,7 +29,8 @@ class ReturnRequest(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False, index=True)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False, index=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True, index=True)
+    processed_by_employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, index=True)
     reason = Column(String(100), nullable=False)  # Reason category
     description = Column(Text, nullable=True)  # Additional description/details
     status = Column(
@@ -43,7 +44,8 @@ class ReturnRequest(Base):
 
     # Relationships
     order = relationship("Order", back_populates="return_requests")
-    customer = relationship("Customer", back_populates="return_requests")
+    customer = relationship("Customer", back_populates="return_requests", foreign_keys=[customer_id])
+    processed_by_employee = relationship("Employee", foreign_keys=[processed_by_employee_id])
     notifications = relationship("Notification", back_populates="related_return", lazy="dynamic")
     return_items = relationship("ReturnItem", back_populates="return_request", lazy="joined", cascade="all, delete-orphan")
 

@@ -1,14 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
-import { ordersApi } from '../../services/api';
+import { ordersApi, returnsApi } from '../../services/api';
 import ConfirmModal from '../ConfirmModal';
+
+interface OrderItemDetail {
+  id: string;         // order_item_id (UUID)
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 interface CustomerOrder {
   id: string;
   customerName: string;
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
+  itemDetails?: OrderItemDetail[];  // Full item data including order_item_id
   totalAmount: number;
   status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
   orderDate: string;
@@ -21,6 +30,10 @@ interface CustomerOrder {
   offlineCustomerPhone?: string;
   // Bill generation
   isBillable?: boolean;
+  // Payment info
+  paymentStatus?: 'not_paid' | 'partially_paid' | 'paid';
+  paidAmount?: number;
+  remainingAmount?: number;
 }
 
 interface DashboardOrdersProps {
@@ -29,14 +42,24 @@ interface DashboardOrdersProps {
   error: string | null;
   onStatusUpdate: (orderId: string, newStatus: CustomerOrder['status']) => void;
   highlightOrderId?: string;
+  onReturnProcessed?: () => void;  // Callback to refresh orders after a return is processed
 }
+
+const RETURN_REASONS = [
+  'Damaged/Defective',
+  'Wrong Item Received',
+  'Item Not As Described',
+  'Changed My Mind',
+  'Other',
+];
 
 export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   orders,
   isLoading,
   error,
   onStatusUpdate,
-  highlightOrderId
+  highlightOrderId,
+  onReturnProcessed,
 }) => {
   // Order filtering state
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +69,14 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+
+  // Offline return modal state
+  const [offlineReturnOrder, setOfflineReturnOrder] = useState<CustomerOrder | null>(null);
+  const [offlineReturnItems, setOfflineReturnItems] = useState<Record<number, number>>({});
+  const [offlineReturnReason, setOfflineReturnReason] = useState('');
+  const [offlineReturnDescription, setOfflineReturnDescription] = useState('');
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const [returnModalError, setReturnModalError] = useState<string | null>(null);
 
   // Scroll to and highlight order when navigated from notification
   useEffect(() => {
@@ -93,6 +124,61 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   // Cancel status change - closes the modal
   const cancelStatusChange = () => {
     setPendingStatusChange(null);
+  };
+
+  // Offline return handlers
+  const handleProcessReturnClick = (order: CustomerOrder) => {
+    setOfflineReturnOrder(order);
+    const initQty: Record<number, number> = {};
+    (order.itemDetails ?? []).forEach((_, i) => { initQty[i] = 0; });
+    setOfflineReturnItems(initQty);
+    setOfflineReturnReason('');
+    setOfflineReturnDescription('');
+    setReturnModalError(null);
+  };
+
+  const handleCloseReturnModal = () => {
+    setOfflineReturnOrder(null);
+    setOfflineReturnItems({});
+    setOfflineReturnReason('');
+    setOfflineReturnDescription('');
+    setReturnModalError(null);
+  };
+
+  const handleSubmitOfflineReturn = async () => {
+    if (!offlineReturnOrder) return;
+
+    const hasItems = Object.values(offlineReturnItems).some(q => q > 0);
+    if (!hasItems) {
+      setReturnModalError('Please select at least one item to return.');
+      return;
+    }
+    if (!offlineReturnReason) {
+      setReturnModalError('Please select a return reason.');
+      return;
+    }
+
+    const itemDetails = offlineReturnOrder.itemDetails ?? [];
+    const returnItems = itemDetails
+      .map((item, i) => ({ order_item_id: item.id, quantity: offlineReturnItems[i] ?? 0 }))
+      .filter(item => item.quantity > 0);
+
+    setIsSubmittingReturn(true);
+    setReturnModalError(null);
+    try {
+      await returnsApi.createOfflineReturn(offlineReturnOrder.id, {
+        reason: offlineReturnReason,
+        description: offlineReturnDescription || undefined,
+        items: returnItems,
+      });
+      handleCloseReturnModal();
+      onReturnProcessed?.();
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.detail || 'Failed to process return. Please try again.';
+      setReturnModalError(msg);
+    } finally {
+      setIsSubmittingReturn(false);
+    }
   };
 
   // Get display name for status
@@ -206,7 +292,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const applyQuickDateFilter = (filter: 'today' | 'week' | 'month') => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     switch (filter) {
       case 'today':
         setDateFrom(todayStr);
@@ -245,7 +331,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button 
+            <button
               className="clear-search-btn"
               onClick={() => setSearchQuery('')}
               title="Clear search"
@@ -328,21 +414,21 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
         <div className="date-sort-filters">
           {/* Quick Date Filters */}
           <div className="quick-date-filters">
-            <button 
+            <button
               className="quick-filter-btn"
               onClick={() => applyQuickDateFilter('today')}
               title="Show today's orders"
             >
               Today
             </button>
-            <button 
+            <button
               className="quick-filter-btn"
               onClick={() => applyQuickDateFilter('week')}
               title="Show last 7 days"
             >
               Last 7 Days
             </button>
-            <button 
+            <button
               className="quick-filter-btn"
               onClick={() => applyQuickDateFilter('month')}
               title="Show last 30 days"
@@ -369,7 +455,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
               placeholder="To Date"
             />
             {(dateFrom || dateTo) && (
-              <button 
+              <button
                 className="clear-dates-btn"
                 onClick={() => {
                   setDateFrom('');
@@ -470,7 +556,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       ) : (
         <div className="orders-grid">
           {filteredOrders.map(order => (
-            <div key={order.id} id={`mgr-order-${order.id}`} className={`order-card ${order.salesChannel === 'offline' ? 'offline-order' : ''}`}>
+            <div key={order.id} id={`mgr-order-${order.id}`} className={`order-card ${order.salesChannel === 'offline' ? 'offline-order' : ''} ${order.status}-status`}>
               <div className="order-header">
                 <div className="order-info">
                   <div className="order-id-row">
@@ -576,8 +662,36 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                 )}
               </div>
 
-              {order.isBillable && (
-                <div className="order-actions">
+              {/* Payment status row */}
+              {(() => {
+                const isFullySettled = order.status === 'delivered' || order.status === 'picked_up';
+                const isCashOnly = order.salesChannel === 'offline';
+                if (isCashOnly || isFullySettled || order.paymentStatus === 'paid') {
+                  return (
+                    <div className="mgr-payment-row mgr-payment-paid">
+                      ✓ Fully Paid
+                    </div>
+                  );
+                }
+                if (order.paymentStatus === 'partially_paid') {
+                  const remaining = order.remainingAmount ?? (order.totalAmount - (order.paidAmount ?? 0));
+                  const deliveryLabel = order.deliveryMethod === 'pickup' ? 'pickup' : 'delivery';
+                  return (
+                    <div className="mgr-payment-row mgr-payment-partial">
+                      <span>Paid: Rs. {(order.paidAmount ?? 0).toLocaleString()}</span>
+                      <span>Balance due at {deliveryLabel}: Rs. {remaining.toLocaleString()}</span>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mgr-payment-row mgr-payment-pending">
+                    Payment: Cash on Delivery
+                  </div>
+                );
+              })()}
+
+              <div className="order-actions">
+                {order.isBillable && (
                   <button
                     className="download-bill-btn"
                     onClick={() => handleDownloadBill(order.id)}
@@ -595,8 +709,21 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                       </>
                     )}
                   </button>
-                </div>
-              )}
+                )}
+
+                {/* Process Return button — only for offline orders that are delivered or picked_up */}
+                {order.salesChannel === 'offline' &&
+                  (order.status === 'delivered' || order.status === 'picked_up') &&
+                  (order.itemDetails && order.itemDetails.length > 0) && (
+                  <button
+                    className="process-return-btn"
+                    onClick={() => handleProcessReturnClick(order)}
+                  >
+                    <RotateCcw size={14} />
+                    Process Return
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -613,6 +740,114 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
         onConfirm={confirmStatusChange}
         onCancel={cancelStatusChange}
       />
+
+      {/* Offline Return Modal */}
+      {offlineReturnOrder && (
+        <div className="offline-return-overlay" onClick={handleCloseReturnModal}>
+          <div className="offline-return-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="offline-return-modal-header">
+              <h2>Process Return</h2>
+              <p className="offline-return-order-ref">
+                Order #{offlineReturnOrder.id.slice(0, 8).toUpperCase()}
+                {offlineReturnOrder.offlineCustomerName && (
+                  <> — {offlineReturnOrder.offlineCustomerName}</>
+                )}
+              </p>
+            </div>
+
+            <div className="offline-return-modal-body">
+              <h3>Select Items to Return</h3>
+              <div className="return-items-list">
+                {(offlineReturnOrder.itemDetails ?? []).map((item, index) => (
+                  <div key={item.id} className="return-item-row">
+                    <span className="return-item-name">{item.name}</span>
+                    <span className="return-item-original">Ordered: {item.quantity}</span>
+                    <div className="return-qty-control">
+                      <button
+                        className="qty-btn"
+                        onClick={() => setOfflineReturnItems(prev => ({
+                          ...prev,
+                          [index]: Math.max(0, (prev[index] ?? 0) - 1),
+                        }))}
+                        disabled={(offlineReturnItems[index] ?? 0) === 0}
+                      >
+                        −
+                      </button>
+                      <span className="qty-display">{offlineReturnItems[index] ?? 0}</span>
+                      <button
+                        className="qty-btn"
+                        onClick={() => setOfflineReturnItems(prev => ({
+                          ...prev,
+                          [index]: Math.min(item.quantity, (prev[index] ?? 0) + 1),
+                        }))}
+                        disabled={(offlineReturnItems[index] ?? 0) >= item.quantity}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="return-reason-section">
+                <label htmlFor="return-reason">Return Reason *</label>
+                <select
+                  id="return-reason"
+                  value={offlineReturnReason}
+                  onChange={(e) => setOfflineReturnReason(e.target.value)}
+                  className="return-reason-select"
+                >
+                  <option value="">-- Select a reason --</option>
+                  {RETURN_REASONS.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="return-description-section">
+                <label htmlFor="return-description">Additional Notes (optional)</label>
+                <textarea
+                  id="return-description"
+                  value={offlineReturnDescription}
+                  onChange={(e) => setOfflineReturnDescription(e.target.value)}
+                  placeholder="Describe the condition of the returned items..."
+                  rows={3}
+                  maxLength={1000}
+                  className="return-description-textarea"
+                />
+              </div>
+
+              {returnModalError && (
+                <div className="return-modal-error">
+                  <AlertTriangle size={14} />
+                  {returnModalError}
+                </div>
+              )}
+            </div>
+
+            <div className="offline-return-modal-footer">
+              <button
+                className="return-cancel-btn"
+                onClick={handleCloseReturnModal}
+                disabled={isSubmittingReturn}
+              >
+                Cancel
+              </button>
+              <button
+                className="return-submit-btn"
+                onClick={handleSubmitOfflineReturn}
+                disabled={isSubmittingReturn}
+              >
+                {isSubmittingReturn ? (
+                  <><Loader2 size={14} className="spin" /> Processing...</>
+                ) : (
+                  <><RotateCcw size={14} /> Confirm Return &amp; Restock</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

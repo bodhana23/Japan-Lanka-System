@@ -76,6 +76,7 @@ interface CustomerOrder {
   customerName: string;
   customerEmail: string;
   items: { name: string; quantity: number; price: number }[];
+  itemDetails?: { id: string; productId: string; name: string; quantity: number; price: number }[];
   totalAmount: number;
   status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
   orderDate: string;
@@ -88,6 +89,10 @@ interface CustomerOrder {
   offlineCustomerPhone?: string;
   // Bill generation
   isBillable?: boolean;
+  // Payment info
+  paymentStatus?: 'not_paid' | 'partially_paid' | 'paid';
+  paidAmount?: number;
+  remainingAmount?: number;
 }
 
 interface UserProfile {
@@ -228,7 +233,7 @@ const ManagerDashboard: React.FC = () => {
       try {
         setIsLoadingProducts(true);
         setProductsError(null);
-        const response = await productsApi.getProducts({ page_size: 100, include_inactive: true });
+        const response = await productsApi.getProducts({ page_size: 100 });
         if (isMounted) {
           const transformedProducts: Product[] = response.items.map((p: ApiProduct) => ({
             id: p.id,
@@ -262,69 +267,68 @@ const ManagerDashboard: React.FC = () => {
     };
   }, []);
 
-  // Fetch orders from API
-  useEffect(() => {
-    let isMounted = true;
+  // Fetch orders from API — defined at component level so it can be passed as a refresh callback
+  const fetchOrders = React.useCallback(async () => {
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+    try {
+      const response = await ordersApi.getOrders({ page_size: 100 });
+      const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => {
+        // For offline sales, use offline customer info if available
+        const isOffline = o.sales_channel === 'offline';
+        const customerName = isOffline
+          ? (o.offline_customer_name || 'Walk-in Customer')
+          : (o.customer_name || 'Unknown Customer');
+        const customerPhone = isOffline
+          ? (o.offline_customer_phone || '')
+          : (o.customer_phone || '');
 
-    const fetchOrders = async () => {
-      try {
-        setIsLoadingOrders(true);
-        setOrdersError(null);
-        const response = await ordersApi.getOrders({ page_size: 100 });
-        if (isMounted) {
-          const transformedOrders: CustomerOrder[] = response.items.map((o: ApiOrder) => {
-            // For offline sales, use offline customer info if available
-            const isOffline = o.sales_channel === 'offline';
-            const customerName = isOffline
-              ? (o.offline_customer_name || 'Walk-in Customer')
-              : (o.customer_name || 'Unknown Customer');
-            const customerPhone = isOffline
-              ? (o.offline_customer_phone || '')
-              : (o.customer_phone || '');
-
-            return {
-              id: o.id,
-              customerName,
-              customerEmail: o.customer_email || '',
-              items: o.items.map(item => ({
-                name: item.product_name || `Product ${item.product_id}`,
-                quantity: item.quantity,
-                price: item.unit_price
-              })),
-              totalAmount: o.total_amount,
-              status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
-              orderDate: o.created_at,
-              deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
-              contactNumber: customerPhone,
-              deliveryMethod: o.delivery_method as 'pickup' | 'shipping',
-              // Offline sales fields
-              salesChannel: o.sales_channel,
-              offlineCustomerName: o.offline_customer_name,
-              offlineCustomerPhone: o.offline_customer_phone,
-              // Bill generation
-              isBillable: o.is_billable,
-            };
-          });
-          setCustomerOrders(transformedOrders);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Error fetching orders:', error);
-          setOrdersError('Failed to load orders.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingOrders(false);
-        }
-      }
-    };
-
-    fetchOrders();
-
-    return () => {
-      isMounted = false;
-    };
+        return {
+          id: o.id,
+          customerName,
+          customerEmail: o.customer_email || '',
+          items: o.items.map(item => ({
+            name: item.product_name || `Product ${item.product_id}`,
+            quantity: item.quantity,
+            price: item.unit_price
+          })),
+          itemDetails: o.items.map(item => ({
+            id: item.id,
+            productId: item.product_id || '',
+            name: item.product_name || `Product ${item.product_id}`,
+            quantity: item.quantity,
+            price: item.unit_price,
+          })),
+          totalAmount: o.total_amount,
+          status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
+          orderDate: o.created_at,
+          deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
+          contactNumber: customerPhone,
+          deliveryMethod: o.delivery_method as 'pickup' | 'shipping',
+          // Offline sales fields
+          salesChannel: o.sales_channel,
+          offlineCustomerName: o.offline_customer_name,
+          offlineCustomerPhone: o.offline_customer_phone,
+          // Bill generation
+          isBillable: o.is_billable,
+          // Payment info
+          paymentStatus: o.payment_status,
+          paidAmount: o.paid_amount,
+          remainingAmount: o.remaining_amount,
+        };
+      });
+      setCustomerOrders(transformedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrdersError('Failed to load orders.');
+    } finally {
+      setIsLoadingOrders(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Fetch return requests from API
   useEffect(() => {
@@ -683,6 +687,7 @@ const ManagerDashboard: React.FC = () => {
             error={ordersError}
             onStatusUpdate={handleOrderStatusUpdate}
             highlightOrderId={urlOrderId}
+            onReturnProcessed={fetchOrders}
           />
         );
       
@@ -728,6 +733,7 @@ const ManagerDashboard: React.FC = () => {
       onNavChange={handleNavigation}
       roleConfig={roleConfig}
       user={dashboardUser}
+      onProfileClick={() => handleNavigation('profile')}
     >
       {renderContent()}
 

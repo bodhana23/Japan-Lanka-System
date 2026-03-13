@@ -328,7 +328,9 @@ export interface ReturnItemCreate {
 export interface ReturnRequest {
   id: string;
   order_id: string;
-  customer_id: string;
+  customer_id?: string;  // Optional — null for offline returns
+  processed_by_employee_id?: string;
+  is_offline_return?: boolean;
   reason: string;
   description?: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
@@ -356,6 +358,17 @@ export interface CreateReturnRequest {
   reason: string;
   description?: string;
   items: ReturnItemCreate[];
+}
+
+export interface OfflineReturnItemCreate {
+  order_item_id: string;
+  quantity: number;
+}
+
+export interface CreateOfflineReturnRequest {
+  reason: string;
+  description?: string;
+  items: OfflineReturnItemCreate[];
 }
 
 // Eligible order types for returns
@@ -887,6 +900,11 @@ export const returnsApi = {
     });
     return response.data;
   },
+
+  createOfflineReturn: async (orderId: string, data: CreateOfflineReturnRequest): Promise<ReturnRequest> => {
+    const response = await api.post<ReturnRequest>(`/returns/offline/${orderId}`, data);
+    return response.data;
+  },
 };
 
 // ============ INVENTORY API ============
@@ -1137,13 +1155,18 @@ export interface RevenueByCategory {
   revenue: number;
 }
 
+export interface DailyTrendEntry {
+  date: string;
+  revenue: number;
+}
+
 export interface SalesData {
   month: string;
   sales: number;
   orders: number;
   topSellingParts: TopSellingPart[];
   revenueByCategory: RevenueByCategory[];
-  dailyTrend: number[];
+  dailyTrend: DailyTrendEntry[];
 }
 
 export interface BrandSales {

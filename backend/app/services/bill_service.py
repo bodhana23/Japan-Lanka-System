@@ -84,15 +84,26 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     # Payment status - use actual payment fields from the order
     is_offline = order.sales_channel.value == "offline"
     from decimal import Decimal
+    from app.models.order import OrderStatus
     paid_amount = Decimal(str(order.paid_amount or 0))
     remaining_amount = Decimal(str(order.remaining_amount or 0))
     total = Decimal(str(order.total_amount or 0))
 
-    if is_offline:
-        payment_status = "PAID"
-        payment_method = "Cash"
+    # Orders that are delivered or picked_up are fully settled regardless of DB payment fields
+    is_fully_settled = order.status in (OrderStatus.DELIVERED, OrderStatus.PICKED_UP)
+
+    if is_offline or is_fully_settled:
+        payment_status = "FULLY PAID"
+        if is_offline:
+            payment_method = "Cash"
+        elif paid_amount > 0 and paid_amount < total:
+            payment_method = "Online (PayHere) + Cash on Delivery"
+        elif paid_amount >= total and total > 0:
+            payment_method = "Online (PayHere)"
+        else:
+            payment_method = "Cash on Delivery"
     elif paid_amount >= total and total > 0:
-        payment_status = "PAID"
+        payment_status = "FULLY PAID"
         payment_method = "Online (PayHere)"
     elif paid_amount > 0:
         payment_status = "PARTIALLY PAID"
@@ -151,9 +162,18 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
             f"Rs. {line_total:,.2f}",
         ])
 
-    # Total row
+    # Footer rows — show delivery fee breakdown for shipping orders
     total_amount = Decimal(str(order.total_amount))
-    items_data.append(["", "", "", "Subtotal:", f"Rs. {total_amount:,.2f}"])
+    order_subtotal = Decimal(str(order.subtotal or order.total_amount))
+    order_delivery_fee = Decimal(str(order.delivery_fee or 0))
+    is_shipping_with_fee = (order.delivery_method.value == "shipping") and order_delivery_fee > 0
+
+    if is_shipping_with_fee:
+        items_data.append(["", "", "", "Subtotal:", f"Rs. {order_subtotal:,.2f}"])
+        items_data.append(["", "", "", "Delivery Fee:", f"Rs. {order_delivery_fee:,.2f}"])
+        items_data.append(["", "", "", "Total:", f"Rs. {total_amount:,.2f}"])
+    else:
+        items_data.append(["", "", "", "Total:", f"Rs. {total_amount:,.2f}"])
 
     items_table = Table(
         items_data,
@@ -166,12 +186,12 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
         ("FONTSIZE", (0, 0), (-1, 0), 10),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
         ("TOPPADDING", (0, 0), (-1, 0), 8),
-        # Body styling
-        ("FONTNAME", (0, 1), (-1, -2), "Helvetica"),
-        ("FONTSIZE", (0, 1), (-1, -2), 10),
-        ("BOTTOMPADDING", (0, 1), (-1, -2), 6),
-        ("TOPPADDING", (0, 1), (-1, -2), 6),
-        # Total row styling
+        # Body styling (all rows except header and footer rows)
+        ("FONTNAME", (0, 1), (-1, -(2 + (2 if is_shipping_with_fee else 0))), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -(2 + (2 if is_shipping_with_fee else 0))), 10),
+        ("BOTTOMPADDING", (0, 1), (-1, -(2 + (2 if is_shipping_with_fee else 0))), 6),
+        ("TOPPADDING", (0, 1), (-1, -(2 + (2 if is_shipping_with_fee else 0))), 6),
+        # Total row (always the last row) — bold and larger
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
         ("FONTSIZE", (0, -1), (-1, -1), 11),
         ("TOPPADDING", (0, -1), (-1, -1), 10),
@@ -185,6 +205,18 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
         ("LINEBELOW", (0, 1), (-1, -2), 0.5, colors.HexColor("#eeeeee")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
+
+    # For shipping orders: style the delivery fee row with grey text
+    if is_shipping_with_fee:
+        items_table.setStyle(TableStyle([
+            # Subtotal footer row (third from last)
+            ("FONTNAME", (0, -3), (-1, -3), "Helvetica"),
+            ("TEXTCOLOR", (3, -3), (-1, -3), colors.HexColor("#555555")),
+            # Delivery fee row (second from last) — grey label and value
+            ("FONTNAME", (0, -2), (-1, -2), "Helvetica"),
+            ("TEXTCOLOR", (3, -2), (-1, -2), colors.HexColor("#2563eb")),
+        ]))
+
     elements.append(items_table)
     elements.append(Spacer(1, 8 * mm))
 
@@ -198,14 +230,16 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     )
 
     # Payment info table
-    if is_offline or paid_amount >= total:
+    is_paid_status = payment_status == "FULLY PAID"
+    if is_paid_status:
         payment_status_color = colors.HexColor("#27ae60")
-    elif paid_amount > 0:
+    elif payment_status == "PARTIALLY PAID":
         payment_status_color = colors.HexColor("#f39c12")
     else:
         payment_status_color = colors.HexColor("#e74c3c")
 
-    if is_offline:
+    # Amount due: 0 if fully settled (delivered/picked_up/offline/fully paid online)
+    if is_offline or is_fully_settled or paid_amount >= total:
         amount_due = Decimal("0")
     else:
         amount_due = remaining_amount
@@ -216,8 +250,8 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     ]
     if not is_offline and paid_amount > 0:
         payment_data.append(["Amount Paid:", f"Rs. {paid_amount:,.2f}"])
-    if not is_offline and remaining_amount > 0:
-        payment_data.append(["Remaining (COD):", f"Rs. {remaining_amount:,.2f}"])
+    if not is_offline and not is_fully_settled and remaining_amount > 0:
+        payment_data.append(["Balance Due (COD):", f"Rs. {remaining_amount:,.2f}"])
     payment_data.append(["Total Due:", f"Rs. {amount_due:,.2f}"])
 
     payment_table = Table(payment_data, colWidths=[40 * mm, 60 * mm])
@@ -239,7 +273,39 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
         ("TOPPADDING", (0, 0), (-1, -1), 6),
     ]))
     elements.append(payment_table)
-    elements.append(Spacer(1, 10 * mm))
+    elements.append(Spacer(1, 6 * mm))
+
+    # Note for partially paid orders (balance still pending)
+    if payment_status == "PARTIALLY PAID" and not is_fully_settled:
+        note_style = ParagraphStyle(
+            "Note",
+            parent=styles["Normal"],
+            fontSize=9,
+            textColor=colors.HexColor("#b7770d"),
+            alignment=0,
+            leftIndent=2 * mm,
+        )
+        delivery_label = "pickup" if order.delivery_method.value == "pickup" else "delivery"
+        elements.append(Paragraph(
+            f"* The remaining balance of Rs. {remaining_amount:,.2f} is due upon {delivery_label}.",
+            note_style,
+        ))
+        elements.append(Spacer(1, 6 * mm))
+
+    # Fully paid stamp for settled orders
+    if payment_status == "FULLY PAID":
+        stamp_style = ParagraphStyle(
+            "Stamp",
+            parent=styles["Heading1"],
+            fontSize=20,
+            textColor=colors.HexColor("#27ae60"),
+            alignment=1,
+            borderPadding=6,
+        )
+        elements.append(Paragraph("✔  PAID IN FULL", stamp_style))
+        elements.append(Spacer(1, 6 * mm))
+
+    elements.append(Spacer(1, 4 * mm))
 
     # Footer
     footer_style = ParagraphStyle(

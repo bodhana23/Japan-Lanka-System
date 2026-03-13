@@ -52,6 +52,13 @@
   z-index: 1000;
   overflow: hidden;
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.3s ease;
+}
+
+.notification-dropdown--expanded {
+  max-height: 80vh;
 }
 
 .notification-header {
@@ -60,6 +67,7 @@
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .notification-header h3 {
@@ -87,6 +95,11 @@
 .notification-list {
   max-height: 360px;
   overflow-y: auto;
+  flex: 1;
+}
+
+.notification-dropdown--expanded .notification-list {
+  max-height: none;
 }
 
 .notification-loading,
@@ -196,6 +209,7 @@
   padding: 12px 20px;
   border-top: 1px solid #e5e7eb;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .view-all-btn {

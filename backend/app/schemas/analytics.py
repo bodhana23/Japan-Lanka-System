@@ -14,13 +14,18 @@ class RevenueByCategory(BaseModel):
     revenue: float
 
 
+class DailyTrendEntry(BaseModel):
+    date: str
+    revenue: float
+
+
 class MonthlySalesData(BaseModel):
     month: str
     sales: float
     orders: int
     topSellingParts: List[TopSellingPart]
     revenueByCategory: List[RevenueByCategory]
-    dailyTrend: List[float]
+    dailyTrend: List[DailyTrendEntry]
 
 
 class BrandSalesData(BaseModel):

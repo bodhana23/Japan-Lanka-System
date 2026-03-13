@@ -46,6 +46,7 @@ export interface DashboardLayoutProps<T extends string = string> {
   roleConfig: RoleConfig;
   user?: DashboardUser; // If not provided, uses AuthContext
   pageTitle?: string; // Override the page title (defaults to active nav label)
+  onProfileClick?: () => void; // Navigate to profile section (employee dashboards)
 }
 
 // Default role configurations
@@ -85,6 +86,7 @@ function DashboardLayout<T extends string = string>({
   roleConfig,
   user: userProp,
   pageTitle,
+  onProfileClick,
 }: DashboardLayoutProps<T>) {
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
@@ -127,9 +129,11 @@ function DashboardLayout<T extends string = string>({
     }
   };
 
-  // Handle profile click
+  // Handle profile click — navigates to profile section if handler provided, else opens modal
   const handleProfileClick = () => {
-    if (roleConfig.showProfileModal) {
+    if (onProfileClick) {
+      onProfileClick();
+    } else if (roleConfig.showProfileModal) {
       setShowProfileModal(true);
     }
   };
@@ -199,7 +203,14 @@ function DashboardLayout<T extends string = string>({
                 </div>
                 <div className="dl-header-actions">
                   <NotificationBell />
-                  <div className="dl-profile-btn">
+                  <div
+                    className="dl-profile-btn"
+                    onClick={handleProfileClick}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleProfileClick()}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <span className="dl-profile-avatar">
                       {firstName.charAt(0).toUpperCase()}
                     </span>
@@ -224,7 +235,14 @@ function DashboardLayout<T extends string = string>({
                 </div>
                 <div className="dl-header-actions">
                   <NotificationBell />
-                  <div className="dl-header-user">
+                  <div
+                    className="dl-header-user"
+                    onClick={handleProfileClick}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleProfileClick()}
+                    style={{ cursor: onProfileClick ? 'pointer' : 'default' }}
+                  >
                     <div className="dl-user-avatar">{firstName.charAt(0).toUpperCase()}</div>
                     <div className="dl-user-info">
                       <span className="dl-user-name">{displayName}</span>

@@ -16,6 +16,7 @@ from app.models.return_item import ReturnItem
 from app.schemas.analytics import (
     FinancialSummaryResponse,
     MonthlySalesData,
+    DailyTrendEntry,
     BrandSalesData,
     TopSellingPart,
     RevenueByCategory,
@@ -129,11 +130,10 @@ def get_financial_summary(
             for row in category_results
         ]
 
-        # d) Daily trend - last 7 days of the month
+        # d) Daily trend - all days of the month
         trend_end = min(month_end, now)
-        trend_start = trend_end - timedelta(days=6)
-        if trend_start < month_start:
-            trend_start = month_start
+        trend_start = month_start
+        days_in_month = calendar.monthrange(year, month)[1]
 
         daily_trend_results = (
             db.query(
@@ -152,13 +152,15 @@ def get_financial_summary(
 
         daily_map = {str(row[0]): float(row[1]) for row in daily_trend_results}
         daily_trend = []
-        for i in range(7):
+        for i in range(days_in_month):
             day = trend_start + timedelta(days=i)
             if day <= trend_end:
-                day_str = str(day.date()) if isinstance(day, datetime) else str(day)
-                daily_trend.append(daily_map.get(day_str, 0.0))
-            else:
-                daily_trend.append(0.0)
+                day_str = str(day.date())
+                label = day.strftime("%-d %b")
+                daily_trend.append(DailyTrendEntry(
+                    date=label,
+                    revenue=daily_map.get(day_str, 0.0)
+                ))
 
         monthly_data.append(MonthlySalesData(
             month=month_name,

@@ -6,13 +6,18 @@ import {
 import type { ReturnAnalyticsResponse, SalesChannelComparisonResponse } from '../../services/api';
 import './DashboardAnalytics.css';
 
+interface DailyTrendEntry {
+  date: string;
+  revenue: number;
+}
+
 interface SalesData {
   month: string;
   sales: number;
   orders: number;
   topSellingParts: { name: string; units: number }[];
   revenueByCategory: { category: string; revenue: number }[];
-  dailyTrend: number[];
+  dailyTrend: DailyTrendEntry[];
 }
 
 interface BrandSales {
@@ -177,26 +182,29 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                       </div>
                     )}
 
-                    {/* Day-by-day revenue (last 7 days of month) */}
-                    {data.dailyTrend && data.dailyTrend.some(v => v > 0) && (
+                    {/* Day-by-day revenue (full month) */}
+                    {data.dailyTrend && data.dailyTrend.length > 0 && (
                       <div className="admin-detail-section">
-                        <h4>Last 7 Days — Revenue Trend</h4>
-                        <table className="admin-daily-table">
-                          <thead>
-                            <tr>
-                              <th>Day</th>
-                              <th>Revenue</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {data.dailyTrend.map((rev, i) => (
-                              <tr key={i}>
-                                <td>Day {i + 1}</td>
-                                <td>{rev > 0 ? `Rs. ${rev.toLocaleString()}` : '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <h4>Monthly Revenue Trend</h4>
+                        <div className="daily-trend-scroll">
+                          {(() => {
+                            const maxRev = Math.max(...data.dailyTrend.map(d => d.revenue), 1);
+                            return data.dailyTrend.map((entry, i) => (
+                              <div key={i} className="daily-trend-row">
+                                <span className="daily-trend-label">{entry.date}</span>
+                                <div className="daily-trend-bar-wrap">
+                                  <div
+                                    className="daily-trend-bar"
+                                    style={{ width: `${(entry.revenue / maxRev) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="daily-trend-value">
+                                  {entry.revenue > 0 ? `Rs. ${entry.revenue.toLocaleString()}` : '—'}
+                                </span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
                       </div>
                     )}
 

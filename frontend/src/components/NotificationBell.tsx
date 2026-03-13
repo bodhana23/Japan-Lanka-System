@@ -13,6 +13,7 @@ const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showingAll, setShowingAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check authentication from both AuthContext and localStorage (for employee sessions)
@@ -75,12 +76,12 @@ const NotificationBell: React.FC = () => {
   }, [isAuthenticated]);
 
   // Fetch notifications when dropdown opens
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (all = false) => {
     if (!isAuthenticated) return;
 
     setIsLoading(true);
     try {
-      const response = await notificationsApi.getNotifications({ page_size: 10 });
+      const response = await notificationsApi.getNotifications({ page_size: all ? 100 : 10 });
       setNotifications(response.items);
       setUnreadCount(response.unread_count);
     } catch (error) {
@@ -92,9 +93,22 @@ const NotificationBell: React.FC = () => {
 
   const handleBellClick = () => {
     if (!isOpen) {
-      fetchNotifications();
+      setShowingAll(false);
+      fetchNotifications(false);
     }
     setIsOpen(!isOpen);
+  };
+
+  const handleViewAll = async () => {
+    if (showingAll) {
+      // Collapse back to recent 10
+      setShowingAll(false);
+      fetchNotifications(false);
+    } else {
+      // Load all notifications
+      setShowingAll(true);
+      fetchNotifications(true);
+    }
   };
 
   const handleNotificationClick = async (notification: Notification) => {
@@ -194,7 +208,7 @@ const NotificationBell: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown">
+        <div className={`notification-dropdown${showingAll ? ' notification-dropdown--expanded' : ''}`}>
           <div className="notification-header">
             <h3>Notifications</h3>
             {unreadCount > 0 && (
@@ -247,21 +261,10 @@ const NotificationBell: React.FC = () => {
             <div className="notification-footer">
               <button
                 className="view-all-btn"
-                onClick={() => {
-                  setIsOpen(false);
-                  // Navigate to appropriate dashboard based on user role
-                  if (isEmployee) {
-                    const role = user?.role?.toLowerCase();
-                    const basePath = role === 'manager' ? '/manager' :
-                                     role === 'admin' ? '/admin' :
-                                     role === 'auditor' ? '/auditor' : '/manager';
-                    navigate(basePath);
-                  } else {
-                    navigate('/customer');
-                  }
-                }}
+                onClick={handleViewAll}
+                disabled={isLoading}
               >
-                View all notifications
+                {isLoading ? 'Loading...' : showingAll ? 'Show recent only' : 'View all notifications'}
               </button>
             </div>
           )}

@@ -376,18 +376,23 @@ const MyOrders: React.FC = () => {
                         <span className="mo-total-amount">{formatCurrency(order.total_amount)}</span>
                       </div>
                       {/* Payment status badge */}
-                      {order.payment_status === 'paid' && (
-                        <div className="mo-payment-status mo-payment-paid">✓ Paid in Full</div>
-                      )}
-                      {order.payment_status === 'partially_paid' && (
-                        <div className="mo-payment-status mo-payment-partial">
-                          <div>Paid: {formatCurrency(order.paid_amount ?? 0)}</div>
-                          <div>Remaining (COD): {formatCurrency(order.remaining_amount ?? (order.total_amount - (order.paid_amount ?? 0)))}</div>
-                        </div>
-                      )}
-                      {(!order.payment_status || order.payment_status === 'not_paid') && (
-                        <div className="mo-payment-status mo-payment-pending">Cash on Delivery</div>
-                      )}
+                      {(() => {
+                        const isFullySettled = order.status === 'delivered' || order.status === 'picked_up';
+                        if (isFullySettled || order.payment_status === 'paid') {
+                          return <div className="mo-payment-status mo-payment-paid">✓ Paid in Full</div>;
+                        }
+                        if (order.payment_status === 'partially_paid') {
+                          const remaining = order.remaining_amount ?? (order.total_amount - (order.paid_amount ?? 0));
+                          const deliveryLabel = order.delivery_method === 'pickup' ? 'Pickup' : 'Delivery';
+                          return (
+                            <div className="mo-payment-status mo-payment-partial">
+                              <div>Paid: {formatCurrency(order.paid_amount ?? 0)}</div>
+                              <div>Balance due at {deliveryLabel}: {formatCurrency(remaining)}</div>
+                            </div>
+                          );
+                        }
+                        return <div className="mo-payment-status mo-payment-pending">Cash on Delivery</div>;
+                      })()}
                     </div>
                     {showOrderActions && (
                       <div className="mo-order-actions">

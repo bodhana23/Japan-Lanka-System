@@ -104,6 +104,7 @@ const CustomerDashboard: React.FC = () => {
       activeNav={activeNav}
       onNavChange={handleNavChange}
       roleConfig={roleConfig}
+      onProfileClick={() => handleNavChange('profile')}
     >
       {renderContent()}
     </DashboardLayout>

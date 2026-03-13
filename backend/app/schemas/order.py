@@ -9,42 +9,50 @@ from pydantic import BaseModel, Field, field_validator
 from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
 
 
-# Sri Lanka Districts with delivery fees
+# Sri Lanka Districts with delivery fees — graduated by distance from Matara (origin)
 SRI_LANKA_DISTRICTS = {
-    # Colombo - Rs. 500
-    "Colombo": 500,
-    # Western Province (excluding Colombo) - Rs. 700
-    "Gampaha": 700,
-    "Kalutara": 700,
-    # All other districts - Rs. 1000
-    "Kandy": 1000,
-    "Matale": 1000,
-    "Nuwara Eliya": 1000,
-    "Galle": 1000,
-    "Matara": 1000,
-    "Hambantota": 1000,
-    "Jaffna": 1000,
-    "Kilinochchi": 1000,
-    "Mannar": 1000,
-    "Mullaitivu": 1000,
-    "Vavuniya": 1000,
-    "Trincomalee": 1000,
-    "Batticaloa": 1000,
-    "Ampara": 1000,
-    "Kurunegala": 1000,
-    "Puttalam": 1000,
-    "Anuradhapura": 1000,
-    "Polonnaruwa": 1000,
-    "Badulla": 1000,
-    "Monaragala": 1000,
-    "Ratnapura": 1000,
-    "Kegalle": 1000,
+    # Tier 1 — Rs. 600: Matara (origin/dispatch point)
+    "Matara": 600,
+
+    # Tier 2 — Rs. 1400: Adjacent southern districts
+    "Galle": 1400,
+    "Hambantota": 1400,
+
+    # Tier 3 — Rs. 2400: Mid-south districts
+    "Ratnapura": 2400,
+    "Kalutara": 2400,
+    "Nuwara Eliya": 2400,
+    "Monaragala": 2400,
+
+    # Tier 4 — Rs. 3200: Central and western districts
+    "Colombo": 3200,
+    "Gampaha": 3200,
+    "Kegalle": 3200,
+    "Badulla": 3200,
+    "Kandy": 3200,
+
+    # Tier 5 — Rs. 4000: Northern-central and eastern districts
+    "Kurunegala": 4000,
+    "Matale": 4000,
+    "Polonnaruwa": 4000,
+    "Anuradhapura": 4000,
+    "Ampara": 4000,
+    "Batticaloa": 4000,
+    "Trincomalee": 4000,
+
+    # Tier 6 — Rs. 4800: Far northern districts
+    "Puttalam": 4800,
+    "Vavuniya": 4800,
+    "Mannar": 4800,
+    "Mullaitivu": 4800,
+    "Kilinochchi": 4800,
+    "Jaffna": 4800,
 }
 
 
 def get_delivery_fee(district: str) -> Decimal:
-    """Get delivery fee based on district."""
-    fee = SRI_LANKA_DISTRICTS.get(district, 1000)
+    """Get delivery fee based on district (graduated by distance from Matara)."""
+    fee = SRI_LANKA_DISTRICTS.get(district, 4800)  # Default to tier 6 for unknown districts
     return Decimal(str(fee))
 
 

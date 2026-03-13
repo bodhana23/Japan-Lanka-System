@@ -62,7 +62,9 @@ class ReturnRequestStatusUpdate(BaseModel):
 class ReturnRequestResponse(BaseModel):
     id: UUID
     order_id: UUID
-    customer_id: UUID
+    customer_id: Optional[UUID] = None  # Nullable for offline returns
+    processed_by_employee_id: Optional[UUID] = None  # Set for manager-initiated offline returns
+    is_offline_return: bool = False
     reason: str
     description: Optional[str] = None
     status: ReturnStatus
@@ -122,3 +124,17 @@ class EligibleOrderResponse(BaseModel):
 class EligibleOrdersListResponse(BaseModel):
     items: List[EligibleOrderResponse]
     total: int
+
+
+class OfflineReturnCreate(BaseModel):
+    """Schema for manager-initiated return of an offline (walk-in) sale."""
+    reason: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    items: List[ReturnItemCreate] = Field(..., min_length=1)
+
+    @field_validator('reason')
+    @classmethod
+    def validate_reason(cls, v):
+        if v not in VALID_REASONS:
+            raise ValueError(f"Invalid reason. Must be one of: {', '.join(VALID_REASONS)}")
+        return v
