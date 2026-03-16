@@ -11,6 +11,7 @@ from app.routers.inventory import router as inventory_router
 from app.routers.auditor import router as auditor_router
 from app.routers.payments import router as payments_router
 from app.routers.analytics import router as analytics_router
+from app.routers.system_settings import router as system_settings_router
 
 __all__ = [
     "auth_customer_router",
@@ -25,4 +26,5 @@ __all__ = [
     "auditor_router",
     "payments_router",
     "analytics_router",
+    "system_settings_router",
 ]

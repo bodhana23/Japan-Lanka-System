@@ -32,6 +32,8 @@ export interface Product {
   brand?: string;
   yearFrom?: number;
   yearTo?: number;
+  discountPercentage?: number;
+  effectivePrice?: number;
 }
 
 // Unified cart item (works for both guest and logged-in users)

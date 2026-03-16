@@ -117,9 +117,10 @@ const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
 
               {/* Mini Trend Chart */}
               <div className="admin-mini-trend">
-                {data.dailyTrend && data.dailyTrend.length > 0 && data.dailyTrend.map((value, i) => {
-                  const validValues = data.dailyTrend.filter(v => typeof v === 'number' && isFinite(v) && v > 0);
+                {data.dailyTrend && data.dailyTrend.length > 0 && data.dailyTrend.map((entry, i) => {
+                  const validValues = data.dailyTrend.map(v => v.revenue).filter(v => isFinite(v) && v > 0);
                   const maxTrend = validValues.length > 0 ? Math.max(...validValues) : 0;
+                  const value = entry.revenue;
                   return (
                     <div
                       key={i}

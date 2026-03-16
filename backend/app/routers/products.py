@@ -19,8 +19,9 @@ from app.schemas.product import (
     ProductUpdate,
     ProductResponse,
     ProductListResponse,
+    ProductDiscountUpdate,
 )
-from app.utils.deps import get_current_user_optional, require_manager_or_admin, CurrentUser
+from app.utils.deps import get_current_user_optional, require_manager_or_admin, require_admin, CurrentUser
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -247,6 +248,32 @@ async def delete_product(
         related_entity_id=product.id
     )
 
+    db.commit()
+    db.refresh(product)
+
+    return ProductResponse.model_validate(product)
+
+
+@router.patch("/{product_id}/discount", response_model=ProductResponse)
+async def update_product_discount(
+    product_id: UUID,
+    discount_data: ProductDiscountUpdate,
+    current_user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Set or clear a product discount percentage. Admin only."""
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.is_active == True
+    ).first()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
+    product.discount_percentage = discount_data.discount_percentage
     db.commit()
     db.refresh(product)
 

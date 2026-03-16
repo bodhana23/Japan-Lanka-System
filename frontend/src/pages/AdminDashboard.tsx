@@ -9,19 +9,22 @@ import {
   DashboardAnalytics,
   DashboardProfile,
   DashboardChangePassword,
-  DashboardOrderPipeline
+  DashboardOrderPipeline,
+  DashboardDiscounts,
+  DashboardSystemSettings,
 } from '../components/admin';
 import ProfileModal from '../components/ProfileModal';
 import { usersApi, productsApi, analyticsApi, Customer as ApiCustomer, Employee as ApiEmployee, Product as ApiProduct } from '../services/api';
 import type { SalesData, BrandSales, ReturnAnalyticsResponse, OrderPipelineResponse, SalesChannelComparisonResponse } from '../services/api';
 import {
   Plus, CheckCircle, Clock, AlertTriangle, Trash2,
-  Users, BarChart2, User, Shield, Pencil, Lock, GitBranch, Eye, EyeOff
+  Users, BarChart2, User, Shield, Pencil, Lock, GitBranch, Eye, EyeOff,
+  Tag, Settings
 } from 'lucide-react';
 import './AdminDashboard.css';
 
 // Navigation item IDs for Admin Dashboard
-type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password';
+type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password' | 'discounts' | 'system-settings';
 
 interface LowStockProduct {
   id: string;
@@ -112,6 +115,8 @@ const AdminDashboard: React.FC = () => {
     { id: 'order-pipeline', label: 'Order Pipeline', icon: <GitBranch size={20} /> },
     { id: 'users', label: 'Manage Users', icon: <Users size={20} /> },
     { id: 'low-stock', label: 'Low Stock Alerts', icon: <AlertTriangle size={20} /> },
+    { id: 'discounts', label: 'Product Discounts', icon: <Tag size={20} /> },
+    { id: 'system-settings', label: 'System Settings', icon: <Settings size={20} /> },
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
     { id: 'change-password', label: 'Change Password', icon: <Lock size={20} /> },
   ], []);
@@ -120,7 +125,7 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sectionParam = params.get('section') as AdminNavId | null;
-    if (sectionParam && ['analytics', 'order-pipeline', 'users', 'low-stock', 'profile', 'change-password'].includes(sectionParam)) {
+    if (sectionParam && ['analytics', 'order-pipeline', 'users', 'low-stock', 'profile', 'change-password', 'discounts', 'system-settings'].includes(sectionParam)) {
       setActiveNav(sectionParam);
     }
   }, [location.search]);
@@ -714,6 +719,12 @@ const AdminDashboard: React.FC = () => {
           );
         }
         return <DashboardOrderPipeline data={pipelineData} />;
+
+      case 'discounts':
+        return <DashboardDiscounts onShowToast={showToast} />;
+
+      case 'system-settings':
+        return <DashboardSystemSettings onShowToast={showToast} />;
 
       case 'profile':
         return (

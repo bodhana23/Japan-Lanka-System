@@ -46,7 +46,7 @@ interface Product {
 interface ReturnRequestUI {
   id: string;
   order_id: string;
-  customer_id: string;
+  customer_id?: string;
   customer_name: string;
   customer_email: string;
   reason: string;

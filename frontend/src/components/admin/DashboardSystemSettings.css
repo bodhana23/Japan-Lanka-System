@@ -1,0 +1,311 @@
+/* Admin Dashboard - System Settings */
+
+.admin-sysset-container {
+  animation: adminFadeIn 0.5s ease-out;
+}
+
+.admin-sysset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-sysset-title-section {
+  flex: 1;
+}
+
+.admin-sysset-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #2d3436);
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-sysset-icon {
+  color: var(--color-primary, #28a745);
+}
+
+.admin-sysset-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-muted, #6c757d);
+  margin: 0;
+}
+
+.admin-sysset-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-sysset-refresh-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.admin-sysset-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Section card */
+.admin-sysset-section-card {
+  background: var(--color-bg-card, #fff);
+  border: 1px solid var(--color-border, #e9ecef);
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.admin-sysset-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border, #e9ecef);
+  background: var(--color-bg-hover, #f8f9fa);
+}
+
+.admin-sysset-section-icon {
+  color: var(--color-primary, #28a745);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.admin-sysset-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #2d3436);
+  margin: 0 0 0.35rem 0;
+}
+
+.admin-sysset-section-desc {
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #6c757d);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Info banner */
+.admin-sysset-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.9rem 1.5rem;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: 0.85rem;
+  color: #1d4ed8;
+  line-height: 1.5;
+}
+
+.admin-sysset-info-banner svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Error / Loading */
+.admin-sysset-error {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.admin-sysset-error button {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-sysset-loading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem;
+  justify-content: center;
+  color: var(--color-text-muted, #6c757d);
+}
+
+.admin-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-border, #e9ecef);
+  border-top-color: var(--color-primary, #28a745);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 0.7s linear infinite;
+}
+
+/* Tiers list */
+.admin-sysset-tiers {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-sysset-tier-card {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-hover, #f8f9fa);
+  border: 1px solid var(--color-border, #e9ecef);
+  border-radius: var(--radius-sm, 8px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.admin-sysset-tier-card:hover {
+  border-color: var(--color-primary, #28a745);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+}
+
+.admin-sysset-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.7rem;
+  background: var(--color-primary, #28a745);
+  color: #fff;
+  border-radius: var(--radius-pill, 50px);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-sysset-tier-info {
+  flex: 1;
+}
+
+.admin-sysset-tier-districts {
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #2d3436);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Fee input */
+.admin-sysset-tier-fee-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-sysset-fee-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-border, #e9ecef);
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+  transition: border-color 0.2s;
+  background: var(--color-bg-card, #fff);
+}
+
+.admin-sysset-fee-input-wrapper:focus-within {
+  border-color: var(--color-primary, #28a745);
+}
+
+.admin-sysset-fee-prefix {
+  padding: 0 0.6rem;
+  background: var(--color-bg-hover, #f8f9fa);
+  color: var(--color-text-muted, #6c757d);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-right: 1.5px solid var(--color-border, #e9ecef);
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+  white-space: nowrap;
+}
+
+.admin-sysset-fee-input {
+  width: 90px;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2d3436);
+  background: transparent;
+}
+
+.admin-sysset-save-tier-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(135deg, var(--color-primary, #28a745) 0%, var(--color-primary-dark, #218838) 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-primary-sm, 0 4px 15px rgba(40, 167, 69, 0.3));
+  white-space: nowrap;
+}
+
+.admin-sysset-save-tier-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-primary-md, 0 6px 20px rgba(40, 167, 69, 0.35));
+}
+
+.admin-sysset-save-tier-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-sysset-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .admin-sysset-tier-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sysset-tier-fee-row {
+    flex-wrap: wrap;
+  }
+}

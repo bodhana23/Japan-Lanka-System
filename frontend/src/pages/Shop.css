@@ -745,6 +745,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.2rem;
+  flex-wrap: wrap;
 }
 
 .product-price {
@@ -753,6 +754,35 @@
   color: var(--sp-primary-dark);
   line-height: 1;
   letter-spacing: -0.4px;
+}
+
+.product-price-original {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #6c757d);
+  text-decoration: line-through;
+  line-height: 1;
+}
+
+.product-price-discounted {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-primary, #28a745);
+  line-height: 1;
+  letter-spacing: -0.4px;
+}
+
+.product-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  background: var(--color-warning, #f39c12);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill, 50px);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .product-stock {

@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional, List
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # Base schemas
@@ -37,14 +37,29 @@ class ProductUpdate(BaseModel):
     quantity_available: Optional[int] = Field(None, ge=0)
     image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
+    discount_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+
+
+class ProductDiscountUpdate(BaseModel):
+    discount_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
 
 
 # Response schemas
 class ProductResponse(ProductBase):
     id: UUID
     is_active: bool
+    discount_percentage: Optional[Decimal] = None
+    effective_price: Optional[Decimal] = None
     created_at: datetime
     updated_at: datetime
+
+    @model_validator(mode='after')
+    def compute_effective_price(self) -> 'ProductResponse':
+        if self.discount_percentage and self.discount_percentage > 0:
+            self.effective_price = self.price * (1 - self.discount_percentage / 100)
+        else:
+            self.effective_price = self.price
+        return self
 
     class Config:
         from_attributes = True

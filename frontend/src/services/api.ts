@@ -62,6 +62,8 @@ export interface Product {
   quantity_available: number;
   image_url?: string;
   is_active: boolean;
+  discount_percentage?: number | string;
+  effective_price?: number | string;
   created_at: string;
   updated_at: string;
 }
@@ -624,6 +626,13 @@ export const productsApi = {
 
   deleteProduct: async (id: string): Promise<Product> => {
     const response = await api.delete<Product>(`/products/${id}`);
+    return response.data;
+  },
+
+  setDiscount: async (id: string, discountPercentage: number | null): Promise<Product> => {
+    const response = await api.patch<Product>(`/products/${id}/discount`, {
+      discount_percentage: discountPercentage,
+    });
     return response.data;
   },
 };
@@ -1268,6 +1277,42 @@ export const analyticsApi = {
     const response = await api.get<SalesChannelComparisonResponse>('/analytics/sales-channel-comparison', {
       params: { months },
     });
+    return response.data;
+  },
+};
+
+// ============ SYSTEM SETTINGS API ============
+
+export interface DeliveryFeeTier {
+  tier: string;
+  fee: number;
+  districts: string;
+  description: string;
+}
+
+export interface DeliveryFeesResponse {
+  tiers: DeliveryFeeTier[];
+}
+
+export interface SystemSettingResponse {
+  key: string;
+  value: string;
+  description?: string;
+  updated_by_employee_id?: string;
+  updated_at: string;
+}
+
+export const systemSettingsApi = {
+  getDeliveryFees: async (): Promise<DeliveryFeesResponse> => {
+    const response = await api.get<DeliveryFeesResponse>('/system-settings/delivery-fees');
+    return response.data;
+  },
+
+  updateDeliveryFee: async (tier: string, fee: number): Promise<SystemSettingResponse> => {
+    const response = await api.put<SystemSettingResponse>(
+      `/system-settings/delivery-fees/${tier}`,
+      { fee }
+    );
     return response.data;
   },
 };

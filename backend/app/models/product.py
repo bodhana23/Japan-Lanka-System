@@ -24,6 +24,7 @@ class Product(Base):
     quantity_available = Column(Integer, nullable=False, default=0)
     image_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    discount_percentage = Column(Numeric(5, 2), nullable=True)
     created_at = Column(DateTime, default=get_current_time, nullable=False)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
 

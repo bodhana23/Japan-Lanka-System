@@ -67,7 +67,9 @@ const Shop: React.FC = () => {
             description: p.description || '',
             brand: p.brand || '',
             yearFrom: p.year_from,
-            yearTo: p.year_to
+            yearTo: p.year_to,
+            discountPercentage: p.discount_percentage != null ? Number(p.discount_percentage) : undefined,
+            effectivePrice: p.effective_price != null ? Number(p.effective_price) : undefined,
           }));
           setAllProducts(transformedProducts);
         }
@@ -577,7 +579,19 @@ const Shop: React.FC = () => {
                     <p className="product-description">{product.description}</p>
                     <div className="product-details">
                       <div className="product-price-wrapper">
-                        <span className="product-price">RS {product.price.toLocaleString()}</span>
+                        {product.discountPercentage && product.discountPercentage > 0 ? (
+                          <>
+                            <span className="product-price-original">RS {product.price.toLocaleString()}</span>
+                            <span className="product-price-discounted">
+                              RS {(product.effectivePrice ?? product.price).toLocaleString()}
+                            </span>
+                            <span className="product-discount-badge">
+                              -{product.discountPercentage}% OFF
+                            </span>
+                          </>
+                        ) : (
+                          <span className="product-price">RS {product.price.toLocaleString()}</span>
+                        )}
                       </div>
                       <span className={`product-stock ${product.quantityAvailable === 0 ? 'out-of-stock' : ''}`}>
                         {product.quantityAvailable > 0 ? (

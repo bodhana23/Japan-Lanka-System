@@ -13,6 +13,7 @@ from app.models.notification import Notification, NotificationType
 from app.models.inventory_transaction import InventoryTransaction, TransactionType
 from app.models.inventory_log import InventoryLog, InventoryActionType, RelatedEntityType
 from app.models.activity_log import ActivityLog, ActivityType
+from app.models.system_settings import SystemSetting
 
 __all__ = [
     # Customer
@@ -51,4 +52,6 @@ __all__ = [
     # Activity Logs
     "ActivityLog",
     "ActivityType",
+    # System Settings
+    "SystemSetting",
 ]

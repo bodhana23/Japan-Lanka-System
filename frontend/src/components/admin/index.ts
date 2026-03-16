@@ -4,3 +4,5 @@ export { default as DashboardAnalytics } from './DashboardAnalytics';
 export { default as DashboardProfile } from './DashboardProfile';
 export { default as DashboardChangePassword } from './DashboardChangePassword';
 export { default as DashboardOrderPipeline } from './DashboardOrderPipeline';
+export { default as DashboardDiscounts } from './DashboardDiscounts';
+export { default as DashboardSystemSettings } from './DashboardSystemSettings';
