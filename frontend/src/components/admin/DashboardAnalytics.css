@@ -1117,3 +1117,50 @@
     padding-left: 0;
   }
 }
+
+@media (max-width: 480px) {
+  /* Brand chart — shrink fixed-width label and bar to fit narrow content area */
+  .admin-brand-info {
+    min-width: 80px;
+  }
+  .admin-brand-name {
+    font-size: 0.8rem;
+  }
+  .admin-brand-bar {
+    min-width: 40px;
+    padding: 0 0.5rem;
+  }
+
+  /* Return analytics — monthly bars */
+  .admin-return-month-label {
+    min-width: 72px;
+    font-size: 0.78rem;
+  }
+  .admin-return-month-bar {
+    min-width: 40px;
+    padding: 0 0.5rem;
+  }
+
+  /* Return reason labels */
+  .admin-return-reason-label {
+    min-width: 72px;
+    font-size: 0.78rem;
+  }
+
+  /* Channel monthly labels and totals */
+  .admin-channel-month-label {
+    min-width: 72px;
+    font-size: 0.78rem;
+  }
+  .admin-channel-month-total {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+
+  /* Remove the fixed pixel indent on the legend */
+  .admin-channel-legend {
+    padding-left: 0;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}

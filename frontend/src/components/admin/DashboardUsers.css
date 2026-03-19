@@ -464,3 +464,14 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .admin-search-box {
+    min-width: 0;
+  }
+
+  .admin-add-user-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+}

@@ -683,3 +683,13 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .offline-sales-container {
+    padding: 12px;
+  }
+
+  .submit-sale-btn {
+    min-height: 44px;
+  }
+}

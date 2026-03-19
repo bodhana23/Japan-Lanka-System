@@ -111,6 +111,7 @@ const Register: React.FC = () => {
   };
 
   const handleBackToLogin = () => navigate('/login');
+  const handleBackToHome = () => navigate('/');
 
   const navigateAfterAuth = () => {
     const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
@@ -283,6 +284,9 @@ const Register: React.FC = () => {
       {/* ── RIGHT PANEL ────────────────────────────── */}
       <div className="register-right">
         <div className="register-form-wrapper">
+          <button type="button" className="back-login-btn" onClick={handleBackToHome}>
+            ← Back to Home
+          </button>
           <div className="register-heading">
             <h2>Create Account</h2>
             <p>Fill in your details to get started</p>

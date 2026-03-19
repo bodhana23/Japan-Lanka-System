@@ -518,3 +518,9 @@
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
+
+@media (max-width: 480px) {
+  .admin-ads-grid {
+    grid-template-columns: 1fr;
+  }
+}

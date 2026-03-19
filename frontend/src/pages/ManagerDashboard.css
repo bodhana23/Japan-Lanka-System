@@ -5244,3 +5244,25 @@ textarea.apf-input { resize: vertical; }
 .rdm-confirm-reject-btn { background: #ef4444; color: #fff; }
 .rdm-confirm-reject-btn:hover:not(:disabled) { background: #dc2626; }
 .rdm-confirm-approve-btn:disabled, .rdm-confirm-reject-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Mobile: return detail table scroll ──────────────────── */
+@media (max-width: 768px) {
+  .rdm-items-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Mobile 480px: padding + touch targets ───────────────── */
+@media (max-width: 480px) {
+  .dashboard-main {
+    padding: 1rem 0.75rem;
+  }
+
+  .tab-btn {
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+  }
+}

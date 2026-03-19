@@ -1501,6 +1501,7 @@ const ReturnDetailModal: React.FC<{
                     <h4 className="rdm-section-title">
                       <Package size={15} /> Items to Return
                     </h4>
+                    <div style={{ overflowX: 'auto' }}>
                     <table className="rdm-items-table">
                       <thead>
                         <tr>
@@ -1521,6 +1522,7 @@ const ReturnDetailModal: React.FC<{
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
 

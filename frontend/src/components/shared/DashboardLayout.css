@@ -614,6 +614,15 @@
   .dl--collapsible .dl-content {
     padding: 12px;
   }
+
+  /* Non-collapsible dashboard header text — shrink for narrow content area */
+  .dl-container:not(.dl--collapsible) .dl-greeting-title {
+    font-size: 1.35rem;
+  }
+
+  .dl-container:not(.dl--collapsible) .dl-greeting-subtitle {
+    font-size: 0.85rem;
+  }
 }
 
 /* ================================================
