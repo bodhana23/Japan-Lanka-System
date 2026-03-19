@@ -66,7 +66,7 @@ const Home: React.FC = () => {
 
   // Counter animations for stats
   const yearsCounter = useCountUp(15, 2000);
-  const customersCounter = useCountUp(10, 2000);
+  const customersCounter = useCountUp(1000, 2000);
   const partsCounter = useCountUp(5000, 2500);
 
   useEffect(() => {
@@ -166,7 +166,7 @@ const Home: React.FC = () => {
             <div className="hero-text">
               <div className="hero-badge">
                 <Sparkles size={14} />
-                <span>Trusted by 10,000+ customers</span>
+                <span>Trusted by 1,000+ customers</span>
               </div>
               <h1 className="hero-title">
                 Premium <span className="text-gradient">Automobile Parts</span> for Every Vehicle
@@ -218,20 +218,6 @@ const Home: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <div className="hero-floating-card card-1">
-                  <CheckCircle size={20} className="card-icon success" />
-                  <div className="card-text">
-                    <span className="card-title">Quality Verified</span>
-                    <span className="card-subtitle">100% Genuine</span>
-                  </div>
-                </div>
-                <div className="hero-floating-card card-2">
-                  <Truck size={20} className="card-icon" />
-                  <div className="card-text">
-                    <span className="card-title">Island-wide</span>
-                    <span className="card-subtitle">Fast Delivery</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -242,6 +228,9 @@ const Home: React.FC = () => {
           </svg>
         </div>
       </section>
+
+      {/* Ads Carousel — shown above stats section */}
+      <AdsCarousel />
 
       {/* Stats Section */}
       <section className="stats-section">
@@ -260,7 +249,7 @@ const Home: React.FC = () => {
               <User size={32} />
             </div>
             <div className="stat-content">
-              <div className="stat-value">{customersCounter.count}k+</div>
+              <div className="stat-value">{customersCounter.count}+</div>
               <div className="stat-label">Happy Customers</div>
             </div>
           </div>
@@ -284,9 +273,6 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Ads Carousel — shown between stats and features when ads are available */}
-      <AdsCarousel />
 
       {/* Features Section */}
       <section id="features" className="features-section">
@@ -516,7 +502,7 @@ const Home: React.FC = () => {
             <div className="footer-links-section">
               <h4>Quick Links</h4>
               <ul className="footer-links">
-                <li><a href="#">Home</a></li>
+                <li><a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Home</a></li>
                 <li><a href="#about-section">About Us</a></li>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#testimonials">Reviews</a></li>
@@ -525,10 +511,10 @@ const Home: React.FC = () => {
             <div className="footer-links-section">
               <h4>Services</h4>
               <ul className="footer-links">
-                <li><a href="#">Parts Catalog</a></li>
-                <li><a href="#">Wholesale</a></li>
-                <li><a href="#">Delivery</a></li>
-                <li><a href="#">Support</a></li>
+                <li><a href="/shop" onClick={(e) => { e.preventDefault(); navigate('/shop'); }}>Parts Catalog</a></li>
+                <li><a href="#about-section">Wholesale</a></li>
+                <li><a href="#features">Delivery</a></li>
+                <li><a href="#" onClick={(e) => { e.preventDefault(); document.querySelector('.footer-contact-section')?.scrollIntoView({ behavior: 'smooth' }); }}>Support</a></li>
               </ul>
             </div>
             <div className="footer-contact-section">
