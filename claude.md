@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: February 22, 2026*
+*Last updated: March 19, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -240,6 +240,15 @@ Japan-Lanka-System/
 | PUT | `/{id}/role` | Update user role (admin only) |
 | PUT | `/{id}/status` | Activate/deactivate user (admin only) |
 
+### Advertisements (`/api/v1/advertisements`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | List active ads (public — used by home page carousel) |
+| GET | `/all` | List all ads including inactive (admin only) |
+| POST | `/` | Create advertisement record (admin only) |
+| PATCH | `/{id}` | Update title, display_order, or is_active (admin only) |
+| DELETE | `/{id}` | Delete advertisement (admin only) |
+
 ## Database Models (3NF Normalized)
 
 ### Customer
@@ -435,6 +444,19 @@ class AuditLog(Base):
     created_at: datetime (UTC)
 ```
 
+### Advertisement
+```python
+class Advertisement(Base):
+    id: UUID
+    title: str (optional)
+    media_url: str               # Firebase Storage download URL
+    media_type: Enum['image', 'video']
+    display_order: int (default: 0)
+    is_active: bool (default: True)
+    created_at: datetime (UTC)
+    updated_at: datetime (UTC)
+```
+
 ## Business Rules & Validation
 
 ### Authentication
@@ -539,6 +561,13 @@ usersApi.updateUserStatus(id, isActive)
 // Offline Sales (Manager only)
 ordersApi.createOfflineSale(data)        // Create in-store sale
 // CreateOfflineSaleRequest: { items: [{product_id, quantity, unit_price}], customer_name, customer_phone?, notes? }
+
+// Advertisements (public read, admin write)
+adsApi.getAds()                          // Active ads only — used by home page carousel
+adsApi.getAllAds()                        // All ads including inactive — used by admin panel
+adsApi.createAd(data)                    // Save new ad record (media already uploaded to Firebase)
+adsApi.updateAd(id, data)               // Toggle is_active, update display_order or title
+adsApi.deleteAd(id)                      // Hard-delete ad record
 ```
 
 ## Recent Fixes & Updates
@@ -673,6 +702,7 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Manager inventory management
 - Manager order processing
 - **Offline sales for in-store transactions (Manager only)**
+- **Advertisement carousel on home page with admin management (Mar 2026)**
 - Admin user management
 - Notification system with bell dropdown
 - Return request management
@@ -689,7 +719,58 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 - Product reviews and ratings
 - Wishlist functionality
 
-## Recent Changes (January-February 2026)
+## Recent Changes (January-March 2026)
+
+### Advertisements Feature (Mar 19, 2026)
+
+**Purpose:** Allow admins to manage promotional media (images/videos) displayed in a looping carousel on the Home page between the stats section and the "Why Choose Us" features section.
+
+**Backend Changes:**
+- New `Advertisement` model with `mediatype` PostgreSQL ENUM (`image`, `video`) in `backend/app/models/advertisement.py`
+- New Pydantic schemas in `backend/app/schemas/advertisement.py`
+- New router `backend/app/routers/advertisements.py` with 5 endpoints:
+  - `GET /api/v1/advertisements` — public, active ads only (used by carousel)
+  - `GET /api/v1/advertisements/all` — admin only, all ads including inactive
+  - `POST /api/v1/advertisements` — admin only, create record
+  - `PATCH /api/v1/advertisements/{id}` — admin only, update/toggle
+  - `DELETE /api/v1/advertisements/{id}` — admin only, hard delete
+- Alembic migration: `backend/alembic/versions/c1d2e3f4a5b6_add_advertisements_table.py`
+
+**Frontend Changes:**
+- New `DashboardAds` admin component (`frontend/src/components/admin/DashboardAds.tsx` + `.css`):
+  - Upload image/video to Firebase Storage with real-time progress bar
+  - Card grid showing all ads (active shown normally, inactive greyed out)
+  - Toggle visibility (Eye/EyeOff) and Delete per ad
+- New "Advertisements" nav item in Admin Dashboard (Megaphone icon, between Discounts and System Settings)
+- New `AdsCarousel` component (`frontend/src/components/AdsCarousel.tsx` + `.css`):
+  - Fetches active ads from API on mount
+  - Auto-scrolls every 3 seconds, loops infinitely
+  - Pauses on mouse hover
+  - Left/right arrows + dot indicators (hidden for single ad)
+  - Renders nothing if no ads (no whitespace impact)
+  - Supports both image and video (video: autoPlay muted loop playsInline)
+- Added `Advertisement` types and `adsApi` to `frontend/src/services/api.ts`
+
+**New Files (Mar 19):**
+- `backend/app/models/advertisement.py`
+- `backend/app/schemas/advertisement.py`
+- `backend/app/routers/advertisements.py`
+- `backend/alembic/versions/c1d2e3f4a5b6_add_advertisements_table.py`
+- `frontend/src/components/admin/DashboardAds.tsx`
+- `frontend/src/components/admin/DashboardAds.css`
+- `frontend/src/components/AdsCarousel.tsx`
+- `frontend/src/components/AdsCarousel.css`
+
+**Modified Files (Mar 19):**
+- `backend/app/models/__init__.py` — added Advertisement, MediaType
+- `backend/app/routers/__init__.py` — added advertisements_router
+- `backend/app/main.py` — registered Advertisement model + advertisements_router
+- `frontend/src/services/api.ts` — added Advertisement types and adsApi
+- `frontend/src/components/admin/index.ts` — added DashboardAds export
+- `frontend/src/pages/AdminDashboard.tsx` — added 'ads' nav item, type, case
+- `frontend/src/pages/Home.tsx` — added AdsCarousel between stats and features
+
+---
 
 ### Postman API Testing Collection (Feb 22, 2026)
 

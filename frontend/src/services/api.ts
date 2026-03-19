@@ -1317,4 +1317,63 @@ export const systemSettingsApi = {
   },
 };
 
+// ============ ADVERTISEMENTS API ============
+
+export interface Advertisement {
+  id: string;
+  title?: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdvertisementListResponse {
+  items: Advertisement[];
+  total: number;
+}
+
+export interface CreateAdvertisementRequest {
+  title?: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  display_order?: number;
+}
+
+export interface UpdateAdvertisementRequest {
+  title?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export const adsApi = {
+  /** Public — only active ads, used by the Home page carousel */
+  getAds: async (): Promise<AdvertisementListResponse> => {
+    const response = await api.get<AdvertisementListResponse>('/advertisements');
+    return response.data;
+  },
+
+  /** Admin — all ads including inactive, used by DashboardAds */
+  getAllAds: async (): Promise<AdvertisementListResponse> => {
+    const response = await api.get<AdvertisementListResponse>('/advertisements/all');
+    return response.data;
+  },
+
+  createAd: async (data: CreateAdvertisementRequest): Promise<Advertisement> => {
+    const response = await api.post<Advertisement>('/advertisements', data);
+    return response.data;
+  },
+
+  updateAd: async (id: string, data: UpdateAdvertisementRequest): Promise<Advertisement> => {
+    const response = await api.patch<Advertisement>(`/advertisements/${id}`, data);
+    return response.data;
+  },
+
+  deleteAd: async (id: string): Promise<void> => {
+    await api.delete(`/advertisements/${id}`);
+  },
+};
+
 export default api;

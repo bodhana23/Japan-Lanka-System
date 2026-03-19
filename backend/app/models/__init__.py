@@ -14,6 +14,7 @@ from app.models.inventory_transaction import InventoryTransaction, TransactionTy
 from app.models.inventory_log import InventoryLog, InventoryActionType, RelatedEntityType
 from app.models.activity_log import ActivityLog, ActivityType
 from app.models.system_settings import SystemSetting
+from app.models.advertisement import Advertisement, MediaType
 
 __all__ = [
     # Customer
@@ -54,4 +55,7 @@ __all__ = [
     "ActivityType",
     # System Settings
     "SystemSetting",
+    # Advertisements
+    "Advertisement",
+    "MediaType",
 ]

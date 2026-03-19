@@ -1,0 +1,151 @@
+/* ── Ads Carousel ── shown on the Home page between Stats and Features ── */
+
+.ads-carousel-section {
+  width: 100%;
+  padding: 3rem 0;
+  background: var(--home-bg, #f8fafc);
+}
+
+.ads-carousel-wrapper {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ── Slide ──────────────────────────────────────────────── */
+.ads-carousel-slide {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  aspect-ratio: 21 / 6;   /* wide banner ratio */
+  background: #000;
+}
+
+.ads-carousel-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Title Overlay ──────────────────────────────────────── */
+.ads-carousel-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  padding: 2rem 1.5rem 1.25rem;
+  pointer-events: none;
+}
+
+.ads-carousel-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.01em;
+}
+
+/* ── Navigation Arrows ──────────────────────────────────── */
+.ads-carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: #1f2937;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s, transform 0.2s;
+}
+.ads-carousel-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.ads-carousel-btn--prev { left: 2.75rem; }
+.ads-carousel-btn--next { right: 2.75rem; }
+
+/* ── Dot Indicators ─────────────────────────────────────── */
+.ads-carousel-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  z-index: 10;
+}
+
+.ads-carousel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 0.25s, transform 0.25s;
+}
+.ads-carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+.ads-carousel-dot--active {
+  background: #fff;
+  transform: scale(1.35);
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ads-carousel-slide {
+    aspect-ratio: 16 / 5;
+  }
+}
+
+@media (max-width: 768px) {
+  .ads-carousel-section {
+    padding: 2rem 0;
+  }
+  .ads-carousel-wrapper {
+    padding: 0 1rem;
+  }
+  .ads-carousel-slide {
+    aspect-ratio: 16 / 7;
+    border-radius: 12px;
+  }
+  .ads-carousel-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.4rem;
+  }
+  .ads-carousel-btn--prev { left: 1.5rem; }
+  .ads-carousel-btn--next { right: 1.5rem; }
+  .ads-carousel-title {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ads-carousel-slide {
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+  }
+  .ads-carousel-btn--prev { left: 0.6rem; }
+  .ads-carousel-btn--next { right: 0.6rem; }
+  .ads-carousel-title {
+    font-size: 0.85rem;
+  }
+}

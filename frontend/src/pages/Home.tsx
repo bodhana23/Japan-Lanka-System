@@ -5,6 +5,7 @@ import {
   ChevronRight, Shield, Truck, Award, Star, ArrowRight, Sparkles,
   Clock, CheckCircle, HeadphonesIcon
 } from 'lucide-react';
+import AdsCarousel from '../components/AdsCarousel';
 import './Home.css';
 
 // Counter animation hook
@@ -283,6 +284,9 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Ads Carousel — shown between stats and features when ads are available */}
+      <AdsCarousel />
 
       {/* Features Section */}
       <section id="features" className="features-section">
