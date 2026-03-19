@@ -428,3 +428,15 @@
   }
   .login-heading h2 { font-size: 1.4rem; }
 }
+
+@media (max-width: 360px) {
+  .login-card {
+    padding: 1.5rem 1rem;
+    border-radius: 14px;
+  }
+  /* Hide large decorative orbs on very small phones for performance */
+  .login-container::before,
+  .login-container::after {
+    display: none;
+  }
+}
