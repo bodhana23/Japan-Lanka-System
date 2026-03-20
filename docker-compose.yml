@@ -1,0 +1,70 @@
+version: "3.9"
+
+# Local full-stack environment for integration testing.
+# For active frontend development, use 'npm run dev' directly (hot reload).
+# This setup runs the production Docker images locally.
+#
+# Usage:
+#   docker compose up --build
+#   docker compose down -v  (to also remove the postgres data volume)
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: japanlanka
+      POSTGRES_USER: japanlankauser
+      POSTGRES_PASSWORD: localdevpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U japanlankauser -d japanlanka"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override database connection to point at the 'db' container
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: japanlanka
+      DATABASE_USER: japanlankauser
+      DATABASE_PASSWORD: localdevpassword
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Mount Firebase service account for local dev (read-only)
+      - ./backend/keys:/app/keys:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000/api/v1
+        VITE_FIREBASE_API_KEY: AIzaSyCFNd-eYVkjBEUcN5COuHVkB1WcaKEWRvM
+        VITE_FIREBASE_AUTH_DOMAIN: japan-lanka-d9caa.firebaseapp.com
+        VITE_FIREBASE_PROJECT_ID: japan-lanka-d9caa
+        VITE_FIREBASE_STORAGE_BUCKET: japan-lanka-d9caa.firebasestorage.app
+        VITE_FIREBASE_MESSAGING_SENDER_ID: "1011061202370"
+        VITE_FIREBASE_APP_ID: 1:1011061202370:web:a0f95a762a099c72408a5b
+        VITE_PAYHERE_MERCHANT_ID: "1233973"
+        VITE_PAYHERE_SANDBOX: "true"
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

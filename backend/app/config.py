@@ -24,12 +24,15 @@ class Settings(BaseSettings):
         return f"postgresql+psycopg://{self.DATABASE_USER}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
 
     # CORS settings
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-    ]
+    # Comma-separated list of allowed origins. Use a plain string so Azure App Service
+    # can set it via a single Application Setting (Azure only supports string values).
+    # Local dev default covers both Vite ports.
+    # Production example: "https://your-app.azurestaticapps.net"
+    CORS_ORIGINS_STR: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
+
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        return [o.strip() for o in self.CORS_ORIGINS_STR.split(",") if o.strip()]
 
     # API settings
     API_V1_PREFIX: str = "/api/v1"
@@ -43,6 +46,10 @@ class Settings(BaseSettings):
 
     # Firebase settings
     FIREBASE_CREDENTIALS_PATH: str = ""
+    # Alternative to FIREBASE_CREDENTIALS_PATH for cloud deployments (e.g., Azure App Service)
+    # where there is no persistent filesystem. Paste the full JSON content of the service
+    # account key file as a single string in this env var.
+    FIREBASE_CREDENTIALS_JSON: str = ""
     FIREBASE_CLOCK_SKEW_SECONDS: int = 10
 
     # PayHere Payment Gateway settings
