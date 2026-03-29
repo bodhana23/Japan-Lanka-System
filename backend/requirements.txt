@@ -1,6 +1,8 @@
 # Core dependencies
 fastapi
 uvicorn[standard]
+gunicorn
+python-multipart
 watchfiles  # Efficient file watching for uvicorn --reload (prevents high CPU usage)
 sqlalchemy
 alembic

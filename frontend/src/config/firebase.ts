@@ -3,12 +3,12 @@ import { getAuth, GoogleAuthProvider, sendEmailVerification, sendPasswordResetEm
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCFNd-eYVkjBEUcN5COuHVkB1WcaKEWRvM",
-  authDomain: "japan-lanka-d9caa.firebaseapp.com",
-  projectId: "japan-lanka-d9caa",
-  storageBucket: "japan-lanka-d9caa.firebasestorage.app",
-  messagingSenderId: "1011061202370",
-  appId: "1:1011061202370:web:a0f95a762a099c72408a5b"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase

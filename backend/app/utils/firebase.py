@@ -5,6 +5,7 @@ All Google OAuth authentication MUST use verify_firebase_token() to ensure
 tokens are cryptographically verified against Firebase's public keys.
 """
 
+import json
 import logging
 from typing import Optional
 
@@ -34,17 +35,26 @@ def init_firebase() -> bool:
     if _firebase_initialized:
         return True
 
+    credentials_json = settings.FIREBASE_CREDENTIALS_JSON
     credentials_path = settings.FIREBASE_CREDENTIALS_PATH
 
-    if not credentials_path:
+    if not credentials_json and not credentials_path:
         logger.warning(
-            "FIREBASE_CREDENTIALS_PATH not set. "
-            "Google authentication will not work until this is configured."
+            "Neither FIREBASE_CREDENTIALS_JSON nor FIREBASE_CREDENTIALS_PATH is set. "
+            "Google authentication will not work until one of these is configured."
         )
         return False
 
     try:
-        cred = credentials.Certificate(credentials_path)
+        if credentials_json:
+            # Cloud deployment path: credentials provided as JSON string env var
+            cred = credentials.Certificate(json.loads(credentials_json))
+            logger.info("Firebase Admin SDK initializing from FIREBASE_CREDENTIALS_JSON env var")
+        else:
+            # Local development path: credentials provided as a file path
+            cred = credentials.Certificate(credentials_path)
+            logger.info(f"Firebase Admin SDK initializing from file: {credentials_path}")
+
         firebase_admin.initialize_app(cred)
         _firebase_initialized = True
         logger.info("Firebase Admin SDK initialized successfully")
@@ -55,7 +65,7 @@ def init_firebase() -> bool:
             "Please ensure FIREBASE_CREDENTIALS_PATH points to a valid service account JSON file."
         )
         return False
-    except ValueError as e:
+    except (ValueError, json.JSONDecodeError) as e:
         logger.error(f"Invalid Firebase credentials: {e}")
         return False
     except Exception as e:
