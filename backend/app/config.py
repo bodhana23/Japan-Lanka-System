@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
 
+    # Email / SMTP settings
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "Japan Lanka"
+    SMTP_USE_TLS: bool = True
+    EMAIL_NOTIFICATIONS_ENABLED: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

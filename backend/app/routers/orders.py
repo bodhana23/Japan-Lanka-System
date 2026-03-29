@@ -8,7 +8,7 @@ from typing import Optional
 from uuid import UUID
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -42,6 +42,7 @@ from app.schemas.order_status_history import (
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, require_manager_only, CurrentUser
 from app.models.audit_log import AuditLog
 from app.services.notification_service import notify_order_status_change, notify_managers_new_order, notify_admins_low_stock, LOW_STOCK_THRESHOLD
+from app.services.email_service import send_order_status_email
 
 # PayHere configuration - loaded from settings
 from app.config import settings
@@ -424,6 +425,7 @@ async def update_order_status(
     order_id: UUID,
     status_update: OrderStatusUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
@@ -503,6 +505,17 @@ async def update_order_status(
             order_id=order.id,
             old_status=old_status.value,
             new_status=status_update.status.value
+        )
+
+    # Send email notification to customer (runs after response is returned)
+    if order.customer_id and order.customer and order.customer.email:
+        new_status_val = status_update.status.value
+        include_bill = new_status_val in (OrderStatus.DELIVERED.value, OrderStatus.PICKED_UP.value)
+        background_tasks.add_task(
+            send_order_status_email,
+            order=order,
+            new_status=new_status_val,
+            include_bill=include_bill,
         )
 
     # Log inventory event for order status change
