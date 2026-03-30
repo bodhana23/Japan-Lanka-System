@@ -12,6 +12,7 @@ A full-stack e-commerce platform for vehicle parts, built for Japan Lanka Enterp
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
 - [Running the Application](#running-the-application)
+- [Running with Docker](#running-with-docker)
 - [Database Setup](#database-setup)
 - [User Roles and Credentials](#user-roles-and-credentials)
 - [API Reference](#api-reference)
@@ -30,6 +31,7 @@ Japan Lanka is a multi-role automobile parts management system with:
 - **Manager dashboard** — manage inventory, process orders, create offline/in-store sales
 - **Admin dashboard** — manage users, view analytics, oversee system
 - **Auditor dashboard** — view audit logs, export reports as Excel
+- **Advertisement carousel** — admins manage promotional images/videos displayed on the home page
 
 ---
 
@@ -155,6 +157,67 @@ VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
 ```
+
+---
+
+## Running with Docker
+
+The project includes a full Docker Compose setup for running all three services (database, backend, frontend) in containers.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+### Setup
+
+Create a `docker-compose.override.yml` (or edit `docker-compose.yml`) and supply the required build args and environment values (Firebase credentials, secret keys, etc.).
+
+### Start all services
+
+```bash
+docker-compose up -d --build
+```
+
+This will:
+1. Start a **PostgreSQL 15** container with a persistent volume
+2. Build and start the **FastAPI backend** — runs `init_db` + Alembic migrations on every start, then serves via Gunicorn
+3. Build and start the **React frontend** — Vite compiles a production bundle, served via Nginx on port 80
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000/api/v1 |
+| Swagger Docs | http://localhost:8000/docs |
+
+### After making code changes
+
+Because the frontend and backend use **production builds baked into the image** (no live-reload mounts), you must rebuild after any code change:
+
+```bash
+# Rebuild and restart everything
+docker-compose up -d --build
+
+# Rebuild only the backend
+docker-compose build backend && docker-compose up -d backend
+
+# Rebuild only the frontend
+docker-compose build frontend && docker-compose up -d frontend
+```
+
+### View logs
+
+```bash
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+### Stop all services
+
+```bash
+docker-compose down
+```
+
+> **Note:** The `version` attribute in `docker-compose.yml` is intentionally obsolete — Docker Compose v2 ignores it. The warning can be safely dismissed.
 
 ---
 
@@ -361,6 +424,16 @@ Customers register themselves via the sign-up page or Google OAuth.
 | DELETE | `/api/v1/users/customer/{id}` | Admin | Hard delete customer |
 | DELETE | `/api/v1/users/employee/{id}` | Admin | Hard delete employee |
 
+### Advertisements
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/advertisements` | Public | List active ads (used by home page carousel) |
+| GET | `/api/v1/advertisements/all` | Admin | List all ads including inactive |
+| POST | `/api/v1/advertisements` | Admin | Create advertisement record |
+| PATCH | `/api/v1/advertisements/{id}` | Admin | Update title, display order, or toggle active |
+| DELETE | `/api/v1/advertisements/{id}` | Admin | Hard delete advertisement |
+
 ### Payments
 
 | Method | Endpoint | Auth | Description |
@@ -546,6 +619,15 @@ A complete Postman collection is included at `postman/`:
 **Symptom:** Admin gets 403 when trying to create an offline sale
 **Cause:** Offline sales are intentionally restricted to the **Manager** role only
 **Fix:** Log in with a manager account to create offline sales
+
+### Docker build fails with TLS handshake timeout
+**Symptom:** `docker-compose up --build` fails with `net/http: TLS handshake timeout` when pulling base images
+**Cause:** Docker Desktop cannot reach Docker Hub (network/DNS issue)
+**Fix:**
+1. Restart Docker Desktop from the menu bar and retry
+2. If images were previously pulled, use `docker-compose build --pull=false` to skip re-pulling
+3. Try switching networks (hotspot vs Wi-Fi) or using a VPN
+4. Test connectivity with `curl -I https://registry-1.docker.io/v2/`
 
 ---
 
