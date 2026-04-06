@@ -51,16 +51,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: http://localhost:8000/api/v1
-        VITE_FIREBASE_API_KEY: AIzaSyCFNd-eYVkjBEUcN5COuHVkB1WcaKEWRvM
-        VITE_FIREBASE_AUTH_DOMAIN: japan-lanka-d9caa.firebaseapp.com
-        VITE_FIREBASE_PROJECT_ID: japan-lanka-d9caa
-        VITE_FIREBASE_STORAGE_BUCKET: japan-lanka-d9caa.firebasestorage.app
-        VITE_FIREBASE_MESSAGING_SENDER_ID: "1011061202370"
-        VITE_FIREBASE_APP_ID: 1:1011061202370:web:a0f95a762a099c72408a5b
-        VITE_PAYHERE_MERCHANT_ID: "1233973"
-        VITE_PAYHERE_SANDBOX: "true"
+    environment:
+      # Injected at container startup into /config.js — no rebuild needed
+      API_URL: http://localhost:8000/api/v1
     ports:
       - "3000:80"
     depends_on:

@@ -427,8 +427,12 @@ export interface InventoryAdjustmentResponse {
   created_at: string;
 }
 
-// API base URL from environment variable (with fallback for development)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// API base URL: runtime config (window.APP_CONFIG) takes priority over build-time VITE_API_URL.
+// This allows the same Docker image to point at different backends without rebuilding.
+const API_BASE_URL =
+  (window as any).APP_CONFIG?.API_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:8000/api/v1';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
