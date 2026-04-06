@@ -487,11 +487,17 @@
 
 .returns-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1280px) {
+  .returns-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
   .returns-grid {
     grid-template-columns: 1fr;
   }
@@ -753,6 +759,77 @@ textarea.apf-input { resize: vertical; }
   padding: 1rem 2rem 1.5rem;
   border-top: 1px solid #f1f5f9;
 }
+
+/* ── Edit Product Modal (matches Add Product style) ─────────────── */
+.edit-product-modal-modern {
+  max-width: 680px !important;
+}
+
+.apf-input-error {
+  border-color: #ef4444 !important;
+}
+.apf-error-msg {
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 0.1rem;
+}
+
+.apf-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.apf-stock-display {
+  flex: 1;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  background: #f8fafc;
+}
+.apf-adjust-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 0.9rem;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.apf-adjust-btn:hover { background: #dbeafe; }
+
+.edit-product-modal-footer {
+  justify-content: space-between !important;
+}
+.apf-footer-right {
+  display: flex;
+  gap: 0.75rem;
+}
+.apf-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1.1rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.apf-delete-btn:hover { background: #fee2e2; }
+.apf-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Add Product Confirmation */
 .add-product-confirm-modal {
@@ -2596,6 +2673,20 @@ textarea.apf-input { resize: vertical; }
   background: #ffe0b2;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(230, 81, 0, 0.2);
+}
+
+.return-approved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1.5px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: default;
 }
 
 /* Offline Return Modal */
@@ -5265,4 +5356,78 @@ textarea.apf-input { resize: vertical; }
     padding: 0.75rem 1.25rem;
     font-size: 0.95rem;
   }
+}
+
+/* ════════════════════════════════════════════════════════════
+   UI POLISH — Inventory / Orders / Returns sections
+   Brings them visually in line with the Offline Sales page
+   ════════════════════════════════════════════════════════════ */
+
+/* Wrap each section in a clean white card container */
+.orders-section,
+.returns-section {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Section headers: subtle green icon tint via SVG color on child icons */
+.orders-section .section-header,
+.returns-section .section-header {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0 0 1.25rem 0;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid #f0fdf4;
+}
+
+/* Active filter chip — use brand green (#00b894) instead of teal */
+.filter-chip.active {
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  border-color: #00b894;
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.25);
+}
+
+/* Order search focus — match brand green */
+.order-search-input:focus {
+  border-color: #00b894;
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.12);
+}
+
+/* Order cards grid: slightly tighter gap to feel like Offline Sales cards */
+.orders-grid {
+  gap: 1.25rem;
+}
+
+/* Order card: use #00b894 as default accent bar */
+.order-card::before {
+  background: linear-gradient(90deg, #00b894, #00a085);
+}
+
+/* Return cards: tighten inner padding a bit for 3-column layout */
+.return-item .return-details {
+  padding: 0.6rem 1.2rem 0;
+}
+.return-item .return-actions {
+  padding: 0.75rem 1.2rem;
+}
+.return-item .return-header {
+  padding: 0.75rem 1.2rem;
+}
+.return-item .return-products-preview {
+  padding: 0.75rem 1.2rem 0;
+}
+
+/* Inventory section: consistent card spacing */
+.inventory-section .products-grid {
+  gap: 1.25rem;
+}
+
+/* Search inputs: consistent focus ring */
+.inventory-search-input:focus {
+  border-color: #00b894;
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.12);
 }

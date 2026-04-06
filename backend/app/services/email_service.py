@@ -5,7 +5,7 @@ import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Any
 
 from app.config import settings
 
@@ -227,4 +227,165 @@ def send_order_status_email(order: "Order", new_status: str, include_bill: bool 
         html_body=html_body,
         attachment_bytes=attachment_bytes,
         attachment_filename=attachment_filename,
+    )
+
+
+# Return status → label + accent colour
+_RETURN_STATUS_LABELS = {
+    "approved": ("Approved", "#16a34a"),
+    "rejected": ("Rejected", "#dc2626"),
+}
+
+# Return status → body message
+_RETURN_STATUS_MESSAGES = {
+    "approved": "Great news! Your return request has been approved. Our team will be in touch regarding the next steps for returning your item(s) and processing your refund.",
+    "rejected": "We're sorry to inform you that your return request has been reviewed and could not be approved at this time.",
+}
+
+
+def _build_return_status_email(
+    customer_name: str,
+    customer_email: str,
+    return_id_short: str,
+    order_id_short: str,
+    new_status: str,
+    admin_notes: Optional[str] = None,
+) -> tuple[str, str]:
+    """Return (subject, html_body) for a return request status update email."""
+    label, color = _RETURN_STATUS_LABELS.get(new_status, (new_status.replace("_", " ").title(), "#374151"))
+    message = _RETURN_STATUS_MESSAGES.get(new_status, f"Your return request status has been updated to {label}.")
+
+    subject = f"Return Request #{return_id_short} – {label} | Japan Lanka"
+
+    admin_notes_block = ""
+    if admin_notes and admin_notes.strip():
+        admin_notes_block = f"""
+              <div style="margin-top:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px 20px;">
+                <p style="margin:0 0 6px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;">Manager's Note</p>
+                <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;">{admin_notes.strip()}</p>
+              </div>
+"""
+
+    html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#111827;padding:24px 32px;">
+              <p style="margin:0;color:#ffffff;font-size:22px;font-weight:bold;letter-spacing:0.5px;">
+                Japan Lanka
+              </p>
+              <p style="margin:4px 0 0;color:#9ca3af;font-size:13px;">
+                Automobile Parts &amp; Accessories
+              </p>
+            </td>
+          </tr>
+
+          <!-- Status badge -->
+          <tr>
+            <td style="padding:32px 32px 0;">
+              <p style="margin:0 0 8px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:1px;">
+                Return Request Update
+              </p>
+              <span style="display:inline-block;background:{color};color:#ffffff;font-size:15px;font-weight:bold;padding:6px 18px;border-radius:20px;">
+                {label}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <p style="margin:0 0 16px;color:#111827;font-size:16px;">
+                Hi <strong>{customer_name}</strong>,
+              </p>
+              <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
+                {message}
+              </p>
+
+              <!-- Reference box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 6px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;">Return Reference</p>
+                    <p style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:bold;font-family:monospace;">#{return_id_short}</p>
+                    <p style="margin:0;color:#6b7280;font-size:13px;">Order: <span style="font-family:monospace;font-weight:600;">#{order_id_short}</span></p>
+                  </td>
+                </tr>
+              </table>
+              {admin_notes_block}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px 32px;border-top:1px solid #e5e7eb;margin-top:24px;">
+              <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+                Thank you for shopping with Japan Lanka.<br/>
+                If you have questions, please contact our support team.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    return subject, html_body
+
+
+def send_return_status_email(return_request: Any, new_status: str, admin_notes: Optional[str] = None) -> None:
+    """Send a return request status update email to the customer.
+
+    Called as a FastAPI BackgroundTask — runs after the HTTP response is sent.
+    Skips silently if:
+    - No customer on the return (offline return)
+    - Customer has no email
+    - EMAIL_NOTIFICATIONS_ENABLED is False
+    - Status is not 'approved' or 'rejected' (no email for completed/pending)
+
+    Args:
+        return_request: The ReturnRequest model instance (with customer and order loaded).
+        new_status: The new return status value string ('approved' or 'rejected').
+        admin_notes: Optional manager notes to include in the email body.
+    """
+    if new_status not in ("approved", "rejected"):
+        return  # Only email for approve/reject decisions
+
+    if not return_request.customer or not return_request.customer.email:
+        return  # No customer or offline return
+
+    customer = return_request.customer
+    order = return_request.order
+
+    return_id_short = str(return_request.id)[-8:].upper()
+    order_id_short = str(return_request.order_id)[-8:].upper() if return_request.order_id else "N/A"
+
+    subject, html_body = _build_return_status_email(
+        customer_name=customer.full_name,
+        customer_email=customer.email,
+        return_id_short=return_id_short,
+        order_id_short=order_id_short,
+        new_status=new_status,
+        admin_notes=admin_notes,
+    )
+
+    send_email(
+        to_email=customer.email,
+        to_name=customer.full_name,
+        subject=subject,
+        html_body=html_body,
     )

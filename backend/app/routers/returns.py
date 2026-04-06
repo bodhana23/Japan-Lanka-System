@@ -5,7 +5,7 @@ from typing import Optional
 from uuid import UUID
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -32,6 +32,7 @@ from app.schemas.return_request import (
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager_only, CurrentUser
 from app.services.notification_service import notify_return_status_change, notify_managers_new_return
+from app.services.email_service import send_return_status_email
 
 router = APIRouter(prefix="/returns", tags=["Return Requests"])
 
@@ -115,9 +116,9 @@ async def get_eligible_orders(
     current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
-    """Get orders eligible for return (delivered, picked_up, or ready_to_pickup) for the current customer."""
-    # Get delivered, picked_up, or ready_to_pickup orders for this customer
-    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP]
+    """Get orders eligible for return (delivered or picked_up only) for the current customer."""
+    # Get delivered or picked_up orders for this customer (ready_to_pickup excluded — goods not yet received)
+    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.PICKED_UP]
     orders = db.query(Order).filter(
         Order.customer_id == current_customer.id,
         Order.status.in_(eligible_statuses)
@@ -125,10 +126,10 @@ async def get_eligible_orders(
 
     result_orders = []
     for order in orders:
-        # Check 7-day return window: find when order reached delivered/picked_up/ready_to_pickup status
+        # Check 7-day return window: find when order reached delivered/picked_up status
         delivery_history = db.query(OrderStatusHistory).filter(
             OrderStatusHistory.order_id == order.id,
-            OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP])
+            OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.PICKED_UP])
         ).order_by(OrderStatusHistory.created_at.desc()).first()
 
         if delivery_history:
@@ -229,8 +230,8 @@ async def create_return_request(
             detail="You can only request returns for your own orders"
         )
 
-    # Check if order is eligible for return (delivered, picked_up, or ready_to_pickup)
-    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP]
+    # Check if order is eligible for return (delivered or picked_up only — not ready_to_pickup)
+    eligible_statuses = [OrderStatus.DELIVERED, OrderStatus.PICKED_UP]
     if order.status not in eligible_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -240,7 +241,7 @@ async def create_return_request(
     # Enforce 7-day return window
     delivery_history = db.query(OrderStatusHistory).filter(
         OrderStatusHistory.order_id == order.id,
-        OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.READY_TO_PICKUP, OrderStatus.PICKED_UP])
+        OrderStatusHistory.new_status.in_([OrderStatus.DELIVERED, OrderStatus.PICKED_UP])
     ).order_by(OrderStatusHistory.created_at.desc()).first()
 
     if delivery_history:
@@ -431,6 +432,9 @@ async def create_offline_return(
         related_entity_id=return_request.id
     )
 
+    # Mark the order as return_approved so the UI reflects the return was processed
+    order.status = OrderStatus.RETURN_APPROVED
+
     db.commit()
     db.refresh(return_request)
     return return_request_to_response(return_request)
@@ -502,6 +506,7 @@ async def update_return_request_status(
     return_id: UUID,
     status_update: ReturnRequestStatusUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_employee: Employee = Depends(require_manager_or_admin),
     db: Session = Depends(get_db)
 ):
@@ -617,5 +622,14 @@ async def update_return_request_status(
 
     db.commit()
     db.refresh(return_request)
+
+    # Send email to customer for approved/rejected decisions (runs after response is returned)
+    if old_status != status_update.status and status_update.status.value in ("approved", "rejected"):
+        background_tasks.add_task(
+            send_return_status_email,
+            return_request=return_request,
+            new_status=status_update.status.value,
+            admin_notes=status_update.admin_notes,
+        )
 
     return return_request_to_response(return_request)

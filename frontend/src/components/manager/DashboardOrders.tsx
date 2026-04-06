@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw, CheckCircle } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 import { ordersApi, returnsApi } from '../../services/api';
 import ConfirmModal from '../ConfirmModal';
@@ -69,6 +69,9 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
   const [isFiltering, setIsFiltering] = useState(false);
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+
+  // Track orders for which an offline return was successfully processed this session
+  const [processedOfflineReturnIds, setProcessedOfflineReturnIds] = useState<Set<string>>(new Set());
 
   // Offline return modal state
   const [offlineReturnOrder, setOfflineReturnOrder] = useState<CustomerOrder | null>(null);
@@ -165,12 +168,14 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
 
     setIsSubmittingReturn(true);
     setReturnModalError(null);
+    const processedOrderId = offlineReturnOrder.id;
     try {
-      await returnsApi.createOfflineReturn(offlineReturnOrder.id, {
+      await returnsApi.createOfflineReturn(processedOrderId, {
         reason: offlineReturnReason,
         description: offlineReturnDescription || undefined,
         items: returnItems,
       });
+      setProcessedOfflineReturnIds(prev => new Set(prev).add(processedOrderId));
       handleCloseReturnModal();
       onReturnProcessed?.();
     } catch (err: unknown) {
@@ -715,13 +720,20 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                 {order.salesChannel === 'offline' &&
                   (order.status === 'delivered' || order.status === 'picked_up') &&
                   (order.itemDetails && order.itemDetails.length > 0) && (
-                  <button
-                    className="process-return-btn"
-                    onClick={() => handleProcessReturnClick(order)}
-                  >
-                    <RotateCcw size={14} />
-                    Process Return
-                  </button>
+                  processedOfflineReturnIds.has(order.id) ? (
+                    <span className="return-approved-badge">
+                      <CheckCircle size={14} />
+                      Return Approved
+                    </span>
+                  ) : (
+                    <button
+                      className="process-return-btn"
+                      onClick={() => handleProcessReturnClick(order)}
+                    >
+                      <RotateCcw size={14} />
+                      Process Return
+                    </button>
+                  )
                 )}
               </div>
             </div>

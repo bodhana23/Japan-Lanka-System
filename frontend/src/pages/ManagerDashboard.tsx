@@ -1022,153 +1022,128 @@ const EditProductModal: React.FC<{
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content edit-product-modal">
-        <div className="modal-header">
-          <div className="modal-title-section">
-            <div className="product-icon-header"><Package size={24} /></div>
+      <div className="modal-content add-product-modal-modern edit-product-modal-modern">
+        {/* Header — matches Add Product gradient style */}
+        <div className="add-product-modal-header">
+          <div className="add-product-header-icon"><Package size={22} /></div>
+          <div>
             <h2>Edit Product</h2>
+            <p>{formData.name || 'Edit product details'}</p>
           </div>
-          <button onClick={onClose} className="close-modal">×</button>
+          <button onClick={onClose} className="close-modal" disabled={isSaving}>×</button>
         </div>
 
-        <div className="edit-product-form">
-          <div className="form-group">
-            <label htmlFor="productName">
-              <Tag size={16} className="label-icon" />
-              Product Name *
-            </label>
+        <div className="add-product-form-body">
+          {/* Product Name — full width */}
+          <div className="apf-group apf-full">
+            <label><Tag size={14} /> Product Name *</label>
             <input
-              id="productName"
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Enter product name"
-              className={errors.name ? 'error' : ''}
+              className={`apf-input${errors.name ? ' apf-input-error' : ''}`}
             />
-            {errors.name && <span className="error-message">{errors.name}</span>}
+            {errors.name && <span className="apf-error-msg">{errors.name}</span>}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="description">
-              <FileText size={16} className="label-icon" />
-              Description
-            </label>
+          {/* Brand */}
+          <div className="apf-group">
+            <label><Factory size={14} /> Brand *</label>
+            <select
+              value={formData.brand}
+              onChange={(e) => handleInputChange('brand', e.target.value)}
+              className={`apf-input${errors.brand ? ' apf-input-error' : ''}`}
+            >
+              <option value="">Select brand...</option>
+              {PRODUCT_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+              {formData.brand && !PRODUCT_BRANDS.includes(formData.brand) && (
+                <option value={formData.brand}>{formData.brand}</option>
+              )}
+            </select>
+            {errors.brand && <span className="apf-error-msg">{errors.brand}</span>}
+          </div>
+
+          {/* Model */}
+          <div className="apf-group">
+            <label><Car size={14} /> Compatible Model *</label>
+            <input
+              type="text"
+              value={formData.model}
+              onChange={(e) => handleInputChange('model', e.target.value)}
+              placeholder="e.g. Corolla, Civic, Universal"
+              className={`apf-input${errors.model ? ' apf-input-error' : ''}`}
+            />
+            {errors.model && <span className="apf-error-msg">{errors.model}</span>}
+          </div>
+
+          {/* Price */}
+          <div className="apf-group">
+            <label><DollarSign size={14} /> Price (Rs.) *</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price || ''}
+              onChange={(e) => handleInputChange('price', Number(e.target.value))}
+              placeholder="Enter price"
+              className={`apf-input${errors.price ? ' apf-input-error' : ''}`}
+            />
+            {errors.price && <span className="apf-error-msg">{errors.price}</span>}
+          </div>
+
+          {/* Current Stock (read-only) + Adjust Stock button */}
+          <div className="apf-group">
+            <label><BarChart2 size={14} /> Current Stock</label>
+            <div className="apf-stock-row">
+              <div className="apf-stock-display">{formData.quantity} units</div>
+              <button
+                type="button"
+                className="apf-adjust-btn"
+                onClick={() => onOpenStockAdjust(formData)}
+              >
+                <RefreshCw size={13} /> Adjust
+              </button>
+            </div>
+          </div>
+
+          {/* Description — full width */}
+          <div className="apf-group apf-full">
+            <label><FileText size={14} /> Description</label>
             <textarea
-              id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Enter product description (optional)"
               rows={3}
+              className="apf-input"
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="brand">
-                <Factory size={16} className="label-icon" />
-                Brand *
-              </label>
-              <select
-                id="brand"
-                value={formData.brand}
-                onChange={(e) => handleInputChange('brand', e.target.value)}
-                className={errors.brand ? 'error' : ''}
-              >
-                <option value="">Select brand...</option>
-                {PRODUCT_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                {formData.brand && !PRODUCT_BRANDS.includes(formData.brand) && (
-                  <option value={formData.brand}>{formData.brand}</option>
-                )}
-              </select>
-              {errors.brand && <span className="error-message">{errors.brand}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="model">
-                <Car size={16} className="label-icon" />
-                Model *
-              </label>
-              <input
-                id="model"
-                type="text"
-                value={formData.model}
-                onChange={(e) => handleInputChange('model', e.target.value)}
-                placeholder="e.g. Corolla, Civic, Universal"
-                className={errors.model ? 'error' : ''}
-              />
-              {errors.model && <span className="error-message">{errors.model}</span>}
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="price">
-                <DollarSign size={16} className="label-icon" />
-                Price (Rs.) *
-              </label>
-              <input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price || ''}
-                onChange={(e) => handleInputChange('price', Number(e.target.value))}
-                placeholder="Enter price"
-                className={errors.price ? 'error' : ''}
-              />
-              {errors.price && <span className="error-message">{errors.price}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>
-                <BarChart2 size={16} className="label-icon" />
-                Current Stock
-              </label>
-              <div className="quantity-readonly-display">
-                {formData.quantity} units
-              </div>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="imageLink">
-              <Image size={16} className="label-icon" />
-              Image Link
-            </label>
+          {/* Image URL — full width */}
+          <div className="apf-group apf-full">
+            <label><Image size={14} /> Image URL</label>
             <input
-              id="imageLink"
               type="url"
               value={formData.imageLink}
               onChange={(e) => handleInputChange('imageLink', e.target.value)}
               placeholder="Enter image URL (optional)"
+              className="apf-input"
             />
-          </div>
-
-          <div className="stock-adjustment-section">
-            <div className="stock-adjustment-info">
-              <BarChart2 size={16} />
-              <span>To change stock quantity, use the Stock Adjustment tool</span>
-            </div>
-            <button
-              type="button"
-              className="adjust-stock-btn"
-              onClick={() => onOpenStockAdjust(formData)}
-            >
-              <RefreshCw size={16} /> Adjust Stock
-            </button>
           </div>
         </div>
 
-        <div className="edit-product-footer">
-          <button type="button" onClick={handleSubmit} className="save-btn" disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
+        <div className="add-product-modal-footer edit-product-modal-footer">
+          <button type="button" onClick={handleDelete} className="apf-delete-btn" disabled={isSaving}>
+            <Trash2 size={15} /> Delete
           </button>
-          <button type="button" onClick={onClose} className="cancel-btn" disabled={isSaving}>
-            Cancel
-          </button>
-          <button type="button" onClick={handleDelete} className="delete-btn-modal" disabled={isSaving}>
-            <Trash2 size={16} /> Delete Product
-          </button>
+          <div className="apf-footer-right">
+            <button type="button" onClick={onClose} className="cancel-btn" disabled={isSaving}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleSubmit} className="save-btn" disabled={isSaving}>
+              {isSaving ? 'Saving...' : <><CheckCircle size={16} /> Save Changes</>}
+            </button>
+          </div>
         </div>
       </div>
     </div>
