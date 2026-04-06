@@ -1191,8 +1191,12 @@ const StockAdjustmentModal: React.FC<{
   return (
     <div className="modal-overlay">
       <div className="modal-content stock-adjustment-modal">
-        <div className="modal-header">
-          <h2>Adjust Stock</h2>
+        <div className="add-product-modal-header">
+          <div className="add-product-header-icon"><BarChart2 size={22} /></div>
+          <div>
+            <h2>Adjust Stock</h2>
+            <p>{product.name}</p>
+          </div>
           <button onClick={onClose} className="close-modal" disabled={isProcessing}>×</button>
         </div>
 
@@ -1209,8 +1213,7 @@ const StockAdjustmentModal: React.FC<{
           ) : (
             <>
               <div className="stock-product-info">
-                <p className="product-info-name">{product.name}</p>
-                <p className="product-info-stock">Current stock: {product.quantity} units</p>
+                <p className="product-info-stock">Current stock: <strong>{product.quantity} units</strong></p>
               </div>
 
               <div className="direction-toggle">

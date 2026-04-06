@@ -3745,27 +3745,22 @@ textarea.apf-input { resize: vertical; }
 .stock-adjustment-modal {
   max-width: 480px;
   width: 95%;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 .stock-adjustment-body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: 1.5rem 2rem 2rem;
 }
 
 .stock-product-info {
   background: #f0fdf4;
   border-left: 4px solid #00b894;
   border-radius: 10px;
-  padding: 1rem 1.25rem;
-}
-
-.stock-product-info .product-info-name {
-  font-weight: 700;
-  font-size: 1rem;
-  color: #333;
-  margin: 0 0 0.25rem 0;
+  padding: 0.75rem 1.25rem;
 }
 
 .stock-product-info .product-info-stock {
@@ -5364,6 +5359,7 @@ textarea.apf-input { resize: vertical; }
    ════════════════════════════════════════════════════════════ */
 
 /* Wrap each section in a clean white card container */
+.inventory-section,
 .orders-section,
 .returns-section {
   background: #ffffff;
@@ -5373,15 +5369,39 @@ textarea.apf-input { resize: vertical; }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Section headers: subtle green icon tint via SVG color on child icons */
+/* Section headers: strip old banner style, use clean Offline Sales style */
+.inventory-section .section-header,
 .orders-section .section-header,
 .returns-section .section-header {
   background: none;
   border: none;
   box-shadow: none;
-  padding: 0 0 1.25rem 0;
+  padding: 0 0 1rem 0;
   margin-bottom: 1.25rem;
-  border-bottom: 2px solid #f0fdf4;
+  border-bottom: 1px solid #f0fdf4;
+}
+
+.inventory-section .section-header h2,
+.orders-section .section-header h2,
+.returns-section .section-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.inventory-section .section-header h2 svg,
+.orders-section .section-header h2 svg,
+.returns-section .section-header h2 svg {
+  color: #00b894;
+  flex-shrink: 0;
 }
 
 /* Active filter chip — use brand green (#00b894) instead of teal */

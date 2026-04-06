@@ -121,7 +121,7 @@ export const DashboardInventory: React.FC<DashboardInventoryProps> = ({
   return (
     <div className="inventory-section">
       <div className="section-header">
-        <h2>Product Inventory</h2>
+        <h2><Package size={20} />Product Inventory</h2>
         <button 
           className="add-product-btn"
           onClick={onAddProduct}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { RefreshCw, AlertTriangle, Inbox, Package, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Inbox, Package, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 
 interface ReturnRequestUI {
@@ -86,7 +86,7 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
   return (
     <div className="returns-section">
       <div className="section-header">
-        <h2>Return Requests</h2>
+        <h2><RotateCcw size={20} />Return Requests</h2>
       </div>
 
       {/* Status Filter Chips */}

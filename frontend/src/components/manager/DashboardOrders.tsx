@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw, CheckCircle } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw, CheckCircle, ShoppingBag } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 import { ordersApi, returnsApi } from '../../services/api';
 import ConfirmModal from '../ConfirmModal';
@@ -321,7 +321,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   return (
     <div className="orders-section">
       <div className="section-header">
-        <h2>Customer Orders</h2>
+        <h2><ShoppingBag size={20} />Customer Orders</h2>
       </div>
 
       {/* Search Bar */}
