@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ordersApi, District, InitiateCheckoutResponse, PayHereFormData } from '../services/api';
 import { Store, Truck, MapPin, Clock, Info, AlertTriangle, Package, Check, CheckCircle, ShoppingBag, ArrowLeft, Shield, CreditCard, Wallet, Banknote } from 'lucide-react';
+import { payhereConfig } from '../config/payhere';
 import './Checkout.css';
 
 interface ShippingInfo {
@@ -22,8 +23,7 @@ interface FormErrors {
 type DeliveryMethod = 'pickup' | 'shipping';
 type PaymentOption = 'full' | 'minimum' | 'none';
 
-// PayHere sandbox URL
-const PAYHERE_CHECKOUT_URL = 'https://sandbox.payhere.lk/pay/checkout';
+const PAYHERE_CHECKOUT_URL = payhereConfig.checkoutUrl;
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
