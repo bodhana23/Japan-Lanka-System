@@ -708,6 +708,8 @@
   padding: 0.2rem 0.6rem;
   border-radius: var(--sp-radius-2xl);
   display: inline-block;
+  width: fit-content;
+  align-self: flex-start;
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
