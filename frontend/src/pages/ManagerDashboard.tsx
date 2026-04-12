@@ -1048,7 +1048,7 @@ const EditProductModal: React.FC<{
     }
   };
 
-  const handleInputChange = (field: keyof Product, value: string | number) => {
+  const handleInputChange = (field: keyof Product, value: string | number | undefined) => {
     setFormData({...formData, [field]: value});
     if (errors[field as string]) {
       setErrors({...errors, [field]: ''});
