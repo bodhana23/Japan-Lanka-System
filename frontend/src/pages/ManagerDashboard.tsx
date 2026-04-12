@@ -41,6 +41,8 @@ interface Product {
   price: number;
   quantity: number;
   imageLink: string;
+  year_from?: number;
+  year_to?: number;
 }
 
 interface ReturnRequestUI {
@@ -244,7 +246,9 @@ const ManagerDashboard: React.FC = () => {
             category: p.category,
             price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
             quantity: p.quantity_available,
-            imageLink: p.image_url || ''
+            imageLink: p.image_url || '',
+            year_from: p.year_from,
+            year_to: p.year_to,
           }));
           setProducts(transformedProducts);
         }
@@ -386,7 +390,9 @@ const ManagerDashboard: React.FC = () => {
     category: '',
     price: 0,
     quantity: 0,
-    imageLink: ''
+    imageLink: '',
+    year_from: undefined,
+    year_to: undefined,
   });
 
   // Statistics calculations using useMemo
@@ -420,6 +426,8 @@ const ManagerDashboard: React.FC = () => {
         price: newProduct.price,
         quantity_available: newProduct.quantity,
         image_url: newProduct.imageLink || undefined,
+        year_from: newProduct.year_from || undefined,
+        year_to: newProduct.year_to || undefined,
       });
 
       setProducts([...products, {
@@ -432,9 +440,11 @@ const ManagerDashboard: React.FC = () => {
         price: typeof created.price === 'string' ? parseFloat(created.price) : created.price,
         quantity: created.quantity_available,
         imageLink: created.image_url || '',
+        year_from: created.year_from,
+        year_to: created.year_to,
       }]);
 
-      setNewProduct({ name: '', description: '', brand: '', model: '', category: '', price: 0, quantity: 0, imageLink: '' });
+      setNewProduct({ name: '', description: '', brand: '', model: '', category: '', price: 0, quantity: 0, imageLink: '', year_from: undefined, year_to: undefined });
       setShowAddProduct(false);
       showToast(`"${created.name}" added to inventory successfully!`, 'success');
     } catch (error: any) {
@@ -458,6 +468,8 @@ const ManagerDashboard: React.FC = () => {
         model: updatedProduct.model,
         price: updatedProduct.price,
         image_url: updatedProduct.imageLink,
+        year_from: updatedProduct.year_from || undefined,
+        year_to: updatedProduct.year_to || undefined,
       };
       const updated = await productsApi.updateProduct(updatedProduct.id, payload);
       setProducts(products.map(p => p.id === updatedProduct.id ? {
@@ -468,6 +480,8 @@ const ManagerDashboard: React.FC = () => {
         model: updated.model,
         price: typeof updated.price === 'string' ? parseFloat(updated.price) : updated.price,
         imageLink: updated.image_url || '',
+        year_from: updated.year_from,
+        year_to: updated.year_to,
       } : p));
       setShowEditProduct(false);
       setSelectedProduct(null);
@@ -789,8 +803,8 @@ const ManagerDashboard: React.FC = () => {
                 </select>
               </div>
 
-              {/* Model — free text with hint */}
-              <div className="apf-group apf-full">
+              {/* Model — half width */}
+              <div className="apf-group">
                 <label><Car size={14} /> Compatible Model *</label>
                 <input
                   type="text"
@@ -799,6 +813,31 @@ const ManagerDashboard: React.FC = () => {
                   placeholder="e.g. Corolla, Civic, Skyline (or 'Universal')"
                   className="apf-input"
                 />
+              </div>
+
+              {/* Year Range — half width, beside Compatible Model */}
+              <div className="apf-group">
+                <label>Year Range (optional)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={newProduct.year_from || ''}
+                    onChange={(e) => setNewProduct({...newProduct, year_from: e.target.value ? Number(e.target.value) : undefined})}
+                    placeholder="From"
+                    className="apf-input"
+                  />
+                  <input
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={newProduct.year_to || ''}
+                    onChange={(e) => setNewProduct({...newProduct, year_to: e.target.value ? Number(e.target.value) : undefined})}
+                    placeholder="To"
+                    className="apf-input"
+                  />
+                </div>
               </div>
 
               {/* Price + Quantity */}
@@ -1075,6 +1114,31 @@ const EditProductModal: React.FC<{
               className={`apf-input${errors.model ? ' apf-input-error' : ''}`}
             />
             {errors.model && <span className="apf-error-msg">{errors.model}</span>}
+          </div>
+
+          {/* Year Range — beside Compatible Model */}
+          <div className="apf-group">
+            <label>Year Range (optional)</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                value={formData.year_from || ''}
+                onChange={(e) => handleInputChange('year_from', e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="From"
+                className="apf-input"
+              />
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                value={formData.year_to || ''}
+                onChange={(e) => handleInputChange('year_to', e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="To"
+                className="apf-input"
+              />
+            </div>
           </div>
 
           {/* Price */}
