@@ -159,33 +159,6 @@ export const DashboardReturns: React.FC<DashboardReturnsProps> = ({
                 </span>
               </div>
 
-              {/* Product Images Section */}
-              {request.items && request.items.length > 0 && (
-                <div className="return-products-preview">
-                  {request.items.slice(0, 3).map((item, idx) => (
-                    <div key={item.id || idx} className="return-product-thumb">
-                      {item.product_image ? (
-                        <img
-                          src={item.product_image}
-                          alt={item.product_name || 'Product'}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const placeholder = target.nextElementSibling as HTMLElement;
-                            if (placeholder) placeholder.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null}
-                      <div className={`product-thumb-placeholder ${item.product_image ? 'hidden' : ''}`}>
-                        <Package size={24} color="#ccc" />
-                      </div>
-                    </div>
-                  ))}
-                  {request.items.length > 3 && (
-                    <div className="return-product-more">+{request.items.length - 3}</div>
-                  )}
-                </div>
-              )}
 
               <div className="return-details">
                 <p><strong>Order ID:</strong> #{request.order_id.slice(-8).toUpperCase()}</p>
