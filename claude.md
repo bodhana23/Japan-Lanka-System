@@ -1,5 +1,5 @@
 # Claude.md - Japan Lanka System Reference
-*Last updated: March 19, 2026*
+*Last updated: April 13, 2026*
 
 ## Project Overview
 **Japan Lanka Enterprises** - Automobile Parts Management System
@@ -12,6 +12,9 @@
 - Return request system for order management
 - Real-time notifications and audit logging
 - Offline sales support for in-store transactions
+- PayHere payment gateway integration (sandbox mode for demo)
+- Island-wide delivery with DB-driven fee management per district tier
+- CI/CD via GitHub Actions → Azure Container Apps
 
 ## Tech Stack
 
@@ -21,7 +24,7 @@
 - React Router DOM 6.22.3
 - Vite 5.1.4 (build tool)
 - Axios (HTTP client)
-- Firebase (Google Auth)
+- Firebase (Google Auth + Storage)
 - Context API for state management
 - Pure CSS styling with Design Tokens (`tokens.css`)
 - Lucide React icons
@@ -36,12 +39,47 @@
 - passlib + bcrypt (password hashing)
 - Pydantic (validation)
 
+## Deployment
+
+### Production URLs
+- Frontend: https://japanlanka.app
+- Backend API: https://api.japanlanka.app
+- API Docs: https://api.japanlanka.app/docs
+
+### Azure Infrastructure
+- Frontend: Azure Container Apps (`japanlanka-frontend`)
+- Backend: Azure Container Apps (`japanlanka-backend`)
+- Registry: `japanlankaregistry.azurecr.io`
+- Resource Group: `japanlanka-rg`
+- Database: Azure PostgreSQL
+
+### CI/CD (GitHub Actions)
+- **deploy-frontend.yml**: triggers on push to `main` (paths: `frontend/**`) + `workflow_dispatch`
+  - Builds Vite app with env vars baked in at build time
+  - `VITE_API_URL` hardcoded to `https://api.japanlanka.app/api/v1`
+  - `VITE_PAYHERE_SANDBOX=true` (sandbox mode — change to `false` before live launch)
+  - Pushes Docker image → deploys to Container Apps
+- **deploy-backend.yml**: triggers on push to `main` (paths: `backend/**`) + `workflow_dispatch`
+  - Builds and pushes Docker image → deploys to Container Apps
+
+### GitHub Secrets Required
+| Secret | Purpose |
+|--------|---------|
+| `ACR_USERNAME` | Azure Container Registry username |
+| `ACR_PASSWORD` | Azure Container Registry password |
+| `AZURE_CREDENTIALS` | Service principal JSON |
+| `VITE_PAYHERE_MERCHANT_ID` | PayHere live merchant ID |
+| `VITE_FIREBASE_*` | Firebase config keys |
+
 ## Project Structure
 ```
 Japan-Lanka-System/
+├── .github/workflows/
+│   ├── deploy-frontend.yml
+│   └── deploy-backend.yml
 ├── postman/
-│   ├── Japan_Lanka_API.postman_collection.json   # Full API collection (50+ requests)
-│   └── Japan_Lanka_Local.postman_environment.json # Local environment variables
+│   ├── Japan_Lanka_API.postman_collection.json
+│   └── Japan_Lanka_Local.postman_environment.json
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -49,24 +87,40 @@ Japan-Lanka-System/
 │   │   │   ├── ProfileModal.tsx
 │   │   │   ├── NotificationBell.tsx    # Notification dropdown
 │   │   │   ├── NotificationBell.css
-│   │   │   └── Toast.tsx
+│   │   │   ├── Toast.tsx               # Top-center slide-down toast
+│   │   │   ├── AdsCarousel.tsx         # Home page ad carousel
+│   │   │   ├── AdsCarousel.css
+│   │   │   ├── admin/
+│   │   │   │   ├── DashboardAds.tsx    # Admin ad management
+│   │   │   │   └── DashboardAds.css
+│   │   │   ├── manager/
+│   │   │   │   └── DashboardReturns.tsx  # Manager return requests (no product images)
+│   │   │   ├── auditor/
+│   │   │   │   ├── DashboardInventoryLogs.tsx
+│   │   │   │   ├── DashboardActivityLogs.tsx
+│   │   │   │   ├── DashboardReports.tsx
+│   │   │   │   └── DashboardProfile.tsx
+│   │   │   └── shared/
+│   │   │       ├── DashboardLayout.tsx   # Unified sidebar layout (all roles)
+│   │   │       └── DashboardLayout.css
 │   │   ├── context/
 │   │   │   ├── AuthContext.tsx         # JWT auth + Google OAuth
 │   │   │   └── CartContext.tsx         # Shopping cart (guest + DB)
 │   │   ├── pages/
-│   │   │   ├── Home.tsx
+│   │   │   ├── Home.tsx                # Landing page (smooth-scroll nav, functional links)
 │   │   │   ├── Login.tsx
 │   │   │   ├── EmployeeLogin.tsx
 │   │   │   ├── Register.tsx
 │   │   │   ├── CustomerDashboard.tsx
 │   │   │   ├── MyOrders.tsx
-│   │   │   ├── ManagerDashboard.tsx
+│   │   │   ├── ManagerDashboard.tsx    # Includes Add/Edit product with year range
 │   │   │   ├── AdminDashboard.tsx
 │   │   │   ├── AuditorDashboard.tsx
-│   │   │   ├── Shop.tsx
-│   │   │   ├── Checkout.tsx
+│   │   │   ├── Shop.tsx                # Displays year range on product cards
+│   │   │   ├── Checkout.tsx            # PayHere integration, district delivery fees
+│   │   │   ├── PaymentSuccess.tsx
 │   │   │   ├── ManageUsers.tsx
-│   │   │   ├── OfflineSales.tsx          # Manager offline sales page
+│   │   │   ├── OfflineSales.tsx
 │   │   │   └── OfflineSales.css
 │   │   ├── services/
 │   │   │   └── api.ts                  # API client with axios
@@ -75,7 +129,8 @@ Japan-Lanka-System/
 │   │   │   ├── errorHandler.ts
 │   │   │   └── dateUtils.ts            # Date formatting (Sri Lanka TZ)
 │   │   ├── config/
-│   │   │   └── firebase.ts             # Firebase configuration
+│   │   │   ├── firebase.ts             # Firebase configuration
+│   │   │   └── payhere.ts              # PayHere gateway config
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── index.html
@@ -87,64 +142,65 @@ Japan-Lanka-System/
 │   │   ├── __init__.py
 │   │   ├── main.py                     # FastAPI app entry
 │   │   ├── database.py                 # DB connection
-│   │   ├── config.py                   # Settings/config
+│   │   ├── config.py                   # Settings/config (PayHere, SMTP, Firebase, etc.)
 │   │   ├── init_db.py                  # Database seeding
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── customer.py             # Customer model
-│   │   │   ├── employee.py             # Employee model
-│   │   │   ├── product.py
-│   │   │   ├── order.py
+│   │   │   ├── product.py              # Includes discount_percentage, year_from, year_to
+│   │   │   ├── order.py                # Includes payment fields, sales_channel
+│   │   │   ├── system_settings.py      # Key-value store (delivery fees, thresholds)
+│   │   │   ├── advertisement.py
+│   │   │   ├── customer.py
+│   │   │   ├── employee.py
 │   │   │   ├── order_item.py
-│   │   │   ├── cart.py                 # Cart & CartItem
+│   │   │   ├── cart.py
 │   │   │   ├── notification.py
 │   │   │   ├── order_status_history.py
 │   │   │   ├── inventory_transaction.py
+│   │   │   ├── inventory_log.py
 │   │   │   ├── return_request.py
 │   │   │   └── audit_log.py
 │   │   ├── schemas/
-│   │   │   ├── __init__.py
-│   │   │   ├── product.py
-│   │   │   ├── order.py
+│   │   │   ├── product.py              # Includes effective_price (discount-aware)
+│   │   │   ├── order.py                # SRI_LANKA_DISTRICTS dict + checkout schemas
 │   │   │   ├── cart.py
-│   │   │   ├── customer.py             # Customer model
-│   │   │   ├── employee.py             # Employee model  
-│   │   │   ├── return_request.py       # Return requests
+│   │   │   ├── customer.py
+│   │   │   ├── employee.py
+│   │   │   ├── return_request.py
 │   │   │   ├── notification.py
 │   │   │   ├── order_status_history.py
-│   │   │   ├── audit_log.py            # System audit trails
-│   │   │   └── inventory_transaction.py
+│   │   │   ├── audit_log.py
+│   │   │   ├── inventory_transaction.py
+│   │   │   └── system_settings.py
 │   │   ├── routers/
-│   │   │   ├── __init__.py
-│   │   │   ├── auth_customer.py        # Customer authentication
-│   │   │   ├── auth_employee.py        # Employee authentication
-│   │   │   ├── products.py             # Product CRUD
-│   │   │   ├── orders.py               # Order management
-│   │   │   ├── users.py                # User management
-│   │   │   ├── cart.py                 # Shopping cart API
-│   │   │   ├── notifications.py        # Notifications API
-│   │   │   ├── inventory.py            # Inventory transactions
-│   │   │   └── returns.py              # Return requests
-│   │   ├── schemas/
-│   │   │   ├── customer.py             # Customer validation schemas
-│   │   │   ├── employee.py             # Employee validation schemas
-│   │   │   ├── product.py              # Product schemas
-│   │   │   ├── order.py                # Order schemas
-│   │   │   ├── return_request.py       # Return request schemas
-│   │   │   └── notification.py         # Notification schemas
+│   │   │   ├── auth_customer.py
+│   │   │   ├── auth_employee.py
+│   │   │   ├── products.py             # Includes PATCH /{id}/discount endpoint
+│   │   │   ├── orders.py               # Checkout, districts (DB-driven fees), PayHere
+│   │   │   ├── users.py
+│   │   │   ├── cart.py
+│   │   │   ├── notifications.py
+│   │   │   ├── inventory.py
+│   │   │   ├── returns.py
+│   │   │   ├── payments.py             # PayHere notify + status endpoints
+│   │   │   ├── system_settings.py      # Delivery fee management (admin)
+│   │   │   └── advertisements.py
 │   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   └── notification_service.py # Notification helpers
+│   │   │   ├── notification_service.py # Low-stock alerts, order notifications
+│   │   │   ├── email_service.py        # SMTP order status emails
+│   │   │   └── audit_service.py
 │   │   └── utils/
-│   │       ├── __init__.py
-│   │       ├── deps.py                 # FastAPI dependencies
-│   │       ├── security.py             # JWT & password utils
-│   │       └── firebase.py             # Firebase token verification
-│   ├── alembic/                        # Database migrations (Alembic)
-│   │   ├── env.py
-│   │   ├── script.py.mako
-│   │   └── versions/                   # Migration scripts
-│   ├── migrations/                     # SQL migration scripts
+│   │       ├── deps.py
+│   │       ├── security.py
+│   │       ├── firebase.py
+│   │       └── timezone.py
+│   ├── alembic/versions/               # All migrations
+│   │   ├── add_discount_to_products.py
+│   │   ├── add_year_fields_to_products.py   # Added Apr 2026
+│   │   ├── add_system_settings_table.py
+│   │   ├── c1d2e3f4a5b6_add_advertisements_table.py
+│   │   ├── add_payment_fields_to_orders.py
+│   │   ├── f1a7baf8f1fd_add_sales_channel_to_orders.py
+│   │   └── ...
 │   ├── requirements.txt
 │   └── alembic.ini
 │
@@ -173,21 +229,30 @@ Japan-Lanka-System/
 ### Products (`/api/v1/products`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | List products (with filters) |
+| GET | `/` | List products (filters: brand, category, year, search) |
 | GET | `/{id}` | Get product by ID |
 | POST | `/` | Create product (manager+) |
 | PUT | `/{id}` | Update product (manager+) |
 | DELETE | `/{id}` | Soft delete product (manager+) |
+| PATCH | `/{id}/discount` | Set/clear discount percentage (admin only) |
 
 ### Orders (`/api/v1/orders`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/my-orders` | Get customer's orders |
 | GET | `/` | List all orders (employees) |
-| POST | `/` | Create new order |
 | POST | `/offline` | Create offline sale (manager only) |
 | GET | `/{id}` | Get order details |
 | PUT | `/{id}/status` | Update order status (employees) |
+| GET | `/checkout/districts` | List districts with live DB delivery fees |
+| POST | `/checkout/calculate` | Calculate order total + delivery fee |
+| POST | `/checkout/initiate` | Create order + get PayHere form data |
+
+### Payments (`/api/v1/payments`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/payhere/notify` | PayHere server-to-server notification (public) |
+| GET | `/payhere/status/{order_id}` | Get payment status for an order |
 
 ### Returns (`/api/v1/returns`)
 | Method | Endpoint | Description |
@@ -195,7 +260,7 @@ Japan-Lanka-System/
 | GET | `/my-requests` | Get customer's return requests |
 | GET | `/eligible-orders` | Get orders eligible for return |
 | POST | `/` | Create return request |
-| GET | `/` | List return requests (employees see all) |
+| GET | `/` | List all return requests (manager+) |
 | GET | `/{id}` | Get return request details |
 | PUT | `/{id}/status` | Update return status (manager+) |
 
@@ -224,13 +289,11 @@ Japan-Lanka-System/
 | GET | `/transactions/{product_id}` | Get product transaction history |
 | POST | `/adjust` | Manual inventory adjustment (manager+) |
 
-### Returns (`/api/v1/returns`)
+### System Settings (`/api/v1/system-settings`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | List all return requests (manager+) |
-| GET | `/my-requests` | Get current user's returns |
-| POST | `/` | Create return request |
-| PUT | `/{id}/status` | Update return status (manager+) |
+| GET | `/delivery-fees` | Get all delivery fee tiers |
+| PUT | `/delivery-fees/{tier}` | Update fee for a tier (admin only) |
 
 ### Users (`/api/v1/users`)
 | Method | Endpoint | Description |
@@ -243,7 +306,7 @@ Japan-Lanka-System/
 ### Advertisements (`/api/v1/advertisements`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | List active ads (public — used by home page carousel) |
+| GET | `/` | List active ads (public) |
 | GET | `/all` | List all ads including inactive (admin only) |
 | POST | `/` | Create advertisement record (admin only) |
 | PATCH | `/{id}` | Update title, display_order, or is_active (admin only) |
@@ -265,11 +328,6 @@ class Customer(Base):
     is_active: bool
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
-    # Relationships
-    orders: List[Order]
-    cart_items: List[CartItem]
-    notifications: List[Notification]
-    return_requests: List[ReturnRequest]
 ```
 
 ### Employee
@@ -283,8 +341,6 @@ class Employee(Base):
     is_active: bool
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
-    # Relationships
-    audit_logs: List[AuditLog]
 ```
 
 ### Product
@@ -295,153 +351,54 @@ class Product(Base):
     description: str (optional)
     brand: str
     model: str
-    year_from: int (optional)
-    year_to: int (optional)
+    year_from: int (optional)       # e.g. 2010
+    year_to: int (optional)         # e.g. 2020 — shown as "(2010-2020)" on shop cards
     category: str
     price: Decimal
+    discount_percentage: Decimal (optional, 0–100)  # per-product discount
     quantity_available: int
     image_url: str (optional)
     is_active: bool
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
-    # Relationships
-    inventory_transactions: List[InventoryTransaction]
+    # Schema computes effective_price = price * (1 - discount_percentage/100)
 ```
 
 ### Order
 ```python
 class Order(Base):
     id: UUID
-    customer_id: UUID (FK, optional)  # Nullable for offline sales
+    customer_id: UUID (FK, optional)  # Null for offline sales
     status: Enum['pending', 'confirmed', 'shipped', 'ready_to_pickup', 'delivered', 'cancelled']
     delivery_method: Enum['pickup', 'shipping']
-    sales_channel: Enum['online', 'offline']  # NEW: Distinguishes online vs in-store sales
+    sales_channel: Enum['online', 'offline']
     total_amount: Decimal
+    delivery_fee: Decimal
+    paid_amount: Decimal
+    remaining_amount: Decimal
+    payment_status: Enum['not_paid', 'partially_paid', 'paid']
+    payhere_payment_id: str (optional)
     shipping_address: str (optional)
     shipping_city: str (optional)
+    shipping_district: str (optional)
     shipping_postal_code: str (optional)
-    offline_customer_name: str (optional)   # For offline sales when customer_id is null
-    offline_customer_phone: str (optional)  # For offline sales when customer_id is null
+    offline_customer_name: str (optional)
+    offline_customer_phone: str (optional)
     notes: str (optional)
     created_at: datetime (UTC)
     updated_at: datetime (UTC)
-    # Relationships
-    customer: Customer
-    items: List[OrderItem]
-    status_history: List[OrderStatusHistory]
-    return_requests: List[ReturnRequest]
 ```
 
-### OrderItem
+### SystemSetting
 ```python
-class OrderItem(Base):
+class SystemSetting(Base):
     id: UUID
-    order_id: UUID (FK)
-    product_id: UUID (FK)
-    quantity: int
-    unit_price: Decimal
-    created_at: datetime (UTC)
-    # Relationships
-    order: Order
-    product: Product
-    return_items: List[ReturnItem]
-```
-
-### Cart & CartItem
-```python
-class Cart(Base):
-    id: UUID
-    customer_id: UUID (FK)
-    created_at: datetime (UTC)
+    key: str (unique)    # e.g. "delivery_fee_tier1" … "delivery_fee_tier6"
+    value: str
+    updated_by_employee_id: UUID (FK, optional)
     updated_at: datetime (UTC)
-
-class CartItem(Base):
-    id: UUID
-    cart_id: UUID (FK)
-    product_id: UUID (FK)
-    quantity: int
-    created_at: datetime (UTC)
-```
-
-### Notification
-```python
-class Notification(Base):
-    id: UUID
-    customer_id: UUID (FK, optional)
-    employee_id: UUID (FK, optional)
-    title: str
-    message: str
-    type: Enum['order_update', 'return_update', 'system', 'promotion']
-    is_read: bool (default: False)
-    related_order_id: UUID (optional)
-    related_return_id: UUID (optional)
-    created_at: datetime (UTC)
-```
-
-### OrderStatusHistory
-```python
-class OrderStatusHistory(Base):
-    id: UUID
-    order_id: UUID (FK)
-    old_status: str (optional)
-    new_status: str
-    changed_by_employee_id: UUID (FK to Employee)
-    notes: str (optional)
-    created_at: datetime (UTC)
-```
-
-### InventoryTransaction
-```python
-class InventoryTransaction(Base):
-    id: UUID
-    product_id: UUID (FK)
-    transaction_type: Enum['stock_in', 'stock_out', 'adjustment', 'return_in']
-    quantity_change: int
-    quantity_before: int
-    quantity_after: int
-    reference_id: UUID (optional)  # order_id or return_id
-    notes: str (optional)
-    employee_id: UUID (FK to Employee)
-    created_at: datetime (UTC)
-```
-
-### ReturnRequest & ReturnItem
-```python
-class ReturnRequest(Base):
-    id: UUID
-    order_id: UUID (FK)
-    customer_id: UUID (FK)
-    reason: str
-    description: str (optional)
-    status: Enum['pending', 'approved', 'rejected', 'completed']
-    admin_notes: str (optional)
-    created_at: datetime (UTC)
-    updated_at: datetime (UTC)
-    # Relationships
-    order: Order
-    customer: Customer
-    return_items: List[ReturnItem]
-
-class ReturnItem(Base):
-    id: UUID
-    return_request_id: UUID (FK)
-    order_item_id: UUID (FK)
-    quantity: int
-    created_at: datetime (UTC)
-```
-
-### AuditLog
-```python
-class AuditLog(Base):
-    id: UUID
-    customer_id: UUID (FK, optional)
-    employee_id: UUID (FK, optional)
-    action: str
-    entity_type: str
-    entity_id: str (optional)
-    details: JSON (optional)
-    ip_address: str (optional)
-    created_at: datetime (UTC)
+    # Tier → districts mapping defined in orders.py (_DISTRICT_TO_TIER dict)
+    # Tier defaults: tier1=600, tier2=1400, tier3=2400, tier4=3200, tier5=4000, tier6=4800
 ```
 
 ### Advertisement
@@ -457,150 +414,114 @@ class Advertisement(Base):
     updated_at: datetime (UTC)
 ```
 
+### Other Models (unchanged)
+- `OrderItem`, `Cart`, `CartItem`, `Notification`, `OrderStatusHistory`
+- `InventoryTransaction`, `ReturnRequest`, `ReturnItem`, `AuditLog`
+
 ## Business Rules & Validation
 
 ### Authentication
 - **Customer Registration**: Email + password OR Google OAuth
 - **Email Verification**: Required for email/password users via Firebase
-- **Password Rules (Customers)**: 8+ chars, uppercase, lowercase, number, special char
-- **Password Rules (Employees)**: 8+ chars, uppercase, lowercase, number, special char
-- **Email Format**: Must contain @ and valid domain (validated via Pydantic EmailStr)
+- **Password Rules**: 8+ chars, uppercase, lowercase, number, special char (customers & employees)
 - **Full Name**: Letters, spaces, hyphens, apostrophes only (no numbers)
 - **Phone**: Sri Lankan format (10 digits starting with 0)
-- **Employee Creation**: Admin-only, no Firebase UID required initially
+- **Employee Creation**: Admin-only
 
-### Validation Implementation
-**Customer Validation** (`backend/app/schemas/customer.py`):
-- Line 14: `EmailStr` for email format
-- Lines 19-30: `validate_full_name` - no numbers allowed
-- Lines 32-43: `validate_phone_number` - Sri Lankan format (10 digits, starts with 0)
-- Lines 45-61: `validate_password_strength` - 8+ chars, mixed case, number, special char
+### Products
+- **Year Range**: Optional `year_from` / `year_to` (1900–2100). Displayed as `"Model (2010-2020)"` on shop cards.
+- **Discount**: Per-product `discount_percentage` (0–100). `effective_price` auto-computed in API response.
+- **Year Filtering**: `GET /products?year=2015` filters to products whose range includes 2015.
 
-**Employee Validation** (`backend/app/routers/users.py`):
-- Line 608: `EmailStr` for email format validation
-- Lines 612-625: `validate_password_strength` - same rules as customers
-- Lines 647-660: Email uniqueness check (employees and customers tables)
+### Orders & Payments
+- **Payment Options**: Full payment OR 30% minimum advance via PayHere; remainder as cash on delivery
+- **PayHere Mode**: Currently **sandbox** (`VITE_PAYHERE_SANDBOX=true`) — switch to `false` for live launch
+- **Delivery Fees**: 6 tiers driven by district. Fees stored in `system_settings` table — admin changes reflect immediately in checkout dropdown (fixed Apr 2026).
+- **Checkout Flow**: `POST /checkout/initiate` → creates order → returns PayHere form data → frontend auto-submits hidden form → PayHere redirects back
 
-**Error Handling** (`backend/app/main.py`):
-- Lines 62-101: Custom RequestValidationError handler
-- Lines 104-124: Pydantic ValidationError handler
-- Transforms 422 → 400 with user-friendly messages
-
-### Orders
-- **Eligible Status**: Only `delivered` or `ready_to_pickup` orders can be returned
-- **Return Window**: No time limit enforced (business decision)
-- **Partial Returns**: Supported - customers can return specific items/quantities
-- **Return Reasons**: Damaged/Defective, Wrong Item, Not As Described, Changed Mind, Other
+### Delivery Fee Tiers
+| Tier | Districts | Default Fee (Rs.) |
+|------|-----------|------------------|
+| tier1 | Matara, Hambantota, Galle | 600 |
+| tier2 | Ratnapura, Kalutara, Nuwara Eliya, Monaragala | 1400 |
+| tier3 (tier4 in code) | Colombo, Gampaha, Kegalle, Badulla, Kandy | 3200 |
+| tier4 (tier5 in code) | Kurunegala, Matale, Polonnaruwa, Anuradhapura, Ampara, Batticaloa, Trincomalee | 4000 |
+| tier5 (tier6 in code) | Puttalam, Vavuniya, Mannar, Mullaitivu, Kilinochchi, Jaffna | 4800 |
 
 ### Inventory
-- **Stock Tracking**: Real-time quantity updates via `InventoryTransaction`
-- **Return Processing**: Approved returns add stock back via `return_in` transaction
-- **Audit Trail**: All inventory changes logged with reference to order/return
+- **Low Stock Threshold**: 3 units — admins notified when stock crosses this boundary
+- **Return Processing**: Approved returns restore stock via `return_in` transaction
 
 ### Offline Sales
-- **Manager Only**: Only users with `manager` role can create offline sales
-- **Customer Info**: Customer name required, phone optional (Sri Lankan format validated)
-- **No Customer Account**: Offline sales have `customer_id = null`, use `offline_customer_name` and `offline_customer_phone`
-- **Sales Channel**: Orders distinguished by `sales_channel` enum (`online` vs `offline`)
-- **Delivery Method**: Offline sales default to `pickup` delivery method
-- **Inventory**: Stock automatically deducted upon offline sale creation
+- **Manager Only**; `customer_id = null`; defaults to `pickup` delivery method
 
 ## Frontend API Client (`services/api.ts`)
 
-### Available API Objects
 ```typescript
 // Authentication
 authApi.register(email, fullName, password, phoneNumber?)
 authApi.login(email, password)
 authApi.googleAuth(firebaseToken, displayName, email)
-authApi.getMe()
-authApi.updateMe(data)
+authApi.getMe() / authApi.updateMe(data)
 
 // Products
-productsApi.getProducts(filters?)
-productsApi.getProduct(id)
-productsApi.createProduct(product)
+productsApi.getProducts(filters?)   // filters: brand, category, year, search, page
+productsApi.createProduct(product)  // includes year_from, year_to
 productsApi.updateProduct(id, product)
 productsApi.deleteProduct(id)
 
-// Orders
-ordersApi.getOrders(params?)
+// Orders & Checkout
+ordersApi.getDistricts()            // returns live DB-driven delivery fees
+ordersApi.calculateCheckout(data)
+ordersApi.initiateCheckout(data)    // returns PayHereFormData when payment required
 ordersApi.getMyOrders(status?, page?, pageSize?)
-ordersApi.getOrder(id)
-ordersApi.createOrder(order)
+ordersApi.getOrders(params?)
 ordersApi.updateOrderStatus(id, status)
+ordersApi.createOfflineSale(data)
 
-// Cart
-cartApi.getCart()
-cartApi.addItem(productId, quantity)
-cartApi.updateItem(itemId, quantity)
-cartApi.removeItem(itemId)
-cartApi.clearCart()
+// Cart, Notifications, Returns, Users — unchanged from previous
 
-// Notifications
-notificationsApi.getNotifications(params?)
-notificationsApi.getUnreadCount()
-notificationsApi.markAsRead(id)
-notificationsApi.markAllAsRead()
-notificationsApi.deleteNotification(id)
+// Advertisements
+adsApi.getAds()           // public, active only
+adsApi.getAllAds()         // admin only
+adsApi.createAd(data)
+adsApi.updateAd(id, data)
+adsApi.deleteAd(id)
 
-// Returns
-returnsApi.getEligibleOrders()               // Orders that can be returned
-returnsApi.getMyReturns(status?, page?, pageSize?)
-returnsApi.createReturn(data)                // Create return request
-returnsApi.getAllReturns(status?, page?, pageSize?)  // Admin/Manager view
-returnsApi.getReturn(id)                     // Get specific return
-returnsApi.updateReturnStatus(id, status, adminNotes?)
-
-// Users/Employees
-usersApi.getUsers(params?)
-usersApi.getUser(id)
-usersApi.updateUserRole(id, role)
-usersApi.updateUserStatus(id, isActive)
-
-// Offline Sales (Manager only)
-ordersApi.createOfflineSale(data)        // Create in-store sale
-// CreateOfflineSaleRequest: { items: [{product_id, quantity, unit_price}], customer_name, customer_phone?, notes? }
-
-// Advertisements (public read, admin write)
-adsApi.getAds()                          // Active ads only — used by home page carousel
-adsApi.getAllAds()                        // All ads including inactive — used by admin panel
-adsApi.createAd(data)                    // Save new ad record (media already uploaded to Firebase)
-adsApi.updateAd(id, data)               // Toggle is_active, update display_order or title
-adsApi.deleteAd(id)                      // Hard-delete ad record
+// System Settings
+systemSettingsApi.getDeliveryFees()
+systemSettingsApi.updateDeliveryFee(tier, fee)
 ```
 
-## Recent Fixes & Updates
+## PayHere Integration
 
-### Performance Optimization (Jan 26-27, 2026)
-- **Backend Performance**: Added `watchfiles` to prevent high CPU usage during development
-- **Database Optimization**: Configured connection pooling with proper timeouts
-- **Firebase Clock Skew**: Added `FIREBASE_CLOCK_SKEW_SECONDS=10` to handle token timing issues
+### Config (`frontend/src/config/payhere.ts`)
+- `VITE_PAYHERE_SANDBOX=true` → `https://sandbox.payhere.lk/pay/checkout`
+- `VITE_PAYHERE_SANDBOX=false` → `https://www.payhere.lk/pay/checkout`
+- **Currently set to `true` in `deploy-frontend.yml`** for client demo — change to `false` before real launch
 
-### UI Improvements
-- **Icon Consistency**: Replaced all emojis with `lucide-react` icons across dashboards
-- **Return Request UI**: Enhanced with proper status indicators and item selection
-- **Error Handling**: Improved error messages and user feedback
+### Flow
+1. Customer selects items + delivery → clicks Pay
+2. `POST /checkout/initiate` → backend creates order, generates MD5 hash, returns `PayHereFormData`
+3. Frontend auto-submits hidden HTML form to PayHere
+4. PayHere redirects to `/payment/success` or `/payment/cancel`
+5. PayHere POSTs to `POST /payments/payhere/notify` (server-to-server) → backend updates `payment_status`
 
-### Validation Fixes
-- **Regex Patterns**: Fixed Python 3.14 compatibility issues in name validation
-- **Full Name Validation**: Now properly allows spaces between names
-- **Phone Validation**: Sri Lankan format (10 digits starting with 0)
-```
+### Hash Formula
+`MD5(merchant_id + order_id + amount + currency + strtoupper(MD5(merchant_secret)))`
 
 ## Date/Time Handling
 
 ### Backend
-- All timestamps stored in **UTC** using `datetime.utcnow`
-- PostgreSQL timezone set to `Asia/Colombo`
+- All timestamps stored in **UTC**
+- PostgreSQL timezone: `Asia/Colombo`
 
-### Frontend Date Utilities (`utils/dateUtils.ts`)
+### Frontend (`utils/dateUtils.ts`)
 ```typescript
-// Convert UTC to Sri Lanka time (Asia/Colombo, UTC+5:30)
 formatDateTime(dateString)    // "17 Jan 2026, 10:57 pm"
 formatDate(dateString)        // "17 Jan 2026"
 formatTime(dateString)        // "10:57 pm"
-formatRelativeTime(dateString) // "2 hours ago" or "3 days ago"
+formatRelativeTime(dateString) // "2 hours ago"
 formatOrderDate(dateString)   // "17/01/2026 22:57"
 formatFullDate(dateString)    // "17 January 2026"
 ```
@@ -612,40 +533,24 @@ formatFullDate(dateString)    // "17 January 2026"
 - **Logged-in Users**: Cart stored in database via API
 - **On Login**: Guest cart automatically merges with database cart
 
-### CartContext Functions
-```typescript
-addToCart(item)           // Add item to cart
-removeFromCart(id)        // Remove item
-updateQuantity(id, qty)   // Update quantity
-clearCart()               // Clear all items
-getTotalPrice()           // Calculate total
-syncCartFromApi()         // Fetch cart from server
-mergeLocalCartToServer()  // Merge guest cart on login
-```
-
 ## Authentication Flow
 
-1. User submits login credentials (or uses Google OAuth)
-2. Backend validates and returns JWT token + user data
-3. Frontend stores token in `localStorage.token`
-4. Frontend stores user in `localStorage.currentUser`
-5. Axios interceptor attaches `Authorization: Bearer <token>` to all requests
-6. **On login**: CartSyncManager merges local cart to server
-7. Backend validates JWT on protected routes
-8. 401 responses trigger automatic logout and redirect
+1. User submits credentials (or Google OAuth)
+2. Backend validates → returns JWT + user data
+3. Frontend stores in `localStorage` (`token`, `currentUser`)
+4. Axios interceptor attaches `Authorization: Bearer <token>` to all requests
+5. On login: CartSyncManager merges local cart to server
+6. 401 responses → automatic logout + redirect
 
-## Running the Application
+## Running Locally
 
 ### Backend
 ```bash
 cd backend
 source venv/bin/activate
 pip install -r requirements.txt
-
-# Initialize database with seed data
-python -m app.init_db
-
-# Start server
+python -m app.init_db        # creates tables + seeds default admin
+alembic upgrade head         # run any pending migrations
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -656,7 +561,7 @@ npm install
 npm run dev
 ```
 
-### URLs
+### Local URLs
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
@@ -665,350 +570,131 @@ npm run dev
 
 ### Backend (`backend/.env`)
 ```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/japanlanka
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=japanlanka
+DATABASE_USER=your_user
+DATABASE_PASSWORD=your_password
+JWT_SECRET_KEY=your-secret-key
+FIREBASE_CREDENTIALS_PATH=/path/to/service-account.json
+FIREBASE_CLOCK_SKEW_SECONDS=10
+PAYHERE_MERCHANT_ID=1233973
+PAYHERE_MERCHANT_SECRET=your-merchant-secret
+PAYHERE_SANDBOX=True
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email
+SMTP_PASSWORD=your-app-password
+SMTP_FROM_EMAIL=your-email
+EMAIL_NOTIFICATIONS_ENABLED=False
 ```
 
 ### Frontend (`frontend/.env`)
 ```env
 VITE_API_URL=http://localhost:8000/api/v1
-VITE_FIREBASE_API_KEY=your-firebase-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_PAYHERE_MERCHANT_ID=1233973
+VITE_PAYHERE_SANDBOX=true
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
 ```
 
 ## User Roles & Permissions
 
-| Role | Products | Orders | Users | Analytics | Returns | Inventory | Offline Sales |
-|------|----------|--------|-------|-----------|---------|-----------|---------------|
-| Customer | View | Create, View Own | - | - | Create, View Own | - | - |
-| Manager | CRUD | View All, Update Status | - | - | View All, Update | Adjust | Create |
-| Admin | View | View All | CRUD | View | View All | View | - |
-| Auditor | View | View All | View | View | View All | View | - |
+| Role | Products | Orders | Users | Returns | Inventory | Discounts | Offline Sales | Ads | Delivery Fees |
+|------|----------|--------|-------|---------|-----------|-----------|---------------|-----|---------------|
+| Customer | View | Create, View Own | - | Create, View Own | - | - | - | - | - |
+| Manager | CRUD | View All, Update Status | - | View All, Update | Adjust | - | Create | - | - |
+| Admin | View | View All | CRUD | View All | View | Set | - | CRUD | Update |
+| Auditor | View | View All | View | View All | View | - | - | - | - |
 
 ## Current Features
 
 ### Implemented
-- JWT authentication with login/register
-- Google OAuth integration
-- Product catalog with filtering
-- Shopping cart (sessionStorage for guests, database for logged-in)
-- Cart merge on login
-- Order creation and tracking
-- Order status history tracking
-- Customer order history with My Orders page
-- Manager inventory management
-- Manager order processing
-- **Offline sales for in-store transactions (Manager only)**
-- **Advertisement carousel on home page with admin management (Mar 2026)**
+- JWT authentication + Google OAuth
+- Product catalog with filtering (brand, category, year range, search)
+- **Product year range** (`year_from`/`year_to`) — manager can set, shown on shop cards
+- **Per-product discounts** (`discount_percentage`) — admin sets via `PATCH /products/{id}/discount`
+- Shopping cart (sessionStorage for guests, DB for logged-in users, merge on login)
+- Order creation + status tracking + history
+- **PayHere payment gateway** (sandbox mode; 30% advance or full payment options)
+- **Delivery fees managed in DB** — admin changes reflect live in checkout (fixed Apr 2026)
+- Offline sales for in-store transactions (manager only)
+- Advertisement carousel on home page (admin managed, Firebase Storage)
 - Admin user management
-- Notification system with bell dropdown
+- Notification system (bell dropdown, low-stock alerts)
 - Return request management
-- Inventory transaction audit trail
+- Inventory transaction audit trail + auditor dashboard
+- Email notifications for order status (SMTP, opt-in via `EMAIL_NOTIFICATIONS_ENABLED`)
 - Role-based access control
-- Responsive design
-- Window shopper flow (browse without login)
-- Local timezone display (Sri Lanka)
+- Responsive / mobile-friendly design
+- Island-wide delivery with district-tier pricing
 
 ### TODO / Future Enhancements
-- Email notifications
-- Payment integration
-- Advanced analytics dashboard
+- Switch PayHere to live mode before customer launch (`VITE_PAYHERE_SANDBOX=false`)
 - Product reviews and ratings
 - Wishlist functionality
+- Advanced analytics dashboard
 
-## Recent Changes (January-March 2026)
+## Recent Changes (April 2026)
+
+### Product Year Range (Apr 12, 2026)
+- **Backend**: `year_from` / `year_to` columns already in `Product` model — added Alembic migration `add_year_fields_to_products.py` (revision `d4e5f6a7b8c9`) so Azure DB gets the columns
+- **Frontend** (`ManagerDashboard.tsx`): `Product` interface extended; Add Product form — "Compatible Model" shrunk to half-width, "Year Range (From / To)" added beside it; Edit Product form — same year inputs added; API payloads and local state updated
+- **Shop.tsx**: Already renders `"Model (year_from-year_to)"` — no change needed
+
+### Delivery Fee Bug Fix (Apr 13, 2026)
+- **Root cause**: `GET /checkout/districts` returned hardcoded dict while `POST /checkout/initiate` used DB values → customers saw wrong fees but were charged correctly
+- **Fix** (`backend/app/routers/orders.py`): Injected `db` into `get_districts()` and switched to `get_delivery_fee_from_db()` — single source of truth
+
+### CI/CD Domain Migration Fix (Apr 10, 2026)
+- Added `workflow_dispatch` to both workflow files so deployments can be manually triggered
+- Hardcoded `VITE_API_URL=https://api.japanlanka.app/api/v1` in `deploy-frontend.yml` (no longer a secret)
+- `VITE_PAYHERE_SANDBOX=true` set for client demo phase
+
+### UI Fixes (Apr 11-12, 2026)
+- **Toast**: Repositioned from top-right to top-center with slide-down animation (`Toast.css`)
+- **Brand badge**: Added `align-self: flex-start` + `width: fit-content` to prevent full-width stretching (`Shop.css`)
+- **Auditor theme**: Replaced off-brand indigo (`#6366f1`) with teal (`#00b894`) in `DashboardInventoryLogs.css` and `DashboardReports.css`
+- **Manager return requests**: Removed product image thumbnails from return request cards (`manager/DashboardReturns.tsx`)
+- **Add Product button**: Changed from red gradient to teal theme (`ManagerDashboard.css`)
+- **Edit Product modal buttons**: Scoped smaller sizing to `.edit-product-modal-footer` so Delete/Cancel/Save aren't oversized
+- **Home page**: All nav/footer links now functional (smooth scroll); feature card "Learn more" buttons wired to real actions; social links replaced with `mailto:`/`tel:`; "24/7 Support" corrected to "Mon–Sat"
+
+## Recent Changes (March 2026)
 
 ### Advertisements Feature (Mar 19, 2026)
+- New `Advertisement` model + router + Alembic migration
+- Admin can upload images/videos to Firebase Storage → save record → display in home page carousel
+- `AdsCarousel` component: auto-scrolls every 3s, pauses on hover, hides if no ads
 
-**Purpose:** Allow admins to manage promotional media (images/videos) displayed in a looping carousel on the Home page between the stats section and the "Why Choose Us" features section.
+### System Settings & Delivery Fees (Mar 16, 2026)
+- `system_settings` table stores configurable key-value pairs
+- Delivery fee tiers (tier1–tier6) editable by admin via `PUT /system-settings/delivery-fees/{tier}`
+- Admin dashboard "System Settings" section exposes this UI
 
-**Backend Changes:**
-- New `Advertisement` model with `mediatype` PostgreSQL ENUM (`image`, `video`) in `backend/app/models/advertisement.py`
-- New Pydantic schemas in `backend/app/schemas/advertisement.py`
-- New router `backend/app/routers/advertisements.py` with 5 endpoints:
-  - `GET /api/v1/advertisements` — public, active ads only (used by carousel)
-  - `GET /api/v1/advertisements/all` — admin only, all ads including inactive
-  - `POST /api/v1/advertisements` — admin only, create record
-  - `PATCH /api/v1/advertisements/{id}` — admin only, update/toggle
-  - `DELETE /api/v1/advertisements/{id}` — admin only, hard delete
-- Alembic migration: `backend/alembic/versions/c1d2e3f4a5b6_add_advertisements_table.py`
+### Discounts (Mar 2026)
+- `discount_percentage` column on `products` table (`add_discount_to_products.py` migration)
+- Admin sets via `PATCH /products/{id}/discount`; schema auto-computes `effective_price`
 
-**Frontend Changes:**
-- New `DashboardAds` admin component (`frontend/src/components/admin/DashboardAds.tsx` + `.css`):
-  - Upload image/video to Firebase Storage with real-time progress bar
-  - Card grid showing all ads (active shown normally, inactive greyed out)
-  - Toggle visibility (Eye/EyeOff) and Delete per ad
-- New "Advertisements" nav item in Admin Dashboard (Megaphone icon, between Discounts and System Settings)
-- New `AdsCarousel` component (`frontend/src/components/AdsCarousel.tsx` + `.css`):
-  - Fetches active ads from API on mount
-  - Auto-scrolls every 3 seconds, loops infinitely
-  - Pauses on mouse hover
-  - Left/right arrows + dot indicators (hidden for single ad)
-  - Renders nothing if no ads (no whitespace impact)
-  - Supports both image and video (video: autoPlay muted loop playsInline)
-- Added `Advertisement` types and `adsApi` to `frontend/src/services/api.ts`
+## Known Issues & Solutions
+- **Firebase Clock Skew**: `FIREBASE_CLOCK_SKEW_SECONDS=10` in backend env
+- **High CPU (dev)**: `watchfiles` dependency handles efficient reloading
+- **Email already registered**: Orphaned Firebase user — system auto-cleans on re-registration
+- **PayHere "cannot find a business"**: Ensure `PAYHERE_SANDBOX` matches the account type (sandbox ID ≠ live ID)
+- **CI/CD not triggering after infra changes**: Use `workflow_dispatch` to manually trigger — path filters only fire on code changes
 
-**New Files (Mar 19):**
-- `backend/app/models/advertisement.py`
-- `backend/app/schemas/advertisement.py`
-- `backend/app/routers/advertisements.py`
-- `backend/alembic/versions/c1d2e3f4a5b6_add_advertisements_table.py`
-- `frontend/src/components/admin/DashboardAds.tsx`
-- `frontend/src/components/admin/DashboardAds.css`
-- `frontend/src/components/AdsCarousel.tsx`
-- `frontend/src/components/AdsCarousel.css`
-
-**Modified Files (Mar 19):**
-- `backend/app/models/__init__.py` — added Advertisement, MediaType
-- `backend/app/routers/__init__.py` — added advertisements_router
-- `backend/app/main.py` — registered Advertisement model + advertisements_router
-- `frontend/src/services/api.ts` — added Advertisement types and adsApi
-- `frontend/src/components/admin/index.ts` — added DashboardAds export
-- `frontend/src/pages/AdminDashboard.tsx` — added 'ads' nav item, type, case
-- `frontend/src/pages/Home.tsx` — added AdsCarousel between stats and features
-
----
-
-### Postman API Testing Collection (Feb 22, 2026)
-
-**Purpose:** Enable manual API testing without modifying any existing system code. Purely additive.
-
-**Files Created:**
-- `postman/Japan_Lanka_API.postman_collection.json` — Full collection with 50+ requests across 13 folders
-- `postman/Japan_Lanka_Local.postman_environment.json` — Environment with base_url and auto-captured token/ID variables
-
-**Collection Folders:**
-- Health Check, Customer Auth, Employee Auth, Products, Cart, Orders, Returns, Notifications, Inventory, Users (Admin), Analytics, Auditor Logs, Error Scenarios
-
-**Key Features:**
-- Auto-saves JWT tokens to environment variables on login (`customer_token`, `manager_token`, `admin_token`, `employee_token`)
-- Auto-captures resource IDs (`product_id`, `order_id`, `cart_item_id`, `return_id`, `notification_id`, `user_id`) via test scripts
-- Error Scenarios folder tests 400/401/403 responses for validation and access control
-- All requests include realistic example bodies matching actual Pydantic schemas
-
-**How to Use:**
-1. Import both files into Postman
-2. Select `Japan Lanka Local` environment
-3. Run `Health Check` → login as admin/manager → login as customer
-4. Tokens auto-populate; requests can then be run in sequence or independently
-
-**Branch:** `Postman-intregration`
-
----
-
-### UI/UX Accessibility & Notification Improvements (Feb 20, 2026)
-
-**Low Stock Notification System (Backend):**
-- Added `LOW_STOCK_THRESHOLD = 3` constant and `notify_admins_low_stock()` function to `backend/app/services/notification_service.py`
-- Sends a `SYSTEM` type notification to all active admin employees when product stock first crosses from above 3 to ≤ 3 units
-- Threshold check added after every inventory deduction in `backend/app/routers/orders.py` (4 locations: regular order, offline sale, checkout pickup, checkout payment flow)
-- Threshold check also added after manual adjustment in `backend/app/routers/inventory.py`
-- Fires only on threshold crossing (quantity_before > 3 AND quantity_after ≤ 3) to avoid duplicate alerts
-
-**Admin Dashboard Low Stock Alerts UI:**
-- Removed "Restock All" header button from `frontend/src/components/admin/DashboardLowStock.tsx`
-- Removed "Notify Manager" per-item button from `frontend/src/components/admin/DashboardLowStock.tsx`
-- Removed `onRestockAll` and `onNotifyManager` props from both component interface and `AdminDashboard.tsx` usage
-- "Order More" button color changed to theme green (`#10B981 → #059669`) in `frontend/src/components/admin/DashboardLowStock.css`
-- Cleaned up unused `.admin-notify-btn` and `.admin-restock-btn` CSS blocks
-
-**Landing Page Accessibility (larger text for 40s–50s target audience):**
-- Hero headline (`frontend/src/pages/Home.css`): desktop 3.5rem → **4.5rem**, tablet ≤1024px added **3.75rem** override, mobile ≤768px 2.5rem → **3rem**, small ≤480px 2rem → **2.5rem**
-- Hero description: desktop 1.125rem → **1.25rem**, small ≤480px 1rem → **1.125rem**
-- Header brand logo icon box: 48px → **58px**; Car icon: 28px → **34px**
-- Company name (`.company-name`): 1.25rem → **1.6rem**
-- Tagline (`.tagline`): 0.75rem → **0.95rem**
-- Nav links (`.nav-link`): 0.9rem → **1.1rem**, font-weight 500 → **600**
-
-**Key files modified:**
-- `frontend/src/pages/Home.css` — all sizing changes
-- `frontend/src/pages/Home.tsx` — Car icon size
-- `frontend/src/components/admin/DashboardLowStock.tsx` — button removal, prop cleanup
-- `frontend/src/components/admin/DashboardLowStock.css` — button color + unused CSS removal
-- `frontend/src/pages/AdminDashboard.tsx` — removed unused prop calls
-- `backend/app/services/notification_service.py` — `notify_admins_low_stock()` + `LOW_STOCK_THRESHOLD`
-- `backend/app/routers/orders.py` — 4 low-stock checks
-- `backend/app/routers/inventory.py` — 1 low-stock check
-
----
-
-### Offline Sales Feature (Feb 4, 2026)
-**Backend Changes:**
-- Added `SalesChannel` enum (`online`, `offline`) to `backend/app/models/order.py`
-- Made `customer_id` nullable in Order model (null for offline sales)
-- Added `offline_customer_name` and `offline_customer_phone` fields to Order model
-- Created new endpoint `POST /api/v1/orders/offline` (manager only)
-- Added Alembic migration for sales_channel column
-- Updated `OrderResponse` schema to include sales_channel and offline customer fields
-- Located in: `backend/app/routers/orders.py` (lines 427-575)
-
-**Frontend Changes:**
-- Created `OfflineSales.tsx` page with product search, cart management, and customer info
-- Added `OfflineSales.css` for styling
-- Updated `ManagerDashboard.tsx` with offline-sales navigation
-- Added route `/manager/offline-sales` in `App.tsx`
-- Updated `DashboardOrders.tsx` to display sales_channel badge
-- Added new API types: `OfflineSaleItem`, `CreateOfflineSaleRequest`, `OfflineSaleResponse`
-- Added `ordersApi.createOfflineSale()` function
-
-**New Files:**
-- `frontend/src/pages/OfflineSales.tsx`
-- `frontend/src/pages/OfflineSales.css`
-- `backend/alembic/` (Alembic migrations setup)
-- `backend/alembic/versions/f1a7baf8f1fd_add_sales_channel_to_orders.py`
-- `backend/migrations/003_add_sales_channel_to_orders.sql`
-
-**Branch:** `Offline_Order_Feature`
-
-### Validation & Error Handling (Jan 28 - Feb 1)
-**Backend Improvements:**
-- Added employee creation validation (email + password strength)
-  - Email validation using `EmailStr` (requires @ and valid domain)
-  - Password strength: 8+ characters, uppercase, lowercase, number, special character
-  - Located in: `backend/app/routers/users.py` (CreateStaffRequest schema, lines 606-625)
-- Custom validation exception handlers in `backend/app/main.py` (lines 62-124)
-  - Transforms Pydantic 422 errors → user-friendly 400 errors with clear messages
-  - Returns structured error responses with field-specific details
-- Fixed orphaned Firebase user cleanup in customer registration
-  - Auto-detects and removes Firebase users without database records
-  - Located in: `backend/app/routers/auth_customer.py` (lines 80-96)
-- Customer validation (existing):
-  - Password strength (8+ chars, mixed case, number, special character)
-  - Phone number format validation (Sri Lankan: 10 digits starting with 0)
-  - Full name validation (no numbers, letters/spaces/hyphens only)
-
-**Frontend Improvements:**
-- Admin dashboard form enhancements (`frontend/src/pages/AdminDashboard.tsx`)
-  - Added helpful hints for email format ("Must include @ and valid domain")
-  - Added password requirements hint ("Min 8 chars: uppercase, lowercase, number, special")
-  - Updated placeholder text for better UX
-  - Frontend validation now matches backend requirements (8 chars min, complexity checks)
-
-**Branch Created:** `Admins-Validation-Updated` (committed Jan 31, 2026)
-
-### TypeScript Type Fixes (Feb 1)
-**DashboardLayout.tsx Fixes:**
-- Fixed `DashboardUser` interface to match `User` type from `api.ts`
-  - Removed non-existent properties `fullName` and `name`
-  - Changed `full_name` from optional to required (matches API response)
-- Updated `displayName` resolution to use only `full_name` property (line 97)
-- Updated ProfileModal user prop to use `full_name` only (line 240)
-- Located in: `frontend/src/components/shared/DashboardLayout.tsx`
-
-**CustomerDashboard.tsx Fixes:**
-- Added `'order-details'` to `CustomerNavId` type union
-  - Fixes type mismatch with `NavItemId` expected by dashboard components
-  - Dashboard components (DashboardOrders, DashboardReturns, etc.) define `NavItemId` with `'order-details'`
-- Located in: `frontend/src/pages/CustomerDashboard.tsx` (line 20)
-
-**Branch:** `UI/UX_Audit_Fix`
-
-### Database Normalization to 3NF (Jan 17)
-- Created new tables: `carts`, `cart_items`, `notifications`, `order_status_history`, `inventory_transactions`
-- Removed redundant `customer_phone` from orders table (now fetched from `user.phone_number`)
-- Added proper foreign key relationships and cascading deletes
-
-### New API Endpoints (Jan 17)
-- Cart API (`/api/v1/cart`) - Full CRUD for shopping cart
-- Notifications API (`/api/v1/notifications`) - User notification management
-- Inventory API (`/api/v1/inventory`) - Inventory transaction tracking
-
-### Frontend Updates (Jan 17)
-- Rewrote `CartContext.tsx` for dual cart support (guest + database)
-- Created `NotificationBell.tsx` component with dropdown
-- Added `CartSyncManager` in `App.tsx` for login cart sync
-- Created `dateUtils.ts` for Sri Lanka timezone formatting
-- Updated all dashboard components to use date utilities
-
-### Environment Setup
-```bash
-# Backend setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# Environment variables (.env)
-DATABASE_URL=postgresql://user:pass@localhost/japanlanka
-JWT_SECRET_KEY=your-secret-key-here
-FIREBASE_CREDENTIALS_PATH=/path/to/firebase-service-account.json
-FIREBASE_CLOCK_SKEW_SECONDS=10
-
-# Frontend setup
-cd frontend
-npm install
-npm run dev
-```
-
-### Known Issues & Solutions
-- **Firebase Clock Skew**: Set `FIREBASE_CLOCK_SKEW_SECONDS=10` to handle timing issues
-- **Regex Validation**: Updated for Python 3.14 compatibility (hyphen at end of character classes)
-- **High CPU**: Added `watchfiles` dependency for efficient development server reloading
-- **Memory Usage**: Configured database connection pooling with proper timeouts
-- **403 Forbidden on Customer Profile**: Customer email not verified - must click verification link sent to email
-- **"Email already registered" but user doesn't exist**: Orphaned Firebase user - system now auto-cleans up these cases
-
-### Security Features
-- JWT tokens with 24-hour expiry
-- Password hashing with bcrypt (salt rounds: 12)
+## Security Features
+- JWT tokens (24-hour expiry)
+- bcrypt password hashing (salt rounds: 12)
 - Firebase token cryptographic verification
 - SQL injection prevention via SQLAlchemy ORM
 - Role-based access control (RBAC)
-- Input validation and sanitization (Pydantic schemas)
-- Custom validation exception handlers (user-friendly error messages)
+- Pydantic input validation + custom 422→400 error handlers
 - Audit logging for all critical actions
 - Orphaned Firebase user cleanup on registration failure
-- Rate limiting on authentication endpoints
-
-### Performance Optimizations
-- Database connection pooling (`pool_size=5, max_overflow=10, pool_recycle=1800`)
-- Efficient file watching during development (`watchfiles`)
-- Paginated API responses with configurable page sizes
-- Indexed database columns for frequent queries
-- Client-side caching for user authentication state
-
-### Key Files for Validation (Recent Updates)
-**Backend:**
-- `backend/app/main.py` - Custom exception handlers (lines 62-124)
-- `backend/app/schemas/customer.py` - Customer validation schemas (lines 12-61)
-- `backend/app/routers/users.py` - Employee creation validation (lines 606-625)
-- `backend/app/routers/auth_customer.py` - Customer registration with Firebase cleanup (lines 80-96)
-
-**Frontend:**
-- `frontend/src/pages/AdminDashboard.tsx` - Employee creation form with validation hints (lines 1226-1268)
-- `frontend/src/pages/Register.tsx` - Customer registration form
-- `frontend/src/services/api.ts` - API client with error handling
-
-### Files Created (January-February 2026)
-- `backend/app/schemas/notification.py`
-- `backend/app/schemas/inventory_transaction.py`
-- `backend/app/services/notification_service.py`
-- `frontend/src/components/NotificationBell.tsx`
-- `frontend/src/components/NotificationBell.css`
-- `frontend/src/utils/dateUtils.ts`
-- `frontend/src/pages/OfflineSales.tsx` - Manager offline sales page (Feb 4)
-- `frontend/src/pages/OfflineSales.css` - Offline sales styling (Feb 4)
-- `backend/alembic/` - Alembic migrations setup (Feb 4)
-- `backend/migrations/003_add_sales_channel_to_orders.sql` - SQL migration (Feb 4)
-
-### Files Modified (January-February 2026)
-- `backend/app/models/order.py` - Added sales_channel, offline customer fields, nullable customer_id
-- `backend/app/routers/orders.py` - Added offline sales endpoint, status history tracking
-- `backend/app/schemas/order.py` - Added OfflineSaleCreate, OfflineSaleResponse schemas
-- `backend/app/main.py` - Added custom validation exception handlers
-- `backend/app/routers/auth_customer.py` - Added orphaned Firebase cleanup
-- `backend/app/routers/users.py` - Added employee creation validation
-- `frontend/src/services/api.ts` - Added cart, notifications, offline sales APIs
-- `frontend/src/context/CartContext.tsx` - Complete rewrite for dual cart
-- `frontend/src/context/AuthContext.tsx` - Added setOnLoginSuccess callback
-- `frontend/src/App.tsx` - Added CartSyncManager, offline sales route
-- `frontend/src/pages/CustomerDashboard.tsx` - Uses formatDateTime, added 'order-details' to NavId type
-- `frontend/src/pages/MyOrders.tsx` - Uses formatDateTime
-- `frontend/src/pages/ManagerDashboard.tsx` - Added offline-sales navigation
-- `frontend/src/pages/AdminDashboard.tsx` - Uses formatDate, added validation hints
-- `frontend/src/pages/Checkout.tsx` - Uses ordersApi.createOrder()
-- `frontend/src/components/shared/DashboardLayout.tsx` - Fixed DashboardUser interface type alignment
-- `frontend/src/components/manager/DashboardOrders.tsx` - Added sales_channel display

@@ -858,13 +858,14 @@ async def calculate_checkout(
 
 
 @router.get("/checkout/districts")
-async def get_districts():
-    """Get list of Sri Lanka districts with delivery fees."""
+async def get_districts(db: Session = Depends(get_db)):
+    """Get list of Sri Lanka districts with delivery fees (reads live DB values)."""
     districts = []
-    for district, fee in SRI_LANKA_DISTRICTS.items():
+    for district in SRI_LANKA_DISTRICTS:
+        fee = get_delivery_fee_from_db(district, db)
         districts.append({
             "name": district,
-            "delivery_fee": fee
+            "delivery_fee": float(fee)
         })
     return {"districts": districts}
 
