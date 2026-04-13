@@ -151,7 +151,7 @@ const AdminDashboard: React.FC = () => {
     if (user) {
       return {
         email: user.email,
-        full_name: (user as any).full_name || user.fullName || user.name,
+        full_name: user.fullName ?? user.name,
         role: user.role,
       };
     }

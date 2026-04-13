@@ -498,11 +498,11 @@
 }
 
 .admin-ads-delete-btn {
-  background: #fef2f2;
-  color: #dc2626;
+  background: #ef4444;
+  color: white;
 }
 .admin-ads-delete-btn:hover:not(:disabled) {
-  background: #fee2e2;
+  background: #dc2626;
 }
 
 /* ── Responsive ─────────────────────────────────────────── */

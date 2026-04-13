@@ -247,17 +247,16 @@
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 500;
-  color: #dc2626;
-  background: transparent;
-  border: 1px solid #fca5a5;
+  color: white;
+  background: #ef4444;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .clear-sale-btn:hover {
-  background: #fef2f2;
-  border-color: #dc2626;
+  background: #dc2626;
 }
 
 /* Empty State */
@@ -459,17 +458,16 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: transparent;
-  border: 1px solid #fca5a5;
+  background: #ef4444;
+  border: none;
   border-radius: 6px;
-  color: #dc2626;
+  color: white;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .remove-item-btn:hover {
-  background: #fef2f2;
-  border-color: #dc2626;
+  background: #dc2626;
 }
 
 /* Customer Info Section */

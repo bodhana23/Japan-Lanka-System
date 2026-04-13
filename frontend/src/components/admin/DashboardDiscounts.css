@@ -337,19 +337,23 @@
 }
 
 .admin-discounts-modal-close {
-  background: none;
+  background: #374151;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted, #6c757d);
+  color: white;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0.3rem;
-  border-radius: var(--radius-sm, 8px);
-  transition: background 0.2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background 0.2s, transform 0.2s;
 }
 
 .admin-discounts-modal-close:hover {
-  background: var(--color-bg-hover, #f8f9fa);
+  background: #ef4444;
+  transform: scale(1.1);
 }
 
 .admin-discounts-modal-body {
@@ -518,9 +522,9 @@
 
 .admin-discounts-clear-btn {
   padding: 0.6rem 1rem;
-  background: none;
-  border: 1.5px solid var(--color-danger, #dc3545);
-  color: var(--color-danger, #dc3545);
+  background: #ef4444;
+  border: none;
+  color: #fff;
   border-radius: var(--radius-sm, 8px);
   font-size: 0.88rem;
   font-weight: 600;
@@ -529,8 +533,7 @@
 }
 
 .admin-discounts-clear-btn:hover:not(:disabled) {
-  background: var(--color-danger, #dc3545);
-  color: #fff;
+  background: #dc2626;
 }
 
 .admin-discounts-cancel-btn {

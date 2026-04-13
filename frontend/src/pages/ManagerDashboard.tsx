@@ -591,14 +591,14 @@ const ManagerDashboard: React.FC = () => {
   const handleOrderStatusUpdate = async (orderId: string, newStatus: CustomerOrder['status']) => {
     try {
       // Map UI status to API status
-      const statusMap: Record<string, string> = {
+      const statusMap: Record<string, ApiOrder['status']> = {
         'in_progress': 'confirmed',
         'shipped': 'shipped',
       };
-      const apiStatus = statusMap[newStatus] ?? newStatus;
+      const apiStatus = statusMap[newStatus] ?? (newStatus as ApiOrder['status']);
 
       // Call the backend API to update order status
-      await ordersApi.updateOrderStatus(orderId, apiStatus as any);
+      await ordersApi.updateOrderStatus(orderId, apiStatus);
 
       // Update local state on success
       setCustomerOrders(prev => prev.map(order => {

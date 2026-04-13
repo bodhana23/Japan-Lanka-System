@@ -94,7 +94,7 @@
 }
 
 .admin-close-modal {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  background: #374151;
   border: none;
   color: white;
   font-size: 1.3rem;
@@ -107,10 +107,11 @@
   justify-content: center;
   border-radius: 50%;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: none;
 }
 
 .admin-close-modal:hover {
+  background: #ef4444;
   transform: scale(1.1);
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }

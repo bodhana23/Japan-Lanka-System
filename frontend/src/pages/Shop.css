@@ -990,9 +990,9 @@
 }
 
 .close-cart {
-  background: var(--sp-bg);
-  border: 1px solid var(--sp-border);
-  color: var(--sp-text-muted);
+  background: #374151;
+  border: none;
+  color: white;
   cursor: pointer;
   transition: var(--sp-transition);
   width: 34px;
@@ -1004,9 +1004,8 @@
 }
 
 .close-cart:hover {
-  background: var(--sp-danger-light);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: var(--sp-danger);
+  background: #ef4444;
+  color: white;
   transform: rotate(90deg);
 }
 
