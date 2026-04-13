@@ -279,7 +279,7 @@ a:focus:not(:focus-visible) {
 }
 
 .modal-close {
-  background: linear-gradient(135deg, var(--color-danger, #dc3545) 0%, var(--color-danger-dark, #c82333) 100%);
+  background: #374151;
   border: none;
   color: white;
   width: 32px;
@@ -290,12 +290,13 @@ a:focus:not(:focus-visible) {
   border-radius: 50%;
   cursor: pointer;
   transition: var(--transition-base, all 0.3s ease);
-  box-shadow: var(--shadow-danger-sm, 0 4px 15px rgba(220, 53, 69, 0.3));
+  box-shadow: none;
 }
 
 .modal-close:hover {
+  background: #ef4444;
   transform: scale(1.1);
-  box-shadow: var(--shadow-danger-md, 0 6px 20px rgba(220, 53, 69, 0.4));
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
 .modal-body {

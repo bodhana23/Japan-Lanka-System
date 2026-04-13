@@ -135,7 +135,7 @@ const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data })
 
       {/* Pipeline Flow */}
       <div className="admin-pipeline-flow-section">
-        <h3>Order Flow</h3>
+        <h3>Order Flow — click a stage to view orders</h3>
         {totalAll === 0 ? (
           <div className="admin-pipeline-empty">
             <GitBranch size={48} />
