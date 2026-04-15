@@ -2689,21 +2689,21 @@ textarea.apf-input { resize: vertical; }
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 1rem;
-  background: white;
-  color: #dc2626;
+  background: #dc2626;
+  color: white;
   border: 1.5px solid #dc2626;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
 }
 
 .mgr-cancel-order-btn:hover:not(:disabled) {
-  background: #dc2626;
-  color: white;
+  background: #b91c1c;
+  border-color: #b91c1c;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
 }
 
 .mgr-cancel-order-btn:disabled {
