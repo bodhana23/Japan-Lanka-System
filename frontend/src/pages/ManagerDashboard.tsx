@@ -80,7 +80,7 @@ interface CustomerOrder {
   items: { name: string; quantity: number; price: number }[];
   itemDetails?: { id: string; productId: string; name: string; quantity: number; price: number }[];
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'cancelled' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
@@ -304,7 +304,7 @@ const ManagerDashboard: React.FC = () => {
             price: item.unit_price,
           })),
           totalAmount: o.total_amount,
-          status: o.status === 'confirmed' ? 'in_progress' : o.status as CustomerOrder['status'],
+          status: o.status as CustomerOrder['status'],
           orderDate: o.created_at,
           deliveryAddress: o.delivery_method === 'pickup' ? 'Self pickup from store' : (o.shipping_address || ''),
           contactNumber: customerPhone,
@@ -590,12 +590,7 @@ const ManagerDashboard: React.FC = () => {
 
   const handleOrderStatusUpdate = async (orderId: string, newStatus: CustomerOrder['status']) => {
     try {
-      // Map UI status to API status
-      const statusMap: Record<string, ApiOrder['status']> = {
-        'in_progress': 'confirmed',
-        'shipped': 'shipped',
-      };
-      const apiStatus = statusMap[newStatus] ?? (newStatus as ApiOrder['status']);
+      const apiStatus = newStatus as ApiOrder['status'];
 
       // Call the backend API to update order status
       await ordersApi.updateOrderStatus(orderId, apiStatus);
@@ -619,6 +614,7 @@ const ManagerDashboard: React.FC = () => {
         'ready_to_pickup': 'Order marked as ready for pickup',
         'delivered': 'Order marked as delivered',
         'picked_up': 'Order marked as picked up',
+        'cancelled': 'Order cancelled — stock restored',
         'return_approved': 'Return approved'
       };
 

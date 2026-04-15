@@ -130,7 +130,7 @@ def notify_order_status_change(
     service = NotificationService(db)
 
     status_messages = {
-        "confirmed": "Your order has been confirmed and is being processed.",
+        "in_progress": "Your order is now in progress and is being processed.",
         "shipped": "Your order has been shipped and is on its way!",
         "ready_to_pickup": "Your order is ready for pickup at our store.",
         "delivered": "Your order has been delivered. Thank you for shopping with us!",
@@ -214,6 +214,38 @@ def notify_managers_new_return(db: Session, return_request) -> None:
             notification_type=NotificationType.RETURN_UPDATE,
             related_return_id=return_request.id,
             related_order_id=return_request.order_id
+        )
+
+
+def notify_managers_order_cancelled(db: Session, order) -> None:
+    """Send notifications to all managers when a customer cancels an order.
+
+    This function is transaction-safe: it only calls db.add() and does NOT commit.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db: Database session
+        order: The cancelled Order object (with customer loaded)
+    """
+    from app.models.employee import Employee, EmployeeRole
+
+    service = NotificationService(db)
+
+    managers = db.query(Employee).filter(
+        Employee.role == EmployeeRole.MANAGER,
+        Employee.is_active == True
+    ).all()
+
+    order_id_short = str(order.id)[:8].upper()
+    customer_name = order.customer.full_name if order.customer else "Unknown"
+
+    for manager in managers:
+        service.create_employee_notification(
+            employee_id=manager.id,
+            title="Order Cancelled by Customer",
+            message=f"Order #{order_id_short} has been cancelled by {customer_name}. Stock has been restored.",
+            notification_type=NotificationType.ORDER_UPDATE,
+            related_order_id=order.id
         )
 
 

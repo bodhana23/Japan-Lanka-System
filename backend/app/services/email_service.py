@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Status → human-readable label + color
 _STATUS_LABELS = {
-    "confirmed": ("Confirmed", "#2563eb"),
+    "in_progress": ("In Progress", "#2563eb"),
     "shipped": ("Shipped", "#7c3aed"),
     "ready_to_pickup": ("Ready for Pickup", "#0891b2"),
     "delivered": ("Delivered", "#16a34a"),
@@ -26,7 +26,7 @@ _STATUS_LABELS = {
 
 # Status → body message (mirrors notification_service.py)
 _STATUS_MESSAGES = {
-    "confirmed": "Your order has been confirmed and is being processed.",
+    "in_progress": "Your order is now in progress and is being processed.",
     "shipped": "Your order has been shipped and is on its way!",
     "ready_to_pickup": "Your order is ready for pickup at our store.",
     "delivered": "Your order has been delivered. Thank you for shopping with us!",

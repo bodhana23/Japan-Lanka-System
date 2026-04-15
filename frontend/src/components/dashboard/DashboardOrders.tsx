@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersApi, returnsApi, Order, ReturnItemSummary } from '../../services/api';
+import { ordersApi, returnsApi, Order, ReturnItemSummary, COMPANY_CONTACT_PHONE } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
-import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw, FileText, Loader2 } from 'lucide-react';
+import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw, FileText, Loader2, XCircle } from 'lucide-react';
 import './DashboardOrders.css';
 
 type NavItemId = 'overview' | 'orders' | 'order-details' | 'returns' | 'cart' | 'profile' | 'change-password';
@@ -36,6 +36,8 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
     'Other'
   ];
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+  const [cancelTargetOrder, setCancelTargetOrder] = useState<Order | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Fetch orders from API
   useEffect(() => {
@@ -150,7 +152,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
   const getStatusInfo = (status: string) => {
     const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
       'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
-      'confirmed': { text: 'Confirmed', color: '#3498db', bgColor: '#ebf5fb' },
+      'in_progress': { text: 'In Progress', color: '#3498db', bgColor: '#ebf5fb' },
       'shipped': { text: 'Shipped', color: '#9b59b6', bgColor: '#f5eef8' },
       'ready_to_pickup': { text: 'Ready for Pickup', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
@@ -185,10 +187,24 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
     }
   };
 
+  const handleCancelOrder = async (order: Order) => {
+    if (!window.confirm(`Cancel order #${order.id.slice(0, 8).toUpperCase()}? This cannot be undone.`)) return;
+    try {
+      setIsCancelling(true);
+      const updated = await ordersApi.cancelOrder(order.id);
+      setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to cancel order. Please try again.');
+      setTimeout(() => setError(null), 4000);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   // Filter orders
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
-    if (filter === 'pending') return order.status === 'pending' || order.status === 'confirmed';
+    if (filter === 'pending') return order.status === 'pending';
     if (filter === 'processing') return order.status === 'shipped' || order.status === 'ready_to_pickup';
     if (filter === 'completed') return order.status === 'delivered';
     if (filter === 'cancelled') return order.status === 'cancelled';
@@ -224,7 +240,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
           className={`dord-filter-btn ${filter === 'pending' ? 'active' : ''}`}
           onClick={() => setFilter('pending')}
         >
-          Pending ({orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length})
+          Pending ({orders.filter(o => o.status === 'pending').length})
         </button>
         <button
           className={`dord-filter-btn ${filter === 'processing' ? 'active' : ''}`}
@@ -433,8 +449,24 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
                         Request Return
                       </button>
                     )}
+                    {(order.status === 'pending' || order.status === 'in_progress') && (
+                      <button
+                        className="dord-cancel-btn"
+                        onClick={() => handleCancelOrder(order)}
+                        disabled={isCancelling}
+                      >
+                        <XCircle size={14} />
+                        Cancel Order
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {order.status === 'cancelled' && (
+                  <div className="dord-refund-notice">
+                    For refund inquiries, please contact Japan Lanka Enterprises at {COMPANY_CONTACT_PHONE}. Refunds are subject to company policy.
+                  </div>
+                )}
               </div>
             );
           })}

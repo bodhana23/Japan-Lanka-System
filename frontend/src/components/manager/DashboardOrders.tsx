@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw, CheckCircle, ShoppingBag } from 'lucide-react';
+import { Search, RefreshCw, Inbox, AlertTriangle, Store, FileText, Loader2, RotateCcw, CheckCircle, ShoppingBag, XCircle } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils';
 import { ordersApi, returnsApi } from '../../services/api';
 import ConfirmModal from '../ConfirmModal';
@@ -19,7 +19,7 @@ interface CustomerOrder {
   items: { name: string; quantity: number; price: number }[];
   itemDetails?: OrderItemDetail[];  // Full item data including order_item_id
   totalAmount: number;
-  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'cancelled' | 'return_approved';
   orderDate: string;
   deliveryAddress?: string;
   contactNumber: string;
@@ -63,7 +63,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
 }) => {
   // Order filtering state
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'return_approved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'picked_up' | 'cancelled' | 'return_approved'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name_az'>('newest');
@@ -127,6 +127,28 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
   // Cancel status change - closes the modal
   const cancelStatusChange = () => {
     setPendingStatusChange(null);
+  };
+
+  // Manager order cancellation state
+  const [cancelTargetOrderId, setCancelTargetOrderId] = useState<string | null>(null);
+  const [isCancellingOrder, setIsCancellingOrder] = useState(false);
+
+  const handleCancelOrderClick = (orderId: string) => {
+    setCancelTargetOrderId(orderId);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelTargetOrderId) return;
+    setIsCancellingOrder(true);
+    try {
+      await ordersApi.cancelOrderByManager(cancelTargetOrderId);
+      onStatusUpdate(cancelTargetOrderId, 'cancelled');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to cancel order.');
+    } finally {
+      setIsCancellingOrder(false);
+      setCancelTargetOrderId(null);
+    }
   };
 
   // Offline return handlers
@@ -195,6 +217,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       'ready_to_pickup': 'Ready to Pickup',
       'delivered': 'Delivered',
       'picked_up': 'Picked Up',
+      'cancelled': 'Cancelled',
       'return_approved': 'Return Approved'
     };
     return statusNames[status] || status;
@@ -277,6 +300,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
       ready_to_pickup: orders.filter(o => o.status === 'ready_to_pickup').length,
       delivered: orders.filter(o => o.status === 'delivered').length,
       picked_up: orders.filter(o => o.status === 'picked_up').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
       return_approved: orders.filter(o => o.status === 'return_approved').length
     };
   }, [orders]);
@@ -411,6 +435,15 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
             >
               Return Approved
               <span className="chip-badge">{statusCounts.return_approved}</span>
+            </button>
+          )}
+          {statusCounts.cancelled > 0 && (
+            <button
+              className={`filter-chip ${statusFilter === 'cancelled' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('cancelled')}
+            >
+              Cancelled
+              <span className="chip-badge">{statusCounts.cancelled}</span>
             </button>
           )}
         </div>
@@ -577,7 +610,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   <p className="order-date">{formatDateTime(order.orderDate)}</p>
                 </div>
                 <div className="order-status">
-                  {order.status === 'return_approved' || order.salesChannel === 'offline' ? (
+                  {order.status === 'return_approved' || order.status === 'cancelled' || order.salesChannel === 'offline' ? (
                     <span className={`status-dropdown ${order.status}`} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
                       {getStatusDisplayName(order.status)}
                     </span>
@@ -716,6 +749,18 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   </button>
                 )}
 
+                {/* Cancel Order button — only for pending or in_progress orders */}
+                {(order.status === 'pending' || order.status === 'in_progress') && (
+                  <button
+                    className="mgr-cancel-order-btn"
+                    onClick={() => handleCancelOrderClick(order.id)}
+                    disabled={isCancellingOrder}
+                  >
+                    <XCircle size={14} />
+                    Cancel Order
+                  </button>
+                )}
+
                 {/* Process Return button — only for offline orders that are delivered or picked_up */}
                 {order.salesChannel === 'offline' &&
                   (order.status === 'delivered' || order.status === 'picked_up') &&
@@ -751,6 +796,18 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
         confirmVariant="primary"
         onConfirm={confirmStatusChange}
         onCancel={cancelStatusChange}
+      />
+
+      {/* Manager Cancel Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={cancelTargetOrderId !== null}
+        title="Cancel Order"
+        message={`Are you sure you want to cancel order #${cancelTargetOrderId?.slice(0, 8).toUpperCase()}? This will restore stock and notify the customer.`}
+        confirmLabel={isCancellingOrder ? 'Cancelling...' : 'Yes, Cancel Order'}
+        cancelLabel="Go Back"
+        confirmVariant="danger"
+        onConfirm={confirmCancelOrder}
+        onCancel={() => setCancelTargetOrderId(null)}
       />
 
       {/* Offline Return Modal */}

@@ -15,7 +15,7 @@ interface Order {
   id: string;
   items: string[];
   amount: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved' | 'picked_up';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved' | 'picked_up';
   orderDate: string;
   deliveryMethod: 'pickup' | 'shipping';
 }
@@ -134,7 +134,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => 
   // Calculate stats
   const stats = useMemo(() => {
     const total = orders.length;
-    const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
+    const pending = orders.filter(o => o.status === 'pending').length;
     const completed = orders.filter(o => o.status === 'delivered').length;
     const inProgress = orders.filter(o => o.status === 'shipped' || o.status === 'ready_to_pickup').length;
     return { total, pending, completed, inProgress };
@@ -154,7 +154,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => 
   const getStatusInfo = (status: string) => {
     const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
       'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
-      'confirmed': { text: 'Confirmed', color: '#3498db', bgColor: '#ebf5fb' },
+      'in_progress': { text: 'In Progress', color: '#3498db', bgColor: '#ebf5fb' },
       'shipped': { text: 'Shipped', color: '#9b59b6', bgColor: '#f5eef8' },
       'ready_to_pickup': { text: 'Ready', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },

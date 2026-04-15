@@ -11,7 +11,7 @@ interface DashboardOrderPipelineProps {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
-  confirmed: 'Confirmed',
+  in_progress: 'In Progress',
   shipped: 'Shipped',
   ready_to_pickup: 'Ready to Pickup',
   delivered: 'Delivered',
@@ -21,7 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#F59E0B',
-  confirmed: '#3B82F6',
+  in_progress: '#3B82F6',
   shipped: '#8B5CF6',
   ready_to_pickup: '#06B6D4',
   delivered: '#10B981',
@@ -89,10 +89,10 @@ const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data })
   const cancelledStage = data.pipeline.find(s => s.status === 'cancelled');
 
   // Shared early stages (both shipping and pickup pass through these)
-  const sharedStages = ['pending', 'confirmed'].map(s => stageMap[s]).filter(Boolean);
-  // Shipping-only track: confirmed → shipped → delivered
+  const sharedStages = ['pending', 'in_progress'].map(s => stageMap[s]).filter(Boolean);
+  // Shipping-only track: in_progress → shipped → delivered
   const shippingStages = ['shipped', 'delivered'].map(s => stageMap[s]).filter(Boolean);
-  // Pickup-only track: confirmed → ready_to_pickup → picked_up
+  // Pickup-only track: in_progress → ready_to_pickup → picked_up
   const pickupStages = ['ready_to_pickup', 'picked_up'].map(s => stageMap[s]).filter(Boolean);
 
   return (

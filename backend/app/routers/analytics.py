@@ -349,7 +349,7 @@ def get_order_pipeline(
 
     status_order = [
         OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
+        OrderStatus.IN_PROGRESS,
         OrderStatus.SHIPPED,
         OrderStatus.READY_TO_PICKUP,
         OrderStatus.DELIVERED,
@@ -359,7 +359,7 @@ def get_order_pipeline(
 
     status_map = {}
 
-    # Query statuses without date limit (pending, confirmed, shipped, cancelled)
+    # Query statuses without date limit (pending, in_progress, shipped, cancelled)
     unlimited_statuses = [s for s in status_order if s not in date_limited_statuses]
     unlimited_results = (
         db.query(

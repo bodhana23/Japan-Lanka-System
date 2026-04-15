@@ -11,7 +11,7 @@ from app.utils.timezone import get_current_time
 
 class OrderStatus(str, PyEnum):
     PENDING = "pending"
-    CONFIRMED = "confirmed"
+    IN_PROGRESS = "in_progress"
     SHIPPED = "shipped"
     READY_TO_PICKUP = "ready_to_pickup"
     DELIVERED = "delivered"

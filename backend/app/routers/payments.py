@@ -111,10 +111,10 @@ async def payhere_notify(
             else:
                 order.payment_status = PaymentStatus.NOT_PAID
 
-            # Mark order as confirmed once payment received
+            # Mark order as in_progress once payment received
             if order.status == OrderStatus.PENDING:
-                order.status = OrderStatus.CONFIRMED
-                logger.info(f"Order {order_id} marked as CONFIRMED")
+                order.status = OrderStatus.IN_PROGRESS
+                logger.info(f"Order {order_id} marked as IN_PROGRESS")
 
             # Store PayHere payment reference
             order.payhere_payment_id = payment_id

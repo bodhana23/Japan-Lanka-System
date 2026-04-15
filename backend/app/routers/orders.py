@@ -41,7 +41,7 @@ from app.schemas.order_status_history import (
 )
 from app.utils.deps import get_current_user, get_current_customer, require_manager_or_admin, require_manager, require_manager_only, CurrentUser
 from app.models.audit_log import AuditLog
-from app.services.notification_service import notify_order_status_change, notify_managers_new_order, notify_admins_low_stock, LOW_STOCK_THRESHOLD
+from app.services.notification_service import notify_order_status_change, notify_managers_new_order, notify_managers_order_cancelled, notify_admins_low_stock, LOW_STOCK_THRESHOLD
 from app.services.email_service import send_order_status_email
 
 # PayHere configuration - loaded from settings
@@ -579,6 +579,164 @@ async def get_order_status_history(
     )
 
 
+@router.post("/{order_id}/cancel", response_model=OrderResponse)
+async def cancel_order(
+    order_id: UUID,
+    request: Request,
+    current_customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db)
+):
+    """Customer cancels their own order. Only allowed when status is PENDING or IN_PROGRESS."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+
+    if order.customer_id != current_customer.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+
+    if order.status not in (OrderStatus.PENDING, OrderStatus.IN_PROGRESS):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel an order in '{order.status.value}' state. Only pending or in-progress orders can be cancelled."
+        )
+
+    old_status = order.status
+    order.status = OrderStatus.CANCELLED
+
+    # Restore product stock
+    for item in order.items:
+        if item.product:
+            quantity_before = item.product.quantity_available
+            item.product.quantity_available += item.quantity
+            db.add(InventoryTransaction(
+                product_id=item.product.id,
+                employee_id=None,
+                transaction_type=TransactionType.RETURN_IN,
+                quantity_change=item.quantity,
+                quantity_before=quantity_before,
+                quantity_after=item.product.quantity_available,
+                reason=f"Customer cancelled order #{str(order.id)[:8]}",
+                reference_order_id=order.id
+            ))
+
+    # Record status history
+    db.add(OrderStatusHistory(
+        order_id=order.id,
+        old_status=old_status,
+        new_status=OrderStatus.CANCELLED,
+        changed_by_employee_id=None,
+        notes="Cancelled by customer"
+    ))
+
+    # Audit log
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_STATUS_CHANGED,
+        description=f"Order cancelled by customer {current_customer.email} (was {old_status.value})",
+        actor_customer_id=current_customer.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
+    )
+
+    # Notify customer
+    notify_order_status_change(
+        db=db,
+        customer_id=current_customer.id,
+        order_id=order.id,
+        old_status=old_status.value,
+        new_status=OrderStatus.CANCELLED.value
+    )
+
+    # Notify all managers
+    notify_managers_order_cancelled(db=db, order=order)
+
+    db.commit()
+    db.refresh(order)
+    return order_to_response(order, db)
+
+
+@router.post("/{order_id}/cancel-by-manager", response_model=OrderResponse)
+async def cancel_order_by_manager(
+    order_id: UUID,
+    request: Request,
+    current_employee: Employee = Depends(require_manager),
+    db: Session = Depends(get_db)
+):
+    """Manager cancels an order. Only allowed when status is PENDING or IN_PROGRESS."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+
+    if order.status not in (OrderStatus.PENDING, OrderStatus.IN_PROGRESS):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel an order in '{order.status.value}' state. Only pending or in-progress orders can be cancelled."
+        )
+
+    old_status = order.status
+    order.status = OrderStatus.CANCELLED
+
+    # Restore product stock
+    for item in order.items:
+        if item.product:
+            quantity_before = item.product.quantity_available
+            item.product.quantity_available += item.quantity
+            db.add(InventoryTransaction(
+                product_id=item.product.id,
+                employee_id=current_employee.id,
+                transaction_type=TransactionType.RETURN_IN,
+                quantity_change=item.quantity,
+                quantity_before=quantity_before,
+                quantity_after=item.product.quantity_available,
+                reason=f"Manager cancelled order #{str(order.id)[:8]}",
+                reference_order_id=order.id
+            ))
+
+    # Record status history
+    db.add(OrderStatusHistory(
+        order_id=order.id,
+        old_status=old_status,
+        new_status=OrderStatus.CANCELLED,
+        changed_by_employee_id=current_employee.id,
+        notes=f"Cancelled by manager {current_employee.email}"
+    ))
+
+    # Audit log
+    log_inventory_event(
+        db=db,
+        action_type=InventoryActionType.ORDER_STATUS_CHANGED,
+        description=f"Order cancelled by manager {current_employee.email} (was {old_status.value})",
+        actor_employee_id=current_employee.id,
+        related_entity_type=RelatedEntityType.ORDER,
+        related_entity_id=order.id
+    )
+
+    # Notify customer (if online order)
+    if order.customer_id:
+        notify_order_status_change(
+            db=db,
+            customer_id=order.customer_id,
+            order_id=order.id,
+            old_status=old_status.value,
+            new_status=OrderStatus.CANCELLED.value
+        )
+
+    db.commit()
+    db.refresh(order)
+    return order_to_response(order, db)
+
+
 @router.post("/offline", response_model=OfflineSaleResponse, status_code=status.HTTP_201_CREATED)
 async def create_offline_sale(
     sale_data: OfflineSaleCreate,
@@ -883,7 +1041,7 @@ async def initiate_checkout(
     For DELIVERY orders:
     - Payment is REQUIRED (minimum 30%)
     - Creates a PENDING order and returns PayHere form data
-    - Order becomes CONFIRMED only after PayHere notification
+    - Order becomes IN_PROGRESS only after PayHere notification
 
     For PICKUP orders:
     - Payment is OPTIONAL

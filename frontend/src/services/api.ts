@@ -1,5 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+// Company contact details
+export const COMPANY_CONTACT_PHONE = '+94 41 234 5678';
+
 // Types
 export interface User {
   id: string;
@@ -103,7 +106,7 @@ export type PaymentStatus = 'not_paid' | 'partially_paid' | 'paid';
 export interface Order {
   id: string;
   user_id: string;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved' | 'picked_up';
+  status: 'pending' | 'in_progress' | 'shipped' | 'ready_to_pickup' | 'delivered' | 'cancelled' | 'return_approved' | 'picked_up';
   delivery_method: 'pickup' | 'shipping';
   sales_channel?: 'online' | 'offline';
   total_amount: number;
@@ -719,6 +722,16 @@ export const ordersApi = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  },
+
+  cancelOrder: async (orderId: string): Promise<Order> => {
+    const response = await api.post<Order>(`/orders/${orderId}/cancel`);
+    return response.data;
+  },
+
+  cancelOrderByManager: async (orderId: string): Promise<Order> => {
+    const response = await api.post<Order>(`/orders/${orderId}/cancel-by-manager`);
+    return response.data;
   },
 
   // Checkout endpoints

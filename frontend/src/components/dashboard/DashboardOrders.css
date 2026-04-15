@@ -6,6 +6,8 @@
 .dord-container {
   max-width: 1000px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ================================================
@@ -191,6 +193,9 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border-left: 4px solid transparent;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .dord-order-card:hover {
@@ -398,6 +403,44 @@
 .dord-return-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(155, 89, 182, 0.35);
+}
+
+.dord-cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 2px solid #e74c3c;
+  color: #e74c3c;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dord-cancel-btn:hover:not(:disabled) {
+  background: #e74c3c;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+}
+
+.dord-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dord-refund-notice {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fef9e7;
+  border-left: 3px solid #f39c12;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #7d6608;
+  line-height: 1.5;
 }
 
 /* ================================================
@@ -625,7 +668,8 @@
   }
 
   .dord-download-btn,
-  .dord-return-btn {
+  .dord-return-btn,
+  .dord-cancel-btn {
     width: 100%;
     text-align: center;
     justify-content: center;
@@ -638,7 +682,12 @@
   }
 
   .dord-order-card {
-    padding: 20px;
+    padding: 15px;
+  }
+
+  .dord-order-id {
+    font-size: 0.95rem;
+    word-break: break-all;
   }
 
   .dord-detail-row {
@@ -648,6 +697,38 @@
 
   .dord-detail-label {
     min-width: auto;
+  }
+
+  .dord-order-details {
+    padding: 12px;
+  }
+
+  .dord-order-items li {
+    padding: 8px 10px;
+  }
+
+  .dord-item-name {
+    font-size: 0.85rem;
+  }
+
+  .dord-item-qty,
+  .dord-item-price {
+    font-size: 0.85rem;
+    margin: 0 8px;
+  }
+
+  .dord-total-amount {
+    font-size: 1.1rem;
+  }
+
+  .dord-filters {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .dord-filter-btn {
+    padding: 8px 12px;
+    font-size: 0.78rem;
   }
 }
 

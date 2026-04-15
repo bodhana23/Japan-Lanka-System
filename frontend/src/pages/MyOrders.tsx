@@ -155,7 +155,7 @@ const MyOrders: React.FC = () => {
   const getStatusInfo = (status: string) => {
     const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
       'pending': { text: 'Pending', color: '#f39c12', bgColor: '#fef9e7' },
-      'confirmed': { text: 'Confirmed', color: '#3498db', bgColor: '#ebf5fb' },
+      'in_progress': { text: 'In Progress', color: '#3498db', bgColor: '#ebf5fb' },
       'shipped': { text: 'Shipped — On the Way', color: '#9b59b6', bgColor: '#f5eef8' },
       'ready_to_pickup': { text: 'Ready for Pickup', color: '#1abc9c', bgColor: '#e8f8f5' },
       'delivered': { text: 'Delivered', color: '#27ae60', bgColor: '#eafaf1' },
