@@ -14,6 +14,7 @@ export interface NavItem<T extends string = string> {
   icon: React.ReactNode;
   badge?: number;
   onClick?: () => void; // Custom click handler (e.g., for external navigation)
+  isPrimary?: boolean; // Style as a primary CTA button
 }
 
 // Role configuration for theming
@@ -164,7 +165,7 @@ function DashboardLayout<T extends string = string>({
               {navItems.map((item) => (
                 <li key={item.id}>
                   <button
-                    className={`dl-nav-item ${activeNav === item.id ? 'dl-nav-active' : ''}`}
+                    className={`dl-nav-item ${activeNav === item.id ? 'dl-nav-active' : ''} ${item.isPrimary ? 'dl-nav-item--primary' : ''}`}
                     onClick={() => handleNavClick(item)}
                   >
                     <span className="dl-nav-icon">{item.icon}</span>

@@ -242,6 +242,33 @@
   flex-shrink: 0;
 }
 
+/* Primary CTA nav item (e.g. "Browse Parts") */
+.dl-nav-item--primary {
+  background: linear-gradient(135deg, #28a745, #00b894);
+  color: #ffffff !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.35);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.dl-nav-item--primary:hover {
+  background: linear-gradient(135deg, #22923c, #00a085) !important;
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5) !important;
+  transform: translateY(-1px);
+  color: #ffffff !important;
+}
+
+.dl-nav-item--primary .dl-nav-icon,
+.dl-nav-item--primary .dl-nav-label {
+  color: #ffffff;
+}
+
+/* Suppress active indicator bar for primary CTA */
+.dl-nav-item--primary.dl-nav-active::before {
+  display: none;
+}
+
 /* Sidebar Footer */
 .dl-sidebar-footer {
   padding: 20px;

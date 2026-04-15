@@ -8,6 +8,7 @@ import {
   ShoppingCart, RotateCcw, ArrowRight, AlertTriangle, Inbox,
   Store, Cog, Octagon, Wrench, Zap, Wind
 } from 'lucide-react';
+import AdsCarousel from '../AdsCarousel';
 import './DashboardOverview.css';
 
 interface Order {
@@ -178,6 +179,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => 
 
   return (
     <div className="do-container">
+      {/* Advertisement Banner */}
+      <div className="do-ads-banner">
+        <AdsCarousel />
+      </div>
+
       {/* Welcome Section */}
       <section className="do-welcome-section">
         <div className="do-welcome-content">

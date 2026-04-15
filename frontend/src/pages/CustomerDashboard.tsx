@@ -34,8 +34,8 @@ const CustomerDashboard: React.FC = () => {
 
   // Navigation items for Customer Dashboard
   const navItems: NavItem<CustomerNavId>[] = useMemo(() => [
+    { id: 'browse-parts', label: 'Browse Parts', icon: <Store size={20} />, onClick: () => navigate('/shop'), isPrimary: true },
     { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'browse-parts', label: 'Browse Parts', icon: <Store size={20} />, onClick: () => navigate('/shop') },
     { id: 'orders', label: 'My Orders', icon: <Package size={20} /> },
     { id: 'returns', label: 'Return Requests', icon: <RotateCcw size={20} /> },
     { id: 'cart', label: 'Cart', icon: <ShoppingCart size={20} />, badge: cartBadge > 0 ? cartBadge : undefined },
