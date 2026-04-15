@@ -179,11 +179,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => 
 
   return (
     <div className="do-container">
-      {/* Advertisement Banner */}
-      <div className="do-ads-banner">
-        <AdsCarousel />
-      </div>
-
       {/* Welcome Section */}
       <section className="do-welcome-section">
         <div className="do-welcome-content">
@@ -198,6 +193,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => 
           </div>
         </div>
       </section>
+
+      {/* Advertisement Banner */}
+      <div className="do-ads-banner">
+        <AdsCarousel />
+      </div>
 
       {/* Stats Cards */}
       <section className="do-stats-section">
