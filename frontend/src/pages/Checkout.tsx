@@ -715,3 +715,4 @@ const Checkout: React.FC = () => {
 };
 
 export default Checkout;
+
