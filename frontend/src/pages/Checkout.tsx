@@ -89,15 +89,23 @@ const Checkout: React.FC = () => {
     }
   }, [cart, navigate, showSuccessModal]);
 
-  // Update delivery fee when district changes
+  // Update delivery fee when district changes — always fetch fresh from API
   useEffect(() => {
     if (shippingInfo.district && deliveryMethod === 'shipping') {
-      const selectedDistrict = districts.find(d => d.name === shippingInfo.district);
-      setDeliveryFee(selectedDistrict?.delivery_fee || 0);
+      ordersApi.getDistricts().then(response => {
+        const selected = response.districts.find(d => d.name === shippingInfo.district);
+        setDeliveryFee(selected?.delivery_fee || 0);
+        // Refresh the dropdown list too so displayed fees are current
+        setDistricts(response.districts);
+      }).catch(() => {
+        // Fallback to cached value if fetch fails
+        const selectedDistrict = districts.find(d => d.name === shippingInfo.district);
+        setDeliveryFee(selectedDistrict?.delivery_fee || 0);
+      });
     } else {
       setDeliveryFee(0);
     }
-  }, [shippingInfo.district, deliveryMethod, districts]);
+  }, [shippingInfo.district, deliveryMethod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Submit PayHere form when data is ready
   useEffect(() => {
