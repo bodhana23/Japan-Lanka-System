@@ -707,7 +707,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                 if (isCashOnly || isFullySettled || order.paymentStatus === 'paid') {
                   return (
                     <div className="mgr-payment-row mgr-payment-paid">
-                      ✓ Fully Paid
+                      ✓ Fully Paid — Rs. {(order.totalAmount ?? 0).toLocaleString()}
                     </div>
                   );
                 }
@@ -716,14 +716,16 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                   const deliveryLabel = order.deliveryMethod === 'pickup' ? 'pickup' : 'delivery';
                   return (
                     <div className="mgr-payment-row mgr-payment-partial">
-                      <span>Paid: Rs. {(order.paidAmount ?? 0).toLocaleString()}</span>
+                      <span>30% Advance Paid: Rs. {(order.paidAmount ?? 0).toLocaleString()}</span>
                       <span>Balance due at {deliveryLabel}: Rs. {remaining.toLocaleString()}</span>
                     </div>
                   );
                 }
+                // not_paid
+                const deliveryLabel = order.deliveryMethod === 'pickup' ? 'pickup' : 'delivery';
                 return (
                   <div className="mgr-payment-row mgr-payment-pending">
-                    Payment: Cash on Delivery
+                    ✗ Not Paid — Full amount Rs. {(order.totalAmount ?? 0).toLocaleString()} due at {deliveryLabel}
                   </div>
                 );
               })()}

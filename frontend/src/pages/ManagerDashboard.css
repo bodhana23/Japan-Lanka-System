@@ -2617,9 +2617,9 @@ textarea.apf-input { resize: vertical; }
 }
 
 .mgr-payment-pending {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #dee2e6;
+  background: #fff5f5;
+  color: #c0392b;
+  border: 1px solid #f5c6cb;
 }
 
 .order-actions {
