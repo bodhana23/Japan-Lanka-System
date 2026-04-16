@@ -14,6 +14,7 @@ from app.models.inventory_transaction import InventoryTransaction, TransactionTy
 from app.models.inventory_log import InventoryLog, InventoryActionType, RelatedEntityType
 from app.models.activity_log import ActivityLog, ActivityType
 from app.models.advertisement import Advertisement, MediaType
+from app.models.delivery_fee import DeliveryFee
 
 __all__ = [
     # Customer
@@ -55,4 +56,6 @@ __all__ = [
     # Advertisements
     "Advertisement",
     "MediaType",
+    # Delivery Fees
+    "DeliveryFee",
 ]

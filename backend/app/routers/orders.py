@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction, ReturnRequest
+from app.models.delivery_fee import DeliveryFee
 from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
 from app.models.inventory_transaction import TransactionType
 from app.services.audit_service import log_inventory_event
@@ -961,7 +962,24 @@ async def calculate_checkout(
 
         subtotal += product.price * item_data.quantity
 
+    # Look up delivery fee from DB for shipping orders
     delivery_fee = Decimal("0")
+    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        if not checkout_data.shipping_district:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please select a district for delivery."
+            )
+        district_record = db.query(DeliveryFee).filter(
+            DeliveryFee.district_name == checkout_data.shipping_district
+        ).first()
+        if not district_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No delivery fee set for district '{checkout_data.shipping_district}'. Please contact the store."
+            )
+        delivery_fee = Decimal(str(district_record.fee))
+
     total_amount = subtotal + delivery_fee
 
     # For delivery: minimum 30% payment required
@@ -976,7 +994,7 @@ async def calculate_checkout(
         minimum_payment=minimum_payment,
         full_payment=total_amount,
         delivery_method=checkout_data.delivery_method,
-        district=None,
+        district=checkout_data.shipping_district,
         requires_payment=requires_payment
     )
 
@@ -1001,8 +1019,13 @@ async def initiate_checkout(
     - If skip_payment=True: Creates order immediately as PENDING (NOT_PAID)
     - If skip_payment=False: Returns PayHere form data for optional payment
     """
-    # Validate delivery orders require address
+    # Validate delivery orders require district and address
     if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        if not checkout_data.shipping_district:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please select a district for delivery."
+            )
         if not checkout_data.shipping_address:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1040,7 +1063,19 @@ async def initiate_checkout(
             "unit_price": product.price
         })
 
+    # Look up delivery fee from DB for shipping orders
     delivery_fee = Decimal("0")
+    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+        district_record = db.query(DeliveryFee).filter(
+            DeliveryFee.district_name == checkout_data.shipping_district
+        ).first()
+        if not district_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No delivery fee set for district '{checkout_data.shipping_district}'. Please contact the store."
+            )
+        delivery_fee = Decimal(str(district_record.fee))
+
     total_amount = subtotal + delivery_fee
 
     # Determine payment amounts
@@ -1156,6 +1191,7 @@ async def initiate_checkout(
         paid_amount=Decimal("0"),
         remaining_amount=total_amount,
         payment_status=PaymentStatus.NOT_PAID,
+        shipping_district=checkout_data.shipping_district,
         shipping_address=checkout_data.shipping_address,
         shipping_city=checkout_data.shipping_city,
         shipping_postal_code=checkout_data.shipping_postal_code,

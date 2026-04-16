@@ -12,6 +12,7 @@ from app.routers.auditor import router as auditor_router
 from app.routers.payments import router as payments_router
 from app.routers.analytics import router as analytics_router
 from app.routers.advertisements import router as advertisements_router
+from app.routers.delivery_fee import router as delivery_fee_router
 
 __all__ = [
     "auth_customer_router",
@@ -27,4 +28,5 @@ __all__ = [
     "payments_router",
     "analytics_router",
     "advertisements_router",
+    "delivery_fee_router",
 ]

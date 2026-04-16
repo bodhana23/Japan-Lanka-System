@@ -6,3 +6,4 @@ export { default as DashboardChangePassword } from './DashboardChangePassword';
 export { default as DashboardOrderPipeline } from './DashboardOrderPipeline';
 export { default as DashboardDiscounts } from './DashboardDiscounts';
 export { default as DashboardAds } from './DashboardAds';
+export { default as DashboardDeliveryFee } from './DashboardDeliveryFee';

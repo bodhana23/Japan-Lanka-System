@@ -181,6 +181,7 @@ export interface CheckoutCalculation {
 
 export interface InitiateCheckoutRequest {
   delivery_method: 'pickup' | 'shipping';
+  shipping_district?: string;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
@@ -1283,6 +1284,42 @@ export const analyticsApi = {
       params: { months },
     });
     return response.data;
+  },
+};
+
+// ============ DELIVERY FEE API ============
+
+export interface DeliveryFeeRecord {
+  id: string;
+  district_name: string;
+  fee: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryFeeListResponse {
+  items: DeliveryFeeRecord[];
+  total: number;
+}
+
+export const deliveryFeeApi = {
+  list: async (): Promise<DeliveryFeeListResponse> => {
+    const response = await api.get<DeliveryFeeListResponse>('/delivery-fees');
+    return response.data;
+  },
+
+  create: async (data: { district_name: string; fee: number }): Promise<DeliveryFeeRecord> => {
+    const response = await api.post<DeliveryFeeRecord>('/delivery-fees', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: { fee: number }): Promise<DeliveryFeeRecord> => {
+    const response = await api.put<DeliveryFeeRecord>(`/delivery-fees/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/delivery-fees/${id}`);
   },
 };
 

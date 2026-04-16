@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { ordersApi, InitiateCheckoutResponse, PayHereFormData } from '../services/api';
+import { ordersApi, deliveryFeeApi, DeliveryFeeRecord, InitiateCheckoutResponse, PayHereFormData } from '../services/api';
 import { Store, Truck, MapPin, Clock, Info, AlertTriangle, Package, Check, CheckCircle, ShoppingBag, ArrowLeft, Shield, CreditCard, Wallet, Banknote } from 'lucide-react';
 import { payhereConfig } from '../config/payhere';
 import './Checkout.css';
@@ -10,6 +10,7 @@ import './Checkout.css';
 interface ShippingInfo {
   fullName: string;
   phone: string;
+  district: string;
   address: string;
   city: string;
   postalCode: string;
@@ -34,19 +35,44 @@ const Checkout: React.FC = () => {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod | null>(null);
   const [paymentOption, setPaymentOption] = useState<PaymentOption>('full');
   const [orderError, setOrderError] = useState<string | null>(null);
-  const deliveryFee = 0;
+  const [districts, setDistricts] = useState<DeliveryFeeRecord[]>([]);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const payhereFormRef = useRef<HTMLFormElement>(null);
   const [payhereFormData, setPayhereFormData] = useState<PayHereFormData | null>(null);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: '',
     phone: '',
+    district: '',
     address: '',
     city: '',
     postalCode: ''
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Load districts from delivery fee API
+  const loadDistricts = async () => {
+    try {
+      const data = await deliveryFeeApi.list();
+      setDistricts(data.items);
+    } catch {
+      console.error('Failed to load districts');
+    }
+  };
+
+  useEffect(() => {
+    loadDistricts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Clear delivery fee when switching away from shipping
+  useEffect(() => {
+    if (deliveryMethod !== 'shipping') {
+      setDeliveryFee(0);
+      setShippingInfo(prev => ({ ...prev, district: '' }));
+    }
+  }, [deliveryMethod]);
 
   useEffect(() => {
     // Check authentication
@@ -83,10 +109,11 @@ const Checkout: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setShippingInfo(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setShippingInfo(prev => ({ ...prev, [name]: value }));
+    if (name === 'district') {
+      const selected = districts.find(d => d.district_name === value);
+      setDeliveryFee(selected ? Number(selected.fee) : 0);
+    }
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -121,6 +148,12 @@ const Checkout: React.FC = () => {
 
     // Address validation - only required for shipping
     if (deliveryMethod === 'shipping') {
+      if (districts.length === 0) {
+        newErrors.district = 'No delivery districts available yet. Please contact the store.';
+      } else if (!shippingInfo.district) {
+        newErrors.district = 'Please select a district.';
+      }
+
       if (!shippingInfo.address.trim()) {
         newErrors.address = 'Address is required for shipping';
       } else if (shippingInfo.address.trim().length < 10) {
@@ -166,6 +199,7 @@ const Checkout: React.FC = () => {
       // Build checkout request
       const checkoutRequest = {
         delivery_method: deliveryMethod!,
+        shipping_district: deliveryMethod === 'shipping' ? shippingInfo.district : undefined,
         shipping_address: deliveryMethod === 'shipping' ? shippingInfo.address : undefined,
         shipping_city: deliveryMethod === 'shipping' ? shippingInfo.city : undefined,
         shipping_postal_code: deliveryMethod === 'shipping' ? shippingInfo.postalCode : undefined,
@@ -385,6 +419,41 @@ const Checkout: React.FC = () => {
                 {/* Conditional Address Fields - Only show for shipping */}
                 {deliveryMethod === 'shipping' && (
                   <>
+                    <div className="form-group">
+                      <label htmlFor="district">
+                        District <span className="required">*</span>
+                      </label>
+                      {districts.length === 0 ? (
+                        <div className="error-banner" style={{ marginTop: 0 }}>
+                          <AlertTriangle size={14} />
+                          <span>No delivery districts are available yet. Please contact the store.</span>
+                        </div>
+                      ) : (
+                        <select
+                          id="district"
+                          name="district"
+                          value={shippingInfo.district}
+                          onChange={handleInputChange}
+                          className={errors.district ? 'error' : ''}
+                        >
+                          <option value="">Select your district</option>
+                          {districts.map(d => (
+                            <option key={d.id} value={d.district_name}>
+                              {d.district_name} — Rs. {Number(d.fee).toFixed(2)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {errors.district && (
+                        <span className="error-message">{errors.district}</span>
+                      )}
+                      {shippingInfo.district && (
+                        <span className="field-hint">
+                          Delivery fee: Rs. {deliveryFee.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+
                     <div className="form-group">
                       <label htmlFor="address">
                         Address <span className="required">*</span>

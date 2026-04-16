@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 from app.models import (  # noqa: F401
     Customer, Employee, Product, Order, OrderItem, AuditLog, ReturnRequest,
     Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction,
-    InventoryLog, ActivityLog, Advertisement
+    InventoryLog, ActivityLog, Advertisement, DeliveryFee
 )
 
 # Import routers
@@ -26,6 +26,7 @@ from app.routers import (
     auth_customer_router, auth_employee_router, products_router, orders_router,
     users_router, returns_router, cart_router, notifications_router, inventory_router,
     auditor_router, payments_router, analytics_router, advertisements_router,
+    delivery_fee_router,
 )
 
 # Create database tables
@@ -145,6 +146,7 @@ app.include_router(auditor_router, prefix=settings.API_V1_PREFIX)
 app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
 app.include_router(advertisements_router, prefix=settings.API_V1_PREFIX)
+app.include_router(delivery_fee_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
