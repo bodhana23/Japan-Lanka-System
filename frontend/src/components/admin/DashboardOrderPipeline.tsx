@@ -88,12 +88,14 @@ const DashboardOrderPipeline: React.FC<DashboardOrderPipelineProps> = ({ data })
   const stageMap = Object.fromEntries(data.pipeline.map(s => [s.status, s]));
   const cancelledStage = data.pipeline.find(s => s.status === 'cancelled');
 
-  // Shared early stages (both shipping and pickup pass through these)
-  const sharedStages = ['pending', 'in_progress'].map(s => stageMap[s]).filter(Boolean);
-  // Shipping-only track: in_progress → shipped → delivered
-  const shippingStages = ['shipped', 'delivered'].map(s => stageMap[s]).filter(Boolean);
-  // Pickup-only track: in_progress → ready_to_pickup → picked_up
-  const pickupStages = ['ready_to_pickup', 'picked_up'].map(s => stageMap[s]).filter(Boolean);
+  const emptyStage = (status: string) => ({ status, count: 0, onlineCount: 0, offlineCount: 0 });
+
+  // Shared early stages (both shipping and pickup pass through these) — always show even if count=0
+  const sharedStages = ['pending', 'in_progress'].map(s => stageMap[s] ?? emptyStage(s));
+  // Shipping-only track: shipped → delivered
+  const shippingStages = ['shipped', 'delivered'].map(s => stageMap[s] ?? emptyStage(s));
+  // Pickup-only track: ready_to_pickup → picked_up
+  const pickupStages = ['ready_to_pickup', 'picked_up'].map(s => stageMap[s] ?? emptyStage(s));
 
   return (
     <div className="admin-pipeline-container">
