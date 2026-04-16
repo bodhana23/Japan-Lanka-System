@@ -79,13 +79,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
             }
           }
-        } else {
+        } else if (parsedStoredUser && ['manager', 'admin', 'auditor'].includes(parsedStoredUser.role)) {
           // For employees (manager, admin, auditor), just use stored user data
           // Do NOT call /auth/customer/me for employees
-          if (isMounted && parsedStoredUser) {
+          if (isMounted) {
             setUser(parsedStoredUser);
-          } else if (isMounted) {
-            // No stored user for employee session, clear auth
+          }
+        } else {
+          // Stored user has no valid role or is missing — clear stale auth
+          if (isMounted) {
             localStorage.removeItem('token');
             localStorage.removeItem('currentUser');
             setToken(null);

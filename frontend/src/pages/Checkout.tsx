@@ -79,8 +79,8 @@ const Checkout: React.FC = () => {
       return;
     }
 
-    // Load customer data from authenticated user
-    if (user) {
+    // Load customer data from authenticated user (only for actual customers)
+    if (user && user.role === 'customer') {
       setShippingInfo(prev => ({
         ...prev,
         fullName: user.full_name || '',
