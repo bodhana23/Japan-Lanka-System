@@ -24,9 +24,13 @@ from app.models import (
     notification,
     order_status_history,
     inventory_transaction,
+    inventory_log,
+    activity_log,
     return_request,
+    return_item,
     audit_log,
-    system_settings,
+    advertisement,
+    delivery_fee,
 )
 
 # this is the Alembic Config object, which provides
