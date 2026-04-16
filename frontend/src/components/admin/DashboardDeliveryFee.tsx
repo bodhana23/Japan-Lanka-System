@@ -3,6 +3,14 @@ import { Truck, Plus, Trash2, Pencil, X, Check, RefreshCw } from 'lucide-react';
 import { deliveryFeeApi, DeliveryFeeRecord } from '../../services/api';
 import './DashboardDeliveryFee.css';
 
+const SRI_LANKA_DISTRICTS = [
+  'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
+  'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
+  'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
+  'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya',
+  'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya',
+];
+
 interface DashboardDeliveryFeeProps {
   onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
@@ -46,7 +54,7 @@ const DashboardDeliveryFee: React.FC<DashboardDeliveryFeeProps> = ({ onShowToast
 
   const validateAdd = (): boolean => {
     const errs: { district?: string; fee?: string } = {};
-    if (!addDistrict.trim()) errs.district = 'District name is required.';
+    if (!addDistrict) errs.district = 'Please select a district.';
     const feeNum = parseFloat(addFee);
     if (!addFee.trim()) errs.fee = 'Fee is required.';
     else if (isNaN(feeNum) || feeNum < 0) errs.fee = 'Enter a valid fee (0 or more).';
@@ -140,14 +148,19 @@ const DashboardDeliveryFee: React.FC<DashboardDeliveryFeeProps> = ({ onShowToast
         <h3>Add New District</h3>
         <div className="df-add-row">
           <div className="df-field">
-            <label>District Name</label>
-            <input
-              type="text"
+            <label>District</label>
+            <select
               value={addDistrict}
               onChange={e => { setAddDistrict(e.target.value); setAddErrors(prev => ({ ...prev, district: undefined })); }}
-              placeholder="e.g. Colombo"
               className={addErrors.district ? 'df-input error' : 'df-input'}
-            />
+            >
+              <option value="">Select a district</option>
+              {SRI_LANKA_DISTRICTS.filter(
+                d => !districts.some(existing => existing.district_name === d)
+              ).map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
             {addErrors.district && <span className="df-error">{addErrors.district}</span>}
           </div>
           <div className="df-field">
