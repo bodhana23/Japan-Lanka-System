@@ -85,3 +85,4 @@ def delete_delivery_fee(
         )
     db.delete(record)
     db.commit()
+ 
