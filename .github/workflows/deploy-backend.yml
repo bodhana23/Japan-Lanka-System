@@ -33,8 +33,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: japanlankaregistry.azurecr.io/japanlanka-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
 
       - name: Log in to Azure
         uses: azure/login@v2
