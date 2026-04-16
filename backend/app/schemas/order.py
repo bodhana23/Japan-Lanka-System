@@ -47,8 +47,15 @@ class OrderStatusUpdate(BaseModel):
 class OrderResponse(BaseModel):
     id: UUID
     customer_id: Optional[UUID] = None  # Nullable for offline sales
-    status: OrderStatus
+    status: str  # stored as plain string to tolerate legacy uppercase values from DB
     delivery_method: DeliveryMethod
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_status(cls, v):
+        if v is None:
+            return v
+        return str(v.value if hasattr(v, 'value') else v).lower()
     sales_channel: SalesChannel = SalesChannel.ONLINE
     total_amount: Decimal
     subtotal: Optional[Decimal] = None
@@ -144,8 +151,15 @@ class OfflineSaleCreate(BaseModel):
 class OfflineSaleResponse(BaseModel):
     """Response schema for created offline sale."""
     id: UUID
-    status: OrderStatus
+    status: str
     delivery_method: DeliveryMethod
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_status(cls, v):
+        if v is None:
+            return v
+        return str(v.value if hasattr(v, 'value') else v).lower()
     sales_channel: SalesChannel
     total_amount: Decimal
     offline_customer_name: Optional[str] = None
@@ -232,8 +246,15 @@ class PickupOrderCreate(BaseModel):
 class PickupOrderResponse(BaseModel):
     """Response for pickup order creation."""
     order_id: str
-    status: OrderStatus
+    status: str
     payment_status: PaymentStatus
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_status(cls, v):
+        if v is None:
+            return v
+        return str(v.value if hasattr(v, 'value') else v).lower()
     total_amount: Decimal
     paid_amount: Decimal
     remaining_amount: Decimal

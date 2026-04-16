@@ -172,7 +172,7 @@ async def get_payment_status(
 
         return {
             "order_id": str(order.id),
-            "order_status": order.status.value,
+            "order_status": order.status_str,
             "payment_status": order.payment_status.value,
             "total_amount": float(order.total_amount),
             "paid_amount": float(order.paid_amount or 0),

@@ -37,7 +37,12 @@ class OrderStatusType(TypeDecorator):
         try:
             return OrderStatus(value)
         except ValueError:
-            return value
+            # Try case-insensitive lookup (handles legacy uppercase values in DB)
+            lower = value.lower()
+            try:
+                return OrderStatus(lower)
+            except ValueError:
+                return value
 
 
 class DeliveryMethod(str, PyEnum):
@@ -136,5 +141,11 @@ class Order(Base):
         else:
             self.payment_status = PaymentStatus.PARTIALLY_PAID
 
+    @property
+    def status_str(self) -> str:
+        """Return status as a plain string, safe regardless of whether status is an enum or string."""
+        s = self.status
+        return s.value if hasattr(s, 'value') else str(s).lower()
+
     def __repr__(self):
-        return f"<Order {self.id} - {self.status.value}>"
+        return f"<Order {self.id} - {self.status_str}>"

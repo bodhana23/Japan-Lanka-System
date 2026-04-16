@@ -453,7 +453,7 @@ async def download_monthly_transaction_report(
             customer_name,
             customer_email,
             order.sales_channel.value if order.sales_channel else "",
-            order.status.value if order.status else "",
+            order.status_str if order.status else "",
             order.payment_status.value if hasattr(order, "payment_status") and order.payment_status else "",
             order.delivery_method.value if order.delivery_method else "",
             float(order.total_amount) if order.total_amount is not None else 0.0,
@@ -482,7 +482,7 @@ async def download_monthly_transaction_report(
         month = order.created_at.strftime("%Y-%m") if order.created_at else "Unknown"
         m = monthly[month]
         m["total_orders"] += 1
-        status_val = order.status.value if order.status else ""
+        status_val = order.status_str if order.status else ""
         channel_val = order.sales_channel.value if order.sales_channel else ""
         if status_val != "cancelled":
             m["total_revenue"] += float(order.total_amount) if order.total_amount else 0.0

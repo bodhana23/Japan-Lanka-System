@@ -74,7 +74,7 @@ def return_request_to_response(return_req: ReturnRequest) -> ReturnRequestRespon
         created_at=return_req.created_at,
         updated_at=return_req.updated_at,
         order_total=float(order.total_amount) if order else None,
-        order_status=order.status.value if order else None,
+        order_status=order.status_str if order else None,
         order_date=order.created_at if order else None,
         customer_name=customer.full_name if customer else (
             order.offline_customer_name if order else None
@@ -183,7 +183,7 @@ async def get_eligible_orders(
                 id=order.id,
                 created_at=order.created_at,
                 total_amount=float(order.total_amount),
-                status=order.status.value,
+                status=order.status_str,
                 delivery_method=order.delivery_method.value,
                 items=order_items,
                 has_pending_return=False,
@@ -236,7 +236,7 @@ async def create_return_request(
     if order.status not in eligible_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order must be delivered or picked up to request a return. Current status: {order.status.value}"
+            detail=f"Order must be delivered or picked up to request a return. Current status: {order.status_str}"
         )
 
     # Enforce 7-day return window
@@ -355,7 +355,7 @@ async def create_offline_return(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order must be in 'delivered' or 'picked_up' status to process a return. "
-                   f"Current status: {order.status.value}"
+                   f"Current status: {order.status_str}"
         )
 
     # Check no existing return request for this order

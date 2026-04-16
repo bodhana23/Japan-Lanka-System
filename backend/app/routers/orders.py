@@ -580,7 +580,7 @@ async def cancel_order(
     if order.status not in (OrderStatus.PENDING, OrderStatus.IN_PROGRESS):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot cancel an order in '{order.status.value}' state. Only pending or in-progress orders can be cancelled."
+            detail=f"Cannot cancel an order in '{order.status_str}' state. Only pending or in-progress orders can be cancelled."
         )
 
     old_status = order.status
@@ -657,7 +657,7 @@ async def cancel_order_by_manager(
     if order.status not in (OrderStatus.PENDING, OrderStatus.IN_PROGRESS):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot cancel an order in '{order.status.value}' state. Only pending or in-progress orders can be cancelled."
+            detail=f"Cannot cancel an order in '{order.status_str}' state. Only pending or in-progress orders can be cancelled."
         )
 
     old_status = order.status
