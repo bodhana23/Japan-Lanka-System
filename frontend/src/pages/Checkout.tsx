@@ -51,16 +51,11 @@ const Checkout: React.FC = () => {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Load districts — called on mount and whenever delivery method switches to shipping
+  // Load districts from API — called on mount and when shipping method is selected
   const loadDistricts = async () => {
     try {
       const response = await ordersApi.getDistricts();
       setDistricts(response.districts);
-      // If a district is already selected, update its fee immediately
-      if (shippingInfo.district) {
-        const selected = response.districts.find(d => d.name === shippingInfo.district);
-        setDeliveryFee(selected?.delivery_fee || 0);
-      }
     } catch (error) {
       console.error('Failed to load districts:', error);
     }
@@ -96,7 +91,7 @@ const Checkout: React.FC = () => {
     }
   }, [cart, navigate, showSuccessModal]);
 
-  // Refresh district list (and fee) whenever shipping is selected or district changes
+  // Load district list when shipping method is selected; clear fee when switching to pickup
   useEffect(() => {
     if (deliveryMethod === 'shipping') {
       loadDistricts();
@@ -104,7 +99,7 @@ const Checkout: React.FC = () => {
       setDeliveryFee(0);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliveryMethod, shippingInfo.district]);
+  }, [deliveryMethod]);
 
   // Submit PayHere form when data is ready
   useEffect(() => {
@@ -119,6 +114,11 @@ const Checkout: React.FC = () => {
       ...prev,
       [name]: value
     }));
+    // When district changes, immediately update the delivery fee from already-loaded districts
+    if (name === 'district') {
+      const selected = districts.find(d => d.name === value);
+      setDeliveryFee(selected?.delivery_fee || 0);
+    }
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
