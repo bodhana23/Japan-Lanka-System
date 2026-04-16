@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationsApi, Notification } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatRelativeTime } from '../utils/dateUtils';
-import { Bell, Package, RotateCcw, Gift, Megaphone, Inbox } from 'lucide-react';
+import { Bell, Package, RotateCcw, Gift, Megaphone, Inbox, AlertTriangle } from 'lucide-react';
 import './NotificationBell.css';
 
 const NotificationBell: React.FC = () => {
@@ -142,8 +142,10 @@ const NotificationBell: React.FC = () => {
           navigate('/manager');
         }
       } else if (role === 'admin') {
-        // Admin has order-pipeline (no returns section) — map both to order-pipeline
-        if (notification.related_return_id) {
+        // Low stock alerts → dedicated low-stock section
+        if (notification.title === 'Low Stock Alert') {
+          navigate('/admin?section=low-stock');
+        } else if (notification.related_return_id) {
           navigate(`/admin?section=order-pipeline&return_id=${notification.related_return_id}`);
         } else if (notification.related_order_id) {
           navigate(`/admin?section=order-pipeline&order_id=${notification.related_order_id}`);
@@ -180,8 +182,9 @@ const NotificationBell: React.FC = () => {
     }
   };
 
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch (type) {
+  const getNotificationIcon = (notification: Notification) => {
+    if (notification.title === 'Low Stock Alert') return <AlertTriangle size={16} />;
+    switch (notification.type) {
       case 'order_update': return <Package size={16} />;
       case 'return_update': return <RotateCcw size={16} />;
       case 'promotion': return <Gift size={16} />;
@@ -239,8 +242,8 @@ const NotificationBell: React.FC = () => {
                   className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
                   onClick={() => handleNotificationClick(notification)}
                 >
-                  <span className="notification-icon">
-                    {getNotificationIcon(notification.type)}
+                  <span className={`notification-icon${notification.title === 'Low Stock Alert' ? ' notification-icon--low-stock' : ''}`}>
+                    {getNotificationIcon(notification)}
                   </span>
                   <div className="notification-content">
                     <p className="notification-title">{notification.title}</p>
