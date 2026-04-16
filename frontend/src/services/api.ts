@@ -169,11 +169,6 @@ export interface CreateOrderRequest {
 }
 
 // Checkout types
-export interface District {
-  name: string;
-  delivery_fee: number;
-}
-
 export interface CheckoutCalculation {
   subtotal: number;
   delivery_fee: number;
@@ -181,13 +176,11 @@ export interface CheckoutCalculation {
   minimum_payment: number;
   full_payment: number;
   delivery_method: 'pickup' | 'shipping';
-  district?: string;
   requires_payment: boolean;
 }
 
 export interface InitiateCheckoutRequest {
   delivery_method: 'pickup' | 'shipping';
-  shipping_district?: string;
   shipping_address?: string;
   shipping_city?: string;
   shipping_postal_code?: string;
@@ -735,11 +728,6 @@ export const ordersApi = {
   },
 
   // Checkout endpoints
-  getDistricts: async (): Promise<{ districts: District[] }> => {
-    const response = await api.get<{ districts: District[] }>('/orders/checkout/districts');
-    return response.data;
-  },
-
   calculateCheckout: async (data: InitiateCheckoutRequest): Promise<CheckoutCalculation> => {
     const response = await api.post<CheckoutCalculation>('/orders/checkout/calculate', data);
     return response.data;
@@ -1294,42 +1282,6 @@ export const analyticsApi = {
     const response = await api.get<SalesChannelComparisonResponse>('/analytics/sales-channel-comparison', {
       params: { months },
     });
-    return response.data;
-  },
-};
-
-// ============ SYSTEM SETTINGS API ============
-
-export interface DeliveryFeeTier {
-  tier: string;
-  fee: number;
-  districts: string;
-  description: string;
-}
-
-export interface DeliveryFeesResponse {
-  tiers: DeliveryFeeTier[];
-}
-
-export interface SystemSettingResponse {
-  key: string;
-  value: string;
-  description?: string;
-  updated_by_employee_id?: string;
-  updated_at: string;
-}
-
-export const systemSettingsApi = {
-  getDeliveryFees: async (): Promise<DeliveryFeesResponse> => {
-    const response = await api.get<DeliveryFeesResponse>('/system-settings/delivery-fees');
-    return response.data;
-  },
-
-  updateDeliveryFee: async (tier: string, fee: number): Promise<SystemSettingResponse> => {
-    const response = await api.put<SystemSettingResponse>(
-      `/system-settings/delivery-fees/${tier}`,
-      { fee }
-    );
     return response.data;
   },
 };

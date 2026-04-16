@@ -31,9 +31,7 @@ from app.schemas.order import (
     PayHereFormData,
     CheckoutCalculation,
     ReturnItemSummary,
-    SRI_LANKA_DISTRICTS,
 )
-from app.models.system_settings import SystemSetting
 from app.schemas.order_status_history import (
     OrderStatusHistoryResponse,
     OrderStatusHistoryListResponse,
@@ -52,31 +50,6 @@ FRONTEND_URL = settings.FRONTEND_URL
 BACKEND_URL = settings.BACKEND_URL
 
 
-# District → tier mapping for DB-backed delivery fee lookup
-_DISTRICT_TO_TIER = {
-    "Matara": "tier1",
-    "Galle": "tier2", "Hambantota": "tier2",
-    "Ratnapura": "tier3", "Kalutara": "tier3", "Nuwara Eliya": "tier3", "Monaragala": "tier3",
-    "Colombo": "tier4", "Gampaha": "tier4", "Kegalle": "tier4", "Badulla": "tier4", "Kandy": "tier4",
-    "Kurunegala": "tier5", "Matale": "tier5", "Polonnaruwa": "tier5", "Anuradhapura": "tier5",
-    "Ampara": "tier5", "Batticaloa": "tier5", "Trincomalee": "tier5",
-    "Puttalam": "tier6", "Vavuniya": "tier6", "Mannar": "tier6",
-    "Mullaitivu": "tier6", "Kilinochchi": "tier6", "Jaffna": "tier6",
-}
-
-
-def get_delivery_fee_from_db(district: str, db: Session) -> Decimal:
-    """Read delivery fee from system_settings table. Always uses DB — no hardcoded fallback."""
-    tier = _DISTRICT_TO_TIER.get(district, "tier6")
-    setting = db.query(SystemSetting).filter(
-        SystemSetting.key == f"delivery_fee_{tier}"
-    ).first()
-    if setting:
-        return Decimal(setting.value)
-    raise HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail=f"Delivery fee configuration missing for tier '{tier}'. Contact admin."
-    )
 
 
 def generate_payhere_hash(merchant_id: str, order_id: str, amount: str, currency: str, merchant_secret: str) -> str:
@@ -988,16 +961,7 @@ async def calculate_checkout(
 
         subtotal += product.price * item_data.quantity
 
-    # Calculate delivery fee
     delivery_fee = Decimal("0")
-    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
-        if not checkout_data.shipping_district:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="District is required for delivery orders"
-            )
-        delivery_fee = get_delivery_fee_from_db(checkout_data.shipping_district, db)
-
     total_amount = subtotal + delivery_fee
 
     # For delivery: minimum 30% payment required
@@ -1012,22 +976,9 @@ async def calculate_checkout(
         minimum_payment=minimum_payment,
         full_payment=total_amount,
         delivery_method=checkout_data.delivery_method,
-        district=checkout_data.shipping_district,
+        district=None,
         requires_payment=requires_payment
     )
-
-
-@router.get("/checkout/districts")
-async def get_districts(db: Session = Depends(get_db)):
-    """Get list of Sri Lanka districts with delivery fees (reads live DB values)."""
-    districts = []
-    for district in SRI_LANKA_DISTRICTS:
-        fee = get_delivery_fee_from_db(district, db)
-        districts.append({
-            "name": district,
-            "delivery_fee": float(fee)
-        })
-    return {"districts": districts}
 
 
 @router.post("/checkout/initiate", response_model=InitiateCheckoutResponse)
@@ -1050,13 +1001,8 @@ async def initiate_checkout(
     - If skip_payment=True: Creates order immediately as PENDING (NOT_PAID)
     - If skip_payment=False: Returns PayHere form data for optional payment
     """
-    # Validate delivery orders require district
+    # Validate delivery orders require address
     if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
-        if not checkout_data.shipping_district:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="District is required for delivery orders"
-            )
         if not checkout_data.shipping_address:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1094,11 +1040,7 @@ async def initiate_checkout(
             "unit_price": product.price
         })
 
-    # Calculate delivery fee
     delivery_fee = Decimal("0")
-    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
-        delivery_fee = get_delivery_fee_from_db(checkout_data.shipping_district, db)
-
     total_amount = subtotal + delivery_fee
 
     # Determine payment amounts
@@ -1214,7 +1156,6 @@ async def initiate_checkout(
         paid_amount=Decimal("0"),
         remaining_amount=total_amount,
         payment_status=PaymentStatus.NOT_PAID,
-        shipping_district=checkout_data.shipping_district,
         shipping_address=checkout_data.shipping_address,
         shipping_city=checkout_data.shipping_city,
         shipping_postal_code=checkout_data.shipping_postal_code,

@@ -18,49 +18,18 @@ logger = logging.getLogger(__name__)
 from app.models import (  # noqa: F401
     Customer, Employee, Product, Order, OrderItem, AuditLog, ReturnRequest,
     Cart, CartItem, OrderStatusHistory, Notification, InventoryTransaction,
-    InventoryLog, ActivityLog, SystemSetting, Advertisement
+    InventoryLog, ActivityLog, Advertisement
 )
 
 # Import routers
 from app.routers import (
     auth_customer_router, auth_employee_router, products_router, orders_router,
     users_router, returns_router, cart_router, notifications_router, inventory_router,
-    auditor_router, payments_router, analytics_router, system_settings_router,
-    advertisements_router,
+    auditor_router, payments_router, analytics_router, advertisements_router,
 )
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
-
-# Seed default delivery fee tiers if they don't exist yet
-# (handles fresh deployments where alembic migrations may not have run the INSERT seed)
-def seed_delivery_fees():
-    from app.database import SessionLocal
-    from app.models.system_settings import SystemSetting
-    from app.utils.timezone import get_current_time
-
-    DEFAULT_FEES = {
-        "delivery_fee_tier1": ("600",  "Tier 1: Matara (origin/dispatch point)"),
-        "delivery_fee_tier2": ("1400", "Tier 2: Galle, Hambantota"),
-        "delivery_fee_tier3": ("2400", "Tier 3: Ratnapura, Kalutara, Nuwara Eliya, Monaragala"),
-        "delivery_fee_tier4": ("3200", "Tier 4: Colombo, Gampaha, Kegalle, Badulla, Kandy"),
-        "delivery_fee_tier5": ("4000", "Tier 5: Kurunegala, Matale, Polonnaruwa, Anuradhapura, Ampara, Batticaloa, Trincomalee"),
-        "delivery_fee_tier6": ("4800", "Tier 6: Puttalam, Vavuniya, Mannar, Mullaitivu, Kilinochchi, Jaffna"),
-    }
-    db = SessionLocal()
-    try:
-        for key, (value, description) in DEFAULT_FEES.items():
-            exists = db.query(SystemSetting).filter(SystemSetting.key == key).first()
-            if not exists:
-                db.add(SystemSetting(key=key, value=value, description=description, updated_at=get_current_time()))
-        db.commit()
-    except Exception as e:
-        logger.warning(f"Could not seed delivery fees: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-seed_delivery_fees()
 
 # Initialize Firebase Admin SDK for Google OAuth token verification
 # SECURITY: This must be initialized before handling any Google auth requests
@@ -175,7 +144,6 @@ app.include_router(inventory_router, prefix=settings.API_V1_PREFIX)
 app.include_router(auditor_router, prefix=settings.API_V1_PREFIX)
 app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
-app.include_router(system_settings_router, prefix=settings.API_V1_PREFIX)
 app.include_router(advertisements_router, prefix=settings.API_V1_PREFIX)
 
 

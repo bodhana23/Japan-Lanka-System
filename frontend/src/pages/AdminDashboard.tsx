@@ -11,7 +11,6 @@ import {
   DashboardChangePassword,
   DashboardOrderPipeline,
   DashboardDiscounts,
-  DashboardSystemSettings,
   DashboardAds,
 } from '../components/admin';
 import ProfileModal from '../components/ProfileModal';
@@ -20,12 +19,12 @@ import type { SalesData, BrandSales, ReturnAnalyticsResponse, OrderPipelineRespo
 import {
   Plus, CheckCircle, Clock, AlertTriangle, Trash2,
   Users, BarChart2, User, Shield, Pencil, Lock, GitBranch, Eye, EyeOff,
-  Tag, Settings, Megaphone, Truck
+  Tag, Settings, Megaphone
 } from 'lucide-react';
 import './AdminDashboard.css';
 
 // Navigation item IDs for Admin Dashboard
-type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password' | 'discounts' | 'system-settings' | 'ads';
+type AdminNavId = 'users' | 'low-stock' | 'analytics' | 'order-pipeline' | 'profile' | 'change-password' | 'discounts' | 'ads';
 
 interface LowStockProduct {
   id: string;
@@ -118,7 +117,6 @@ const AdminDashboard: React.FC = () => {
     { id: 'low-stock', label: 'Low Stock Alerts', icon: <AlertTriangle size={20} /> },
     { id: 'discounts', label: 'Product Discounts', icon: <Tag size={20} /> },
     { id: 'ads', label: 'Advertisements', icon: <Megaphone size={20} /> },
-    { id: 'system-settings', label: 'Delivery Fees', icon: <Truck size={20} /> },
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
     { id: 'change-password', label: 'Change Password', icon: <Lock size={20} /> },
   ], []);
@@ -127,7 +125,7 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sectionParam = params.get('section') as AdminNavId | null;
-    if (sectionParam && ['analytics', 'order-pipeline', 'users', 'low-stock', 'profile', 'change-password', 'discounts', 'ads', 'system-settings'].includes(sectionParam)) {
+    if (sectionParam && ['analytics', 'order-pipeline', 'users', 'low-stock', 'profile', 'change-password', 'discounts', 'ads'].includes(sectionParam)) {
       setActiveNav(sectionParam);
     }
   }, [location.search]);
@@ -726,9 +724,6 @@ const AdminDashboard: React.FC = () => {
 
       case 'ads':
         return <DashboardAds onShowToast={showToast} />;
-
-      case 'system-settings':
-        return <DashboardSystemSettings onShowToast={showToast} />;
 
       case 'profile':
         return (

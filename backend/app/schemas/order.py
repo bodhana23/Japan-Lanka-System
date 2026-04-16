@@ -9,53 +9,6 @@ from pydantic import BaseModel, Field, field_validator
 from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentStatus
 
 
-# Sri Lanka Districts with delivery fees — graduated by distance from Matara (origin)
-SRI_LANKA_DISTRICTS = {
-    # Tier 1 — Rs. 600: Matara (origin/dispatch point)
-    "Matara": 600,
-
-    # Tier 2 — Rs. 1400: Adjacent southern districts
-    "Galle": 1400,
-    "Hambantota": 1400,
-
-    # Tier 3 — Rs. 2400: Mid-south districts
-    "Ratnapura": 2400,
-    "Kalutara": 2400,
-    "Nuwara Eliya": 2400,
-    "Monaragala": 2400,
-
-    # Tier 4 — Rs. 3200: Central and western districts
-    "Colombo": 3200,
-    "Gampaha": 3200,
-    "Kegalle": 3200,
-    "Badulla": 3200,
-    "Kandy": 3200,
-
-    # Tier 5 — Rs. 4000: Northern-central and eastern districts
-    "Kurunegala": 4000,
-    "Matale": 4000,
-    "Polonnaruwa": 4000,
-    "Anuradhapura": 4000,
-    "Ampara": 4000,
-    "Batticaloa": 4000,
-    "Trincomalee": 4000,
-
-    # Tier 6 — Rs. 4800: Far northern districts
-    "Puttalam": 4800,
-    "Vavuniya": 4800,
-    "Mannar": 4800,
-    "Mullaitivu": 4800,
-    "Kilinochchi": 4800,
-    "Jaffna": 4800,
-}
-
-
-def get_delivery_fee(district: str) -> Decimal:
-    """Get delivery fee based on district (graduated by distance from Matara)."""
-    fee = SRI_LANKA_DISTRICTS.get(district, 4800)  # Default to tier 6 for unknown districts
-    return Decimal(str(fee))
-
-
 # Order Item schemas
 class OrderItemCreate(BaseModel):
     product_id: UUID
@@ -85,15 +38,6 @@ class OrderCreate(BaseModel):
     items: List[OrderItemCreate] = Field(..., min_length=1)
     # Payment options for online checkout
     pay_full_amount: bool = Field(True, description="If True, pay 100%. If False, pay minimum 30% for delivery orders.")
-
-    @field_validator('shipping_district')
-    @classmethod
-    def validate_district(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that district is in Sri Lanka districts list."""
-        if v is not None and v not in SRI_LANKA_DISTRICTS:
-            raise ValueError(f'Invalid district. Must be one of: {", ".join(SRI_LANKA_DISTRICTS.keys())}')
-        return v
-
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
@@ -240,15 +184,6 @@ class InitiateCheckoutRequest(BaseModel):
     items: List[OrderItemCreate] = Field(..., min_length=1)
     pay_full_amount: bool = Field(True, description="True = pay 100%, False = pay 30% minimum")
     skip_payment: bool = Field(False, description="For pickup orders: skip payment entirely")
-
-    @field_validator('shipping_district')
-    @classmethod
-    def validate_district(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that district is in Sri Lanka districts list."""
-        if v is not None and v not in SRI_LANKA_DISTRICTS:
-            raise ValueError(f'Invalid district. Must be one of: {", ".join(SRI_LANKA_DISTRICTS.keys())}')
-        return v
-
 
 class PayHereFormData(BaseModel):
     """Data required to submit PayHere checkout form."""
