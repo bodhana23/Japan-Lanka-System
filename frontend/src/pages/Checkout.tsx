@@ -51,17 +51,24 @@ const Checkout: React.FC = () => {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Load districts on mount
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const response = await ordersApi.getDistricts();
-        setDistricts(response.districts);
-      } catch (error) {
-        console.error('Failed to load districts:', error);
+  // Load districts — called on mount and whenever delivery method switches to shipping
+  const loadDistricts = async () => {
+    try {
+      const response = await ordersApi.getDistricts();
+      setDistricts(response.districts);
+      // If a district is already selected, update its fee immediately
+      if (shippingInfo.district) {
+        const selected = response.districts.find(d => d.name === shippingInfo.district);
+        setDeliveryFee(selected?.delivery_fee || 0);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load districts:', error);
+    }
+  };
+
+  useEffect(() => {
     loadDistricts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -89,23 +96,15 @@ const Checkout: React.FC = () => {
     }
   }, [cart, navigate, showSuccessModal]);
 
-  // Update delivery fee when district changes — always fetch fresh from API
+  // Refresh district list (and fee) whenever shipping is selected or district changes
   useEffect(() => {
-    if (shippingInfo.district && deliveryMethod === 'shipping') {
-      ordersApi.getDistricts().then(response => {
-        const selected = response.districts.find(d => d.name === shippingInfo.district);
-        setDeliveryFee(selected?.delivery_fee || 0);
-        // Refresh the dropdown list too so displayed fees are current
-        setDistricts(response.districts);
-      }).catch(() => {
-        // Fallback to cached value if fetch fails
-        const selectedDistrict = districts.find(d => d.name === shippingInfo.district);
-        setDeliveryFee(selectedDistrict?.delivery_fee || 0);
-      });
+    if (deliveryMethod === 'shipping') {
+      loadDistricts();
     } else {
       setDeliveryFee(0);
     }
-  }, [shippingInfo.district, deliveryMethod]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryMethod, shippingInfo.district]);
 
   // Submit PayHere form when data is ready
   useEffect(() => {
