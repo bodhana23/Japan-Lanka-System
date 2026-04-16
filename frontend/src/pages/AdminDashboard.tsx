@@ -646,7 +646,6 @@ const AdminDashboard: React.FC = () => {
             isLoading={isLoadingProducts}
             error={productsError}
             onRefresh={refreshStockData}
-            onOrderMore={handleOrderMore}
             onRetry={fetchLowStockProducts}
           />
         );

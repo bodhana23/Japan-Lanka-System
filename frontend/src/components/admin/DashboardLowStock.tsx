@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  AlertTriangle, RefreshCw, Package, Clock, CheckCircle, ImageOff
+  AlertTriangle, RefreshCw, Clock, CheckCircle, ImageOff
 } from 'lucide-react';
 import './DashboardLowStock.css';
 
@@ -24,7 +24,6 @@ interface DashboardLowStockProps {
   isLoading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onOrderMore: (productId: string) => void;
   onRetry: () => void;
 }
 
@@ -34,7 +33,6 @@ const DashboardLowStock: React.FC<DashboardLowStockProps> = ({
   isLoading,
   error,
   onRefresh,
-  onOrderMore,
   onRetry,
 }) => {
   return (
@@ -114,14 +112,6 @@ const DashboardLowStock: React.FC<DashboardLowStockProps> = ({
                   Rs. {item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="admin-product-category">{item.category}</p>
-              </div>
-              <div className="admin-product-actions">
-                <button
-                  onClick={() => onOrderMore(item.id)}
-                  className="admin-order-btn"
-                >
-                  <Package size={16} /> Order More
-                </button>
               </div>
             </div>
           ))}

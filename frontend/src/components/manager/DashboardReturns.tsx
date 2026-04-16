@@ -10,7 +10,7 @@ interface ReturnRequestUI {
   customer_email: string;
   reason: string;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
   created_at: string;
   updated_at: string;

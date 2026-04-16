@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.models.order import OrderStatus
+from app.models.order import OrderStatus, OrderStatusType
 from app.utils.timezone import get_current_time
 
 
@@ -16,11 +16,11 @@ class OrderStatusHistory(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
     old_status = Column(
-        Enum(OrderStatus, name="order_status", create_type=False),
+        OrderStatusType,
         nullable=True  # Null for initial status when order is created
     )
     new_status = Column(
-        Enum(OrderStatus, name="order_status", create_type=False),
+        OrderStatusType,
         nullable=False
     )
     changed_by_employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, index=True)

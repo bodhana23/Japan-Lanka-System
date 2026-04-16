@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ordersApi, returnsApi, Order, ReturnItemSummary, COMPANY_CONTACT_PHONE } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
 import { AlertTriangle, Inbox, Store, Truck, Package, RefreshCw, FileText, Loader2, XCircle } from 'lucide-react';
+import ConfirmModal from '../ConfirmModal';
+import Toast from '../Toast';
 import './DashboardOrders.css';
 
 type NavItemId = 'overview' | 'orders' | 'order-details' | 'returns' | 'cart' | 'profile' | 'change-password';
@@ -38,6 +40,7 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
   const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
   const [cancelTargetOrder, setCancelTargetOrder] = useState<Order | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Fetch orders from API
   useEffect(() => {
@@ -187,17 +190,22 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
     }
   };
 
-  const handleCancelOrder = async (order: Order) => {
-    if (!window.confirm(`Cancel order #${order.id.slice(0, 8).toUpperCase()}? This cannot be undone.`)) return;
+  const handleCancelOrder = (order: Order) => {
+    setCancelTargetOrder(order);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelTargetOrder) return;
     try {
       setIsCancelling(true);
-      const updated = await ordersApi.cancelOrder(order.id);
+      const updated = await ordersApi.cancelOrder(cancelTargetOrder.id);
       setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+      setToast({ message: 'Order cancelled successfully.', type: 'success' });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to cancel order. Please try again.');
-      setTimeout(() => setError(null), 4000);
+      setToast({ message: err.response?.data?.detail || 'Failed to cancel order. Please try again.', type: 'error' });
     } finally {
       setIsCancelling(false);
+      setCancelTargetOrder(null);
     }
   };
 
@@ -547,6 +555,26 @@ const DashboardOrders: React.FC<DashboardOrdersProps> = ({ onNavigate, highlight
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cancel Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={cancelTargetOrder !== null}
+        title="Cancel Order"
+        message={`Are you sure you want to cancel order #${cancelTargetOrder?.id.slice(0, 8).toUpperCase()}? This cannot be undone.`}
+        confirmLabel={isCancelling ? 'Cancelling...' : 'Yes, Cancel Order'}
+        cancelLabel="No, Keep Order"
+        confirmVariant="danger"
+        onConfirm={confirmCancelOrder}
+        onCancel={() => setCancelTargetOrder(null)}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

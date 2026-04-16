@@ -4,7 +4,7 @@ import { returnsApi, EligibleOrder, EligibleOrderItem, ReturnRequest } from '../
 import { formatDateTime, formatDate } from '../../utils/dateUtils';
 import {
   CheckCircle, RefreshCw, AlertTriangle, Package, Calendar,
-  Inbox, RotateCcw, Clock, XCircle, CheckCircle2
+  Inbox, RotateCcw, Clock, XCircle
 } from 'lucide-react';
 import './DashboardReturns.css';
 
@@ -20,7 +20,6 @@ const STATUS_CONFIG: Record<string, { label: string; cssClass: string; icon: Rea
   pending:   { label: 'Pending Review', cssClass: 'dret-status-pending',   icon: <Clock size={13} /> },
   approved:  { label: 'Approved',       cssClass: 'dret-status-approved',  icon: <CheckCircle size={13} /> },
   rejected:  { label: 'Rejected',       cssClass: 'dret-status-rejected',  icon: <XCircle size={13} /> },
-  completed: { label: 'Completed',      cssClass: 'dret-status-completed', icon: <CheckCircle2 size={13} /> },
 };
 
 interface SelectedItem {
@@ -358,12 +357,12 @@ const DashboardReturns: React.FC<DashboardReturnsProps> = ({ onNavigate, autoOpe
                       <span>{ret.reason}</span>
                     </div>
 
-                    {/* Items — two-column breakdown for approved/completed, simple list otherwise */}
+                    {/* Items — two-column breakdown for approved, simple list otherwise */}
                     {ret.items && ret.items.length > 0 && (
-                      (ret.status === 'approved' || ret.status === 'completed') ? (
+                      ret.status === 'approved' ? (
                         <div className="dret-item-breakdown">
                           <div className="dret-item-breakdown-header">
-                            ✓ {ret.status === 'completed' ? 'Return Completed' : 'Return Approved'}
+                            ✓ Return Approved
                           </div>
                           <div className="dret-item-breakdown-columns">
                             <div className="dret-item-col">

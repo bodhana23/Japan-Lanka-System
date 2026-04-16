@@ -1,6 +1,7 @@
 """Returns router for return request management."""
 
 from datetime import timedelta
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 import math
@@ -388,7 +389,7 @@ async def create_offline_return(
         processed_by_employee_id=current_employee.id,
         reason=return_data.reason,
         description=return_data.description,
-        status=ReturnStatus.COMPLETED  # Immediately completed — manager has goods in hand
+        status=ReturnStatus.APPROVED  # Immediately approved — manager has goods in hand
     )
     db.add(return_request)
     db.flush()  # Get return_request.id before creating related items
@@ -422,7 +423,7 @@ async def create_offline_return(
     # Audit log
     log_inventory_event(
         db=db,
-        action_type=InventoryActionType.RETURN_COMPLETED,
+        action_type=InventoryActionType.RETURN_APPROVED,
         description=(
             f"Offline return processed by {current_employee.email} "
             f"for Order #{str(order_id)[:8]} ({len(return_data.items)} item type(s))"
@@ -528,16 +529,13 @@ async def update_return_request_status(
     old_status = return_request.status
 
     # Business rule: Valid status transitions
-    # PENDING → APPROVED or REJECTED
-    # APPROVED → COMPLETED (when returned goods are physically received back)
-    # REJECTED and COMPLETED are terminal states
+    # PENDING → APPROVED or REJECTED (both are terminal)
     valid_transitions = {
         ReturnStatus.PENDING: [ReturnStatus.APPROVED, ReturnStatus.REJECTED],
-        ReturnStatus.APPROVED: [ReturnStatus.COMPLETED],
     }
     allowed_next = valid_transitions.get(old_status, [])
     if status_update.status not in allowed_next:
-        if old_status in (ReturnStatus.REJECTED, ReturnStatus.COMPLETED):
+        if old_status in (ReturnStatus.REJECTED, ReturnStatus.APPROVED, ReturnStatus.COMPLETED):
             detail = f"Return request is already '{old_status.value}' and cannot be modified."
         else:
             detail = (
@@ -560,16 +558,19 @@ async def update_return_request_status(
         return_request.admin_notes = status_update.admin_notes
 
     # When approved, update the associated order status to return_approved
+    # and restore inventory stock for returned items
     if status_update.status == ReturnStatus.APPROVED:
         order = db.query(Order).filter(Order.id == return_request.order_id).first()
         if order:
             order.status = OrderStatus.RETURN_APPROVED
 
-    # When completed, restore inventory stock for returned items
-    if status_update.status == ReturnStatus.COMPLETED:
+        refund_total = Decimal("0")
         for return_item in return_request.return_items:
             order_item = db.query(OrderItem).filter(OrderItem.id == return_item.order_item_id).first()
             if order_item:
+                # Accumulate refund value
+                refund_total += Decimal(str(return_item.quantity)) * Decimal(str(order_item.unit_price))
+
                 product = db.query(Product).filter(Product.id == order_item.product_id).first()
                 if product:
                     quantity_before = product.quantity_available
@@ -581,24 +582,23 @@ async def update_return_request_status(
                         quantity_change=return_item.quantity,
                         quantity_before=quantity_before,
                         quantity_after=product.quantity_available,
-                        reason=f"Return #{str(return_request.id)[:8]} completed",
+                        reason=f"Return #{str(return_request.id)[:8]} approved",
                         reference_order_id=return_request.order_id
                     )
                     db.add(inv_transaction)
+
+        # Deduct refund amount from the order's paid_amount so analytics reflect the loss
+        if order and refund_total > 0:
+            current_paid = Decimal(str(order.paid_amount or 0))
+            order.paid_amount = max(Decimal("0"), current_paid - refund_total)
 
     # Determine action type based on new status
     if status_update.status == ReturnStatus.APPROVED:
         action_type = InventoryActionType.RETURN_APPROVED
         description = f"Return request approved by {current_employee.email}"
-    elif status_update.status == ReturnStatus.REJECTED:
+    else:
         action_type = InventoryActionType.RETURN_REJECTED
         description = f"Return request rejected by {current_employee.email}: {status_update.admin_notes}"
-    elif status_update.status == ReturnStatus.COMPLETED:
-        action_type = InventoryActionType.RETURN_COMPLETED
-        description = f"Return request completed by {current_employee.email}"
-    else:
-        action_type = InventoryActionType.RETURN_CREATED  # Fallback
-        description = f"Return request status changed to {status_update.status.value} by {current_employee.email}"
 
     # Log inventory event for return status change
     log_inventory_event(

@@ -1,9 +1,10 @@
 import uuid
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, String, DateTime, Text, Numeric, Enum, ForeignKey
+from sqlalchemy import Column, String, DateTime, Text, Numeric, Enum, ForeignKey, VARCHAR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import TypeDecorator
 
 from app.database import Base
 from app.utils.timezone import get_current_time
@@ -18,6 +19,25 @@ class OrderStatus(str, PyEnum):
     CANCELLED = "cancelled"
     RETURN_APPROVED = "return_approved"
     PICKED_UP = "picked_up"
+
+
+class OrderStatusType(TypeDecorator):
+    """Stores OrderStatus as VARCHAR; coerces DB value to OrderStatus enum on read."""
+    impl = VARCHAR(50)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, OrderStatus):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        try:
+            return OrderStatus(value)
+        except ValueError:
+            return value
 
 
 class DeliveryMethod(str, PyEnum):
@@ -42,7 +62,7 @@ class Order(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True, index=True)  # Nullable for offline sales
     status = Column(
-        Enum(OrderStatus, name="order_status", create_type=True),
+        OrderStatusType,
         nullable=False,
         default=OrderStatus.PENDING
     )

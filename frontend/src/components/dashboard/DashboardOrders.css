@@ -409,22 +409,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: white;
-  border: 2px solid #e74c3c;
-  color: #e74c3c;
+  background-color: #e74c3c !important;
+  border: 2px solid #e74c3c !important;
+  color: white !important;
   padding: 10px 20px;
   border-radius: 25px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dord-cancel-btn:hover:not(:disabled) {
-  background: #e74c3c;
-  color: white;
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.35);
 }
 
 .dord-cancel-btn:disabled {

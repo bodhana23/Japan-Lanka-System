@@ -131,7 +131,7 @@ export interface Order {
   customer_email?: string;
   is_billable?: boolean;
   has_return_request?: boolean;  // Whether a return request exists for this order
-  return_status?: string;  // Status of the latest return request (pending/approved/rejected/completed)
+  return_status?: string;  // Status of the latest return request (pending/approved/rejected)
   return_admin_notes?: string;  // Manager notes from the return decision
   return_items?: ReturnItemSummary[];  // Items that were returned (populated when return exists)
 }
@@ -338,7 +338,7 @@ export interface ReturnRequest {
   is_offline_return?: boolean;
   reason: string;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
   created_at: string;
   updated_at: string;

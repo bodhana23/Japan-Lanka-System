@@ -53,7 +53,7 @@ interface ReturnRequestUI {
   customer_email: string;
   reason: string;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
   created_at: string;
   updated_at: string;
@@ -1445,7 +1445,6 @@ const ReturnDetailModal: React.FC<{
       case 'pending': return '#f39c12';
       case 'approved': return '#27ae60';
       case 'rejected': return '#e74c3c';
-      case 'completed': return '#3498db';
       default: return '#7f8c8d';
     }
   };

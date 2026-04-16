@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.models import Notification
 from app.models.notification import NotificationType
 
+COMPANY_PHONE = "+94 41 234 5678"
+
 
 class NotificationService:
     """Service for creating and managing notifications."""
@@ -305,9 +307,8 @@ def notify_return_status_change(
     # Status → Message mapping for return request notifications
     status_messages = {
         "pending": "Your return request is under review.",
-        "approved": "Your return request has been approved.",
+        "approved": f"Your return request has been approved. To process your refund, please call Japan Lanka Enterprises at {COMPANY_PHONE}.",
         "rejected": "Your return request has been rejected.",
-        "completed": "Your refund has been processed successfully."
     }
 
     # Status → Title mapping for cleaner titles
@@ -315,7 +316,6 @@ def notify_return_status_change(
         "pending": "Return Status: Pending",
         "approved": "Return Status: Approved",
         "rejected": "Return Status: Rejected",
-        "completed": "Return Status: Completed"
     }
 
     message = status_messages.get(
