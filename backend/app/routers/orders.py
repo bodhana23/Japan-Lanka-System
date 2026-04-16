@@ -31,7 +31,6 @@ from app.schemas.order import (
     PayHereFormData,
     CheckoutCalculation,
     ReturnItemSummary,
-    get_delivery_fee,
     SRI_LANKA_DISTRICTS,
 )
 from app.models.system_settings import SystemSetting
@@ -67,14 +66,17 @@ _DISTRICT_TO_TIER = {
 
 
 def get_delivery_fee_from_db(district: str, db: Session) -> Decimal:
-    """Read delivery fee from system_settings table. Falls back to hardcoded values."""
+    """Read delivery fee from system_settings table. Always uses DB — no hardcoded fallback."""
     tier = _DISTRICT_TO_TIER.get(district, "tier6")
     setting = db.query(SystemSetting).filter(
         SystemSetting.key == f"delivery_fee_{tier}"
     ).first()
     if setting:
         return Decimal(setting.value)
-    return get_delivery_fee(district)  # fallback to hardcoded
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=f"Delivery fee configuration missing for tier '{tier}'. Contact admin."
+    )
 
 
 def generate_payhere_hash(merchant_id: str, order_id: str, amount: str, currency: str, merchant_secret: str) -> str:

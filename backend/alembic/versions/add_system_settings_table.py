@@ -39,7 +39,7 @@ def upgrade() -> None:
         ),
     )
 
-    # Seed the 6 delivery fee tiers (matching current hardcoded values in schemas/order.py)
+    # Seed the 6 delivery fee tiers only if they don't already exist
     op.execute("""
         INSERT INTO system_settings (key, value, description, updated_at) VALUES
         ('delivery_fee_tier1', '600',  'Tier 1: Matara (origin/dispatch point)', NOW()),
@@ -48,6 +48,7 @@ def upgrade() -> None:
         ('delivery_fee_tier4', '3200', 'Tier 4: Colombo, Gampaha, Kegalle, Badulla, Kandy', NOW()),
         ('delivery_fee_tier5', '4000', 'Tier 5: Kurunegala, Matale, Polonnaruwa, Anuradhapura, Ampara, Batticaloa, Trincomalee', NOW()),
         ('delivery_fee_tier6', '4800', 'Tier 6: Puttalam, Vavuniya, Mannar, Mullaitivu, Kilinochchi, Jaffna', NOW())
+        ON CONFLICT (key) DO NOTHING
     """)
 
 
