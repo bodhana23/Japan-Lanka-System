@@ -136,7 +136,7 @@
 
 .admin-pipeline-flow {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.5rem;
   padding-bottom: 0.25rem;
 }
@@ -146,6 +146,8 @@
   flex: 1;
   min-width: 120px;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-pipeline-stage-bar {
@@ -210,6 +212,9 @@
   align-items: center;
   gap: 0.2rem;
   margin-top: 0.45rem;
+  flex: 1;
+  justify-content: flex-start;
+  min-height: 2.5rem;
 }
 
 .admin-pipeline-percentage {
@@ -245,6 +250,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  align-self: center;
 }
 
 /* Branched Pipeline Layout */
@@ -333,18 +339,17 @@
   overflow-x: visible;
   padding: 0;
   margin: 0;
-  align-items: center;
+  align-items: stretch;
 }
 
 .admin-pipeline-track .admin-pipeline-stage {
   flex: 1;
   min-width: 0;
-  align-self: flex-start;
 }
 
 .admin-pipeline-track .admin-pipeline-arrow {
-  align-self: flex-start;
-  margin-top: 28px;
+  align-self: center;
+  margin-top: 0;
 }
 
 /* Cancelled Section */
