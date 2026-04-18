@@ -283,12 +283,17 @@
   padding: 14px 16px;
   border: none;
   border-radius: 12px;
-  background: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
+  color: #ff6b6b;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.dl-logout-btn svg {
+  color: #ff6b6b;
+  flex-shrink: 0;
 }
 
 .dl-logout-btn:hover {
