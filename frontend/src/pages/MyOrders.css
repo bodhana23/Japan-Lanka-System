@@ -4,6 +4,8 @@
 
 .my-orders-page {
   min-height: 100vh;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background:
     radial-gradient(circle, rgba(16, 185, 129, 0.18) 1px, transparent 1px),
     radial-gradient(circle, rgba(16, 185, 129, 0.07) 2px, transparent 2px),
@@ -111,6 +113,8 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 30px 20px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .mo-page-header {
@@ -361,6 +365,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .mo-order-total {
@@ -673,6 +679,11 @@
     padding: 12px 15px;
   }
 
+  .mo-header-content {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .mo-logo-text {
     display: none;
   }
@@ -683,16 +694,25 @@
 
   .mo-main {
     padding: 20px 15px;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .mo-page-title {
     font-size: 1.5rem;
   }
 
+  .mo-order-card {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
   .mo-order-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    box-sizing: border-box;
   }
 
   .mo-order-items li {
@@ -721,6 +741,12 @@
     flex-direction: column;
     gap: 15px;
     align-items: stretch;
+    box-sizing: border-box;
+  }
+
+  .mo-footer-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .mo-order-actions {
@@ -729,10 +755,12 @@
   }
 
   .mo-download-btn,
-  .mo-return-btn {
+  .mo-return-btn,
+  .mo-return-requested-label {
     width: 100%;
     text-align: center;
     justify-content: center;
+    box-sizing: border-box;
   }
 }
 
