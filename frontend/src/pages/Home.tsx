@@ -393,24 +393,12 @@ const Home: React.FC = () => {
             <div className="about-visual">
               <div className="about-image-wrapper">
                 <img
-                  src="/images/company-image.jpg"
+                  src="/images/storefront.webp"
                   alt="Japan Lanka Enterprises Showroom"
                   className="about-img"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
-                  }}
-                />
-                <div className="about-image-overlay"></div>
-              </div>
-              <div className="about-image-wrapper about-image-wrapper-second">
-                <img
-                  src="/images/storefront.webp"
-                  alt="Japan Lanka Enterprises Storefront"
-                  className="about-img"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.parentElement!.style.display = 'none';
                   }}
                 />
                 <div className="about-image-overlay"></div>
