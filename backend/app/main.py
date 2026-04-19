@@ -84,6 +84,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         elif error_type == "value_error":
             # Use the custom validation message from our validators
             message = error.get("msg", message)
+        elif error_type == "less_than_equal":
+            limit_value = error.get("ctx", {}).get("le", error.get("ctx", {}).get("limit_value", "the allowed limit"))
+            message = f"You can only order up to {limit_value} of the same part per order"
         elif error_type == "missing":
             message = f"{field} is required"
         elif "email" in error_type.lower():

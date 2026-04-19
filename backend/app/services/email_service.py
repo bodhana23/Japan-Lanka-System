@@ -238,7 +238,7 @@ _RETURN_STATUS_LABELS = {
 
 # Return status → body message
 _RETURN_STATUS_MESSAGES = {
-    "approved": "Great news! Your return request has been approved. To process your refund, please contact Japan Lanka Enterprises at <strong>+94 41 234 5678</strong>.",
+    "approved": "Great news! Your return request has been approved. To process your refund, please contact Japan Lanka Enterprises at <strong>0412245345</strong>.",
     "rejected": "We're sorry to inform you that your return request has been reviewed and could not be approved at this time.",
 }
 

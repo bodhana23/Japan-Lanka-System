@@ -110,6 +110,14 @@ async def add_item_to_cart(
         CartItem.product_id == item_data.product_id
     ).first()
 
+    if not existing_item:
+        distinct_count = db.query(CartItem).filter(CartItem.cart_id == cart.id).count()
+        if distinct_count >= 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cart is full. You can have at most 50 different parts in your cart."
+            )
+
     if existing_item:
         # Update quantity
         new_quantity = existing_item.quantity + item_data.quantity

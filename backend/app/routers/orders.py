@@ -11,6 +11,7 @@ import math
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 
 from app.database import get_db
 from app.models import Order, OrderItem, Product, Customer, Employee, OrderStatusHistory, InventoryTransaction, ReturnRequest
@@ -294,104 +295,108 @@ async def create_order(
     total_amount = Decimal("0")
     order_items = []
 
-    for item_data in order_data.items:
-        product = db.query(Product).filter(
-            Product.id == item_data.product_id,
-            Product.is_active == True
-        ).first()
+    try:
+        for item_data in order_data.items:
+            product = db.query(Product).filter(
+                Product.id == item_data.product_id,
+                Product.is_active == True
+            ).with_for_update().first()
 
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product {item_data.product_id} not found or inactive"
-            )
+            if not product:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Product {item_data.product_id} not found or inactive"
+                )
 
-        if product.quantity_available < item_data.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
-            )
+            if product.quantity_available < item_data.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
+                )
 
-        # Calculate item total
-        item_total = product.price * item_data.quantity
-        total_amount += item_total
+            # Calculate item total
+            item_total = product.price * item_data.quantity
+            total_amount += item_total
 
-        order_items.append({
-            "product": product,
-            "quantity": item_data.quantity,
-            "unit_price": product.price
-        })
+            order_items.append({
+                "product": product,
+                "quantity": item_data.quantity,
+                "unit_price": product.price
+            })
 
-    # Create order
-    order = Order(
-        customer_id=current_customer.id,
-        status=OrderStatus.PENDING,
-        delivery_method=order_data.delivery_method,
-        total_amount=total_amount,
-        shipping_address=order_data.shipping_address,
-        shipping_city=order_data.shipping_city,
-        shipping_postal_code=order_data.shipping_postal_code,
-        notes=order_data.notes
-    )
-    db.add(order)
-    db.flush()  # Get order ID
+        # Create order
+        order = Order(
+            customer_id=current_customer.id,
+            status=OrderStatus.PENDING,
+            delivery_method=order_data.delivery_method,
+            total_amount=total_amount,
+            shipping_address=order_data.shipping_address,
+            shipping_city=order_data.shipping_city,
+            shipping_postal_code=order_data.shipping_postal_code,
+            notes=order_data.notes
+        )
+        db.add(order)
+        db.flush()  # Get order ID
 
-    # Create initial order status history (no employee, customer-initiated)
-    status_history = OrderStatusHistory(
-        order_id=order.id,
-        old_status=None,
-        new_status=OrderStatus.PENDING,
-        changed_by_employee_id=None,  # Customer-initiated
-        notes="Order created"
-    )
-    db.add(status_history)
-
-    # Create order items and update product quantities with inventory tracking
-    for item_data in order_items:
-        order_item = OrderItem(
+        # Create initial order status history (no employee, customer-initiated)
+        status_history = OrderStatusHistory(
             order_id=order.id,
-            product_id=item_data["product"].id,
-            quantity=item_data["quantity"],
-            unit_price=item_data["unit_price"]
+            old_status=None,
+            new_status=OrderStatus.PENDING,
+            changed_by_employee_id=None,  # Customer-initiated
+            notes="Order created"
         )
-        db.add(order_item)
+        db.add(status_history)
 
-        # Reduce product quantity and track inventory
-        product = item_data["product"]
-        quantity_before = product.quantity_available
-        product.quantity_available -= item_data["quantity"]
+        # Create order items and update product quantities with inventory tracking
+        for item_data in order_items:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item_data["product"].id,
+                quantity=item_data["quantity"],
+                unit_price=item_data["unit_price"]
+            )
+            db.add(order_item)
 
-        inventory_transaction = InventoryTransaction(
-            product_id=product.id,
-            employee_id=None,  # Customer-initiated, no employee
-            transaction_type=TransactionType.STOCK_OUT,
-            quantity_change=-item_data["quantity"],
-            quantity_before=quantity_before,
-            quantity_after=product.quantity_available,
-            reason=f"Order #{str(order.id)[:8]}",
-            reference_order_id=order.id
+            # Reduce product quantity and track inventory
+            product = item_data["product"]
+            quantity_before = product.quantity_available
+            product.quantity_available -= item_data["quantity"]
+
+            inventory_transaction = InventoryTransaction(
+                product_id=product.id,
+                employee_id=None,  # Customer-initiated, no employee
+                transaction_type=TransactionType.STOCK_OUT,
+                quantity_change=-item_data["quantity"],
+                quantity_before=quantity_before,
+                quantity_after=product.quantity_available,
+                reason=f"Order #{str(order.id)[:8]}",
+                reference_order_id=order.id
+            )
+            db.add(inventory_transaction)
+
+            # Notify admins if stock has just dropped to or below the low stock threshold
+            if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+                notify_admins_low_stock(db, product.name, product.quantity_available)
+
+        # Log inventory event for order placement
+        log_inventory_event(
+            db=db,
+            action_type=InventoryActionType.ORDER_PLACED,
+            description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} ({len(order_items)} items)",
+            actor_customer_id=current_customer.id,
+            related_entity_type=RelatedEntityType.ORDER,
+            related_entity_id=order.id
         )
-        db.add(inventory_transaction)
 
-        # Notify admins if stock has just dropped to or below the low stock threshold
-        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
-            notify_admins_low_stock(db, product.name, product.quantity_available)
+        # Notify managers about the new order
+        notify_managers_new_order(db=db, order=order)
 
-    # Log inventory event for order placement
-    log_inventory_event(
-        db=db,
-        action_type=InventoryActionType.ORDER_PLACED,
-        description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} ({len(order_items)} items)",
-        actor_customer_id=current_customer.id,
-        related_entity_type=RelatedEntityType.ORDER,
-        related_entity_id=order.id
-    )
-
-    # Notify managers about the new order
-    notify_managers_new_order(db=db, order=order)
-
-    db.commit()
-    db.refresh(order)
+        db.commit()
+        db.refresh(order)
+    except OperationalError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Checkout conflict, please try again")
 
     return order_to_response(order, db)
 
@@ -732,117 +737,121 @@ async def create_offline_sale(
     total_amount = Decimal("0")
     order_items_data = []
 
-    for item_data in sale_data.items:
-        product = db.query(Product).filter(
-            Product.id == item_data.product_id,
-            Product.is_active == True
-        ).first()
+    try:
+        for item_data in sale_data.items:
+            product = db.query(Product).filter(
+                Product.id == item_data.product_id,
+                Product.is_active == True
+            ).with_for_update().first()
 
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product {item_data.product_id} not found or inactive"
-            )
+            if not product:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Product {item_data.product_id} not found or inactive"
+                )
 
-        if product.quantity_available < item_data.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}, Requested: {item_data.quantity}"
-            )
+            if product.quantity_available < item_data.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}, Requested: {item_data.quantity}"
+                )
 
-        # Calculate item total using provided unit_price
-        item_total = item_data.unit_price * item_data.quantity
-        total_amount += item_total
+            # Calculate item total using provided unit_price
+            item_total = item_data.unit_price * item_data.quantity
+            total_amount += item_total
 
-        order_items_data.append({
-            "product": product,
-            "quantity": item_data.quantity,
-            "unit_price": item_data.unit_price
-        })
+            order_items_data.append({
+                "product": product,
+                "quantity": item_data.quantity,
+                "unit_price": item_data.unit_price
+            })
 
-    # Create order for offline sale
-    order = Order(
-        customer_id=None,  # No customer for offline sales
-        status=OrderStatus.DELIVERED,  # Offline sales are immediately delivered
-        delivery_method=DeliveryMethod.PICKUP,  # Offline = pickup
-        sales_channel=SalesChannel.OFFLINE,
-        total_amount=total_amount,
-        offline_customer_name=sale_data.customer_name,
-        offline_customer_phone=sale_data.customer_phone,
-        notes=sale_data.notes
-    )
-    db.add(order)
-    db.flush()  # Get order ID
+        # Create order for offline sale
+        order = Order(
+            customer_id=None,  # No customer for offline sales
+            status=OrderStatus.DELIVERED,  # Offline sales are immediately delivered
+            delivery_method=DeliveryMethod.PICKUP,  # Offline = pickup
+            sales_channel=SalesChannel.OFFLINE,
+            total_amount=total_amount,
+            offline_customer_name=sale_data.customer_name,
+            offline_customer_phone=sale_data.customer_phone,
+            notes=sale_data.notes
+        )
+        db.add(order)
+        db.flush()  # Get order ID
 
-    # Create initial order status history
-    status_history = OrderStatusHistory(
-        order_id=order.id,
-        old_status=None,
-        new_status=OrderStatus.DELIVERED,
-        changed_by_employee_id=current_employee.id,
-        notes="Offline sale created"
-    )
-    db.add(status_history)
-
-    # Create order items and update product quantities with inventory tracking
-    for item_data in order_items_data:
-        order_item = OrderItem(
+        # Create initial order status history
+        status_history = OrderStatusHistory(
             order_id=order.id,
-            product_id=item_data["product"].id,
-            quantity=item_data["quantity"],
-            unit_price=item_data["unit_price"]
+            old_status=None,
+            new_status=OrderStatus.DELIVERED,
+            changed_by_employee_id=current_employee.id,
+            notes="Offline sale created"
         )
-        db.add(order_item)
+        db.add(status_history)
 
-        # Reduce product quantity and track inventory
-        product = item_data["product"]
-        quantity_before = product.quantity_available
-        product.quantity_available -= item_data["quantity"]
+        # Create order items and update product quantities with inventory tracking
+        for item_data in order_items_data:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item_data["product"].id,
+                quantity=item_data["quantity"],
+                unit_price=item_data["unit_price"]
+            )
+            db.add(order_item)
 
-        inventory_transaction = InventoryTransaction(
-            product_id=product.id,
+            # Reduce product quantity and track inventory
+            product = item_data["product"]
+            quantity_before = product.quantity_available
+            product.quantity_available -= item_data["quantity"]
+
+            inventory_transaction = InventoryTransaction(
+                product_id=product.id,
+                employee_id=current_employee.id,
+                transaction_type=TransactionType.STOCK_OUT,
+                quantity_change=-item_data["quantity"],
+                quantity_before=quantity_before,
+                quantity_after=product.quantity_available,
+                reason=f"Offline Sale #{str(order.id)[:8]}",
+                reference_order_id=order.id
+            )
+            db.add(inventory_transaction)
+
+            # Notify admins if stock has just dropped to or below the low stock threshold
+            if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+                notify_admins_low_stock(db, product.name, product.quantity_available)
+
+        # Log inventory event for offline sale
+        customer_info = sale_data.customer_name or "Walk-in customer"
+        log_inventory_event(
+            db=db,
+            action_type=InventoryActionType.ORDER_PLACED,
+            description=f"Offline sale by {current_employee.email} for {customer_info} - Rs. {total_amount:.2f} ({len(order_items_data)} items)",
+            actor_employee_id=current_employee.id,
+            related_entity_type=RelatedEntityType.ORDER,
+            related_entity_id=order.id
+        )
+
+        # Create audit log entry for the offline sale
+        audit_log = AuditLog(
             employee_id=current_employee.id,
-            transaction_type=TransactionType.STOCK_OUT,
-            quantity_change=-item_data["quantity"],
-            quantity_before=quantity_before,
-            quantity_after=product.quantity_available,
-            reason=f"Offline Sale #{str(order.id)[:8]}",
-            reference_order_id=order.id
+            action="CREATE_OFFLINE_SALE",
+            entity_type="Order",
+            entity_id=str(order.id),
+            details={
+                "total_amount": str(total_amount),
+                "items_count": len(order_items_data),
+                "customer_name": sale_data.customer_name,
+                "customer_phone": sale_data.customer_phone
+            }
         )
-        db.add(inventory_transaction)
+        db.add(audit_log)
 
-        # Notify admins if stock has just dropped to or below the low stock threshold
-        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
-            notify_admins_low_stock(db, product.name, product.quantity_available)
-
-    # Log inventory event for offline sale
-    customer_info = sale_data.customer_name or "Walk-in customer"
-    log_inventory_event(
-        db=db,
-        action_type=InventoryActionType.ORDER_PLACED,
-        description=f"Offline sale by {current_employee.email} for {customer_info} - Rs. {total_amount:.2f} ({len(order_items_data)} items)",
-        actor_employee_id=current_employee.id,
-        related_entity_type=RelatedEntityType.ORDER,
-        related_entity_id=order.id
-    )
-
-    # Create audit log entry for the offline sale
-    audit_log = AuditLog(
-        employee_id=current_employee.id,
-        action="CREATE_OFFLINE_SALE",
-        entity_type="Order",
-        entity_id=str(order.id),
-        details={
-            "total_amount": str(total_amount),
-            "items_count": len(order_items_data),
-            "customer_name": sale_data.customer_name,
-            "customer_phone": sale_data.customer_phone
-        }
-    )
-    db.add(audit_log)
-
-    db.commit()
-    db.refresh(order)
+        db.commit()
+        db.refresh(order)
+    except OperationalError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Checkout conflict, please try again")
 
     # Build response
     items_response = []
@@ -1036,76 +1045,166 @@ async def initiate_checkout(
     subtotal = Decimal("0")
     order_items = []
 
-    for item_data in checkout_data.items:
-        product = db.query(Product).filter(
-            Product.id == item_data.product_id,
-            Product.is_active == True
-        ).first()
+    try:
+        for item_data in checkout_data.items:
+            product = db.query(Product).filter(
+                Product.id == item_data.product_id,
+                Product.is_active == True
+            ).with_for_update().first()
 
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product {item_data.product_id} not found or inactive"
-            )
+            if not product:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Product {item_data.product_id} not found or inactive"
+                )
 
-        if product.quantity_available < item_data.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
-            )
+            if product.quantity_available < item_data.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Insufficient stock for {product.name}. Available: {product.quantity_available}"
+                )
 
-        item_total = product.price * item_data.quantity
-        subtotal += item_total
+            item_total = product.price * item_data.quantity
+            subtotal += item_total
 
-        order_items.append({
-            "product": product,
-            "quantity": item_data.quantity,
-            "unit_price": product.price
-        })
+            order_items.append({
+                "product": product,
+                "quantity": item_data.quantity,
+                "unit_price": product.price
+            })
 
-    # Look up delivery fee from DB for shipping orders
-    delivery_fee = Decimal("0")
-    if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
-        district_record = db.query(DeliveryFee).filter(
-            DeliveryFee.district_name == checkout_data.shipping_district
-        ).first()
-        if not district_record:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No delivery fee set for district '{checkout_data.shipping_district}'. Please contact the store."
-            )
-        delivery_fee = Decimal(str(district_record.fee))
+        # Look up delivery fee from DB for shipping orders
+        delivery_fee = Decimal("0")
+        if checkout_data.delivery_method == DeliveryMethod.SHIPPING:
+            district_record = db.query(DeliveryFee).filter(
+                DeliveryFee.district_name == checkout_data.shipping_district
+            ).first()
+            if not district_record:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"No delivery fee set for district '{checkout_data.shipping_district}'. Please contact the store."
+                )
+            delivery_fee = Decimal(str(district_record.fee))
 
-    total_amount = subtotal + delivery_fee
+        total_amount = subtotal + delivery_fee
 
-    # Determine payment amounts
-    is_pickup = checkout_data.delivery_method == DeliveryMethod.PICKUP
-    requires_payment = not is_pickup or not checkout_data.skip_payment
+        # Determine payment amounts
+        is_pickup = checkout_data.delivery_method == DeliveryMethod.PICKUP
+        requires_payment = not is_pickup or not checkout_data.skip_payment
 
-    if checkout_data.pay_full_amount:
-        pay_now_amount = total_amount
-    else:
-        # 30% minimum for delivery, full amount if pickup with payment
-        if is_pickup:
+        if checkout_data.pay_full_amount:
             pay_now_amount = total_amount
         else:
-            pay_now_amount = (total_amount * Decimal("0.30")).quantize(Decimal("0.01"))
+            # 30% minimum for delivery, full amount if pickup with payment
+            if is_pickup:
+                pay_now_amount = total_amount
+            else:
+                pay_now_amount = (total_amount * Decimal("0.30")).quantize(Decimal("0.01"))
 
-    remaining_cod_amount = total_amount - pay_now_amount
+        remaining_cod_amount = total_amount - pay_now_amount
 
-    # For pickup orders without payment, create order immediately
-    if is_pickup and checkout_data.skip_payment:
+        # For pickup orders without payment, create order immediately
+        if is_pickup and checkout_data.skip_payment:
+            order = Order(
+                customer_id=current_customer.id,
+                status=OrderStatus.PENDING,
+                delivery_method=DeliveryMethod.PICKUP,
+                sales_channel=SalesChannel.ONLINE,
+                subtotal=subtotal,
+                delivery_fee=Decimal("0"),
+                total_amount=total_amount,
+                paid_amount=Decimal("0"),
+                remaining_amount=total_amount,
+                payment_status=PaymentStatus.NOT_PAID,
+                notes=checkout_data.notes
+            )
+            db.add(order)
+            db.flush()
+
+            # Create order items and reduce stock
+            for item_data in order_items:
+                order_item = OrderItem(
+                    order_id=order.id,
+                    product_id=item_data["product"].id,
+                    quantity=item_data["quantity"],
+                    unit_price=item_data["unit_price"]
+                )
+                db.add(order_item)
+
+                product = item_data["product"]
+                quantity_before = product.quantity_available
+                product.quantity_available -= item_data["quantity"]
+
+                inventory_transaction = InventoryTransaction(
+                    product_id=product.id,
+                    employee_id=None,
+                    transaction_type=TransactionType.STOCK_OUT,
+                    quantity_change=-item_data["quantity"],
+                    quantity_before=quantity_before,
+                    quantity_after=product.quantity_available,
+                    reason=f"Order #{str(order.id)[:8]}",
+                    reference_order_id=order.id
+                )
+                db.add(inventory_transaction)
+
+                # Notify admins if stock has just dropped to or below the low stock threshold
+                if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
+                    notify_admins_low_stock(db, product.name, product.quantity_available)
+
+            # Create status history
+            status_history = OrderStatusHistory(
+                order_id=order.id,
+                old_status=None,
+                new_status=OrderStatus.PENDING,
+                changed_by_employee_id=None,
+                notes="Pickup order created without advance payment"
+            )
+            db.add(status_history)
+
+            log_inventory_event(
+                db=db,
+                action_type=InventoryActionType.ORDER_PLACED,
+                description=f"Pickup order placed by {current_customer.email} - Rs. {total_amount:.2f} (No advance payment)",
+                actor_customer_id=current_customer.id,
+                related_entity_type=RelatedEntityType.ORDER,
+                related_entity_id=order.id
+            )
+
+            # Notify managers about the new order
+            notify_managers_new_order(db=db, order=order)
+
+            db.commit()
+
+            return InitiateCheckoutResponse(
+                order_id=str(order.id),
+                subtotal=subtotal,
+                delivery_fee=Decimal("0"),
+                total_amount=total_amount,
+                pay_now_amount=Decimal("0"),
+                remaining_cod_amount=total_amount,
+                payment_status=PaymentStatus.NOT_PAID,
+                delivery_method=DeliveryMethod.PICKUP,
+                requires_payment=False,
+                payhere_form_data=None,
+                message="Order placed successfully. Pay when you pick up."
+            )
+
+        # For payment orders, create order in PENDING state
         order = Order(
             customer_id=current_customer.id,
             status=OrderStatus.PENDING,
-            delivery_method=DeliveryMethod.PICKUP,
+            delivery_method=checkout_data.delivery_method,
             sales_channel=SalesChannel.ONLINE,
             subtotal=subtotal,
-            delivery_fee=Decimal("0"),
+            delivery_fee=delivery_fee,
             total_amount=total_amount,
             paid_amount=Decimal("0"),
             remaining_amount=total_amount,
             payment_status=PaymentStatus.NOT_PAID,
+            shipping_district=checkout_data.shipping_district,
+            shipping_address=checkout_data.shipping_address,
+            shipping_city=checkout_data.shipping_city,
+            shipping_postal_code=checkout_data.shipping_postal_code,
             notes=checkout_data.notes
         )
         db.add(order)
@@ -1147,14 +1246,14 @@ async def initiate_checkout(
             old_status=None,
             new_status=OrderStatus.PENDING,
             changed_by_employee_id=None,
-            notes="Pickup order created without advance payment"
+            notes="Order created, awaiting payment"
         )
         db.add(status_history)
 
         log_inventory_event(
             db=db,
             action_type=InventoryActionType.ORDER_PLACED,
-            description=f"Pickup order placed by {current_customer.email} - Rs. {total_amount:.2f} (No advance payment)",
+            description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} (Awaiting payment)",
             actor_customer_id=current_customer.id,
             related_entity_type=RelatedEntityType.ORDER,
             related_entity_id=order.id
@@ -1164,95 +1263,9 @@ async def initiate_checkout(
         notify_managers_new_order(db=db, order=order)
 
         db.commit()
-
-        return InitiateCheckoutResponse(
-            order_id=str(order.id),
-            subtotal=subtotal,
-            delivery_fee=Decimal("0"),
-            total_amount=total_amount,
-            pay_now_amount=Decimal("0"),
-            remaining_cod_amount=total_amount,
-            payment_status=PaymentStatus.NOT_PAID,
-            delivery_method=DeliveryMethod.PICKUP,
-            requires_payment=False,
-            payhere_form_data=None,
-            message="Order placed successfully. Pay when you pick up."
-        )
-
-    # For payment orders, create order in PENDING state
-    order = Order(
-        customer_id=current_customer.id,
-        status=OrderStatus.PENDING,
-        delivery_method=checkout_data.delivery_method,
-        sales_channel=SalesChannel.ONLINE,
-        subtotal=subtotal,
-        delivery_fee=delivery_fee,
-        total_amount=total_amount,
-        paid_amount=Decimal("0"),
-        remaining_amount=total_amount,
-        payment_status=PaymentStatus.NOT_PAID,
-        shipping_district=checkout_data.shipping_district,
-        shipping_address=checkout_data.shipping_address,
-        shipping_city=checkout_data.shipping_city,
-        shipping_postal_code=checkout_data.shipping_postal_code,
-        notes=checkout_data.notes
-    )
-    db.add(order)
-    db.flush()
-
-    # Create order items and reduce stock
-    for item_data in order_items:
-        order_item = OrderItem(
-            order_id=order.id,
-            product_id=item_data["product"].id,
-            quantity=item_data["quantity"],
-            unit_price=item_data["unit_price"]
-        )
-        db.add(order_item)
-
-        product = item_data["product"]
-        quantity_before = product.quantity_available
-        product.quantity_available -= item_data["quantity"]
-
-        inventory_transaction = InventoryTransaction(
-            product_id=product.id,
-            employee_id=None,
-            transaction_type=TransactionType.STOCK_OUT,
-            quantity_change=-item_data["quantity"],
-            quantity_before=quantity_before,
-            quantity_after=product.quantity_available,
-            reason=f"Order #{str(order.id)[:8]}",
-            reference_order_id=order.id
-        )
-        db.add(inventory_transaction)
-
-        # Notify admins if stock has just dropped to or below the low stock threshold
-        if quantity_before > LOW_STOCK_THRESHOLD and product.quantity_available <= LOW_STOCK_THRESHOLD:
-            notify_admins_low_stock(db, product.name, product.quantity_available)
-
-    # Create status history
-    status_history = OrderStatusHistory(
-        order_id=order.id,
-        old_status=None,
-        new_status=OrderStatus.PENDING,
-        changed_by_employee_id=None,
-        notes="Order created, awaiting payment"
-    )
-    db.add(status_history)
-
-    log_inventory_event(
-        db=db,
-        action_type=InventoryActionType.ORDER_PLACED,
-        description=f"Order placed by {current_customer.email} - Rs. {total_amount:.2f} (Awaiting payment)",
-        actor_customer_id=current_customer.id,
-        related_entity_type=RelatedEntityType.ORDER,
-        related_entity_id=order.id
-    )
-
-    # Notify managers about the new order
-    notify_managers_new_order(db=db, order=order)
-
-    db.commit()
+    except OperationalError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Checkout conflict, please try again")
 
     # Generate PayHere form data
     # Parse customer name into first/last

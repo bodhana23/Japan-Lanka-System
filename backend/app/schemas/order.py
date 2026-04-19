@@ -12,7 +12,7 @@ from app.models.order import OrderStatus, DeliveryMethod, SalesChannel, PaymentS
 # Order Item schemas
 class OrderItemCreate(BaseModel):
     product_id: UUID
-    quantity: int = Field(..., gt=0)
+    quantity: int = Field(..., gt=0, le=5, description="Maximum 5 units per part per order")
 
 
 class OrderItemResponse(BaseModel):

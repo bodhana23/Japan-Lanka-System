@@ -9,11 +9,11 @@ from pydantic import BaseModel, Field
 # CartItem schemas
 class CartItemCreate(BaseModel):
     product_id: UUID
-    quantity: int = Field(1, gt=0)
+    quantity: int = Field(1, gt=0, le=5)
 
 
 class CartItemUpdate(BaseModel):
-    quantity: int = Field(..., gt=0)
+    quantity: int = Field(..., gt=0, le=5)
 
 
 class CartItemResponse(BaseModel):

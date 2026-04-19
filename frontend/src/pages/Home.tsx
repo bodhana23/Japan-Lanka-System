@@ -403,6 +403,18 @@ const Home: React.FC = () => {
                 />
                 <div className="about-image-overlay"></div>
               </div>
+              <div className="about-image-wrapper about-image-wrapper-second">
+                <img
+                  src="/images/storefront.webp"
+                  alt="Japan Lanka Enterprises Storefront"
+                  className="about-img"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.parentElement!.style.display = 'none';
+                  }}
+                />
+                <div className="about-image-overlay"></div>
+              </div>
               <div className="about-experience-badge">
                 <span className="experience-number">15+</span>
                 <span className="experience-text">Years of Excellence</span>
@@ -490,7 +502,7 @@ const Home: React.FC = () => {
                 <a href="mailto:japanlanka@gmail.com" className="social-link" aria-label="Email us">
                   <Mail size={20} />
                 </a>
-                <a href="tel:+94412345678" className="social-link" aria-label="Call us">
+                <a href="tel:+940412245345" className="social-link" aria-label="Call us">
                   <Phone size={20} />
                 </a>
               </div>
@@ -522,7 +534,7 @@ const Home: React.FC = () => {
                 </li>
                 <li>
                   <Phone size={16} />
-                  <span>+94 41 234 5678</span>
+                  <span>0412245345</span>
                 </li>
                 <li>
                   <MapPin size={16} />

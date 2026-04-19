@@ -850,6 +850,10 @@
   pointer-events: none;
 }
 
+.about-image-wrapper-second {
+  margin-top: 16px;
+}
+
 .about-experience-badge {
   position: absolute;
   bottom: -1.5rem;
