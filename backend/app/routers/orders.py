@@ -420,6 +420,15 @@ async def update_order_status(
         )
 
     old_status = order.status
+
+    # Final states — no further transitions allowed
+    FINAL_STATUSES = {OrderStatus.DELIVERED, OrderStatus.PICKED_UP, OrderStatus.CANCELLED, OrderStatus.RETURN_APPROVED}
+    if old_status in FINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order status cannot be changed. '{old_status.value}' is a final state."
+        )
+
     order.status = status_update.status
 
     # COD collection: shipping order delivered → collect remaining COD amount
@@ -564,6 +573,7 @@ async def get_order_status_history(
 async def cancel_order(
     order_id: UUID,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db)
 ):
@@ -640,6 +650,16 @@ async def cancel_order(
 
     db.commit()
     db.refresh(order)
+
+    # Send cancellation email to customer (after commit so order state is final)
+    if order.customer and order.customer.email:
+        background_tasks.add_task(
+            send_order_status_email,
+            order=order,
+            new_status="cancelled",
+            include_bill=False,
+        )
+
     return order_to_response(order, db)
 
 
@@ -647,6 +667,7 @@ async def cancel_order(
 async def cancel_order_by_manager(
     order_id: UUID,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_employee: Employee = Depends(require_manager),
     db: Session = Depends(get_db)
 ):
@@ -715,6 +736,16 @@ async def cancel_order_by_manager(
 
     db.commit()
     db.refresh(order)
+
+    # Send cancellation email to customer (after commit so order state is final)
+    if order.customer and order.customer.email:
+        background_tasks.add_task(
+            send_order_status_email,
+            order=order,
+            new_status="cancelled",
+            include_bill=False,
+        )
+
     return order_to_response(order, db)
 
 

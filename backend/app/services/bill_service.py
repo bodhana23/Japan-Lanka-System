@@ -59,6 +59,9 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     )
     normal_style = styles["Normal"]
 
+    from decimal import Decimal
+    from app.models.order import OrderStatus
+
     elements = []
 
     # Company Header
@@ -76,6 +79,48 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
     )))
     elements.append(Spacer(1, 8 * mm))
 
+    # Cancelled / Return Approved banner — shown prominently below the title
+    if order.status == OrderStatus.CANCELLED:
+        elements.append(Paragraph("⚠  ORDER CANCELLED", ParagraphStyle(
+            "CancelledBanner",
+            parent=styles["Heading1"],
+            fontSize=16,
+            textColor=colors.HexColor("#dc2626"),
+            alignment=1,
+            borderPadding=6,
+        )))
+        elements.append(Paragraph(
+            "This order has been cancelled. All items have been restocked.",
+            ParagraphStyle(
+                "CancelledNote",
+                parent=styles["Normal"],
+                fontSize=10,
+                textColor=colors.HexColor("#dc2626"),
+                alignment=1,
+            )
+        ))
+        elements.append(Spacer(1, 6 * mm))
+    elif order.status == OrderStatus.RETURN_APPROVED:
+        elements.append(Paragraph("↩  RETURN APPROVED", ParagraphStyle(
+            "ReturnBanner",
+            parent=styles["Heading1"],
+            fontSize=16,
+            textColor=colors.HexColor("#d97706"),
+            alignment=1,
+            borderPadding=6,
+        )))
+        elements.append(Paragraph(
+            "A return has been approved for this order. Parts have been returned to stock.",
+            ParagraphStyle(
+                "ReturnNote",
+                parent=styles["Normal"],
+                fontSize=10,
+                textColor=colors.HexColor("#d97706"),
+                alignment=1,
+            )
+        ))
+        elements.append(Spacer(1, 6 * mm))
+
     # Order Details
     order_id_short = str(order.id)[:8].upper()
     order_date = order.created_at.strftime("%d %b %Y, %I:%M %p")
@@ -83,13 +128,12 @@ def generate_bill_pdf(order: "Order") -> BytesIO:
 
     # Payment status - use actual payment fields from the order
     is_offline = order.sales_channel.value == "offline"
-    from decimal import Decimal
-    from app.models.order import OrderStatus
     paid_amount = Decimal(str(order.paid_amount or 0))
     remaining_amount = Decimal(str(order.remaining_amount or 0))
     total = Decimal(str(order.total_amount or 0))
 
     # Orders that are delivered or picked_up are fully settled regardless of DB payment fields
+    # Cancelled and return_approved orders are NOT considered fully settled
     is_fully_settled = order.status in (OrderStatus.DELIVERED, OrderStatus.PICKED_UP)
 
     if is_offline or is_fully_settled:
